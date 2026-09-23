@@ -125,6 +125,45 @@
       $("mot").focus();
     });
 
+    /* LES PIÈCES QUI MANQUENT, SANS TOUT RECHARGER.
+
+       Un appareil qui avait ouvert le dossier avant que les pièces existent ne
+       les recevait jamais : la porte passait directement par « déjà ouvert ».
+       Ce bouton redemande le mot de passe, parce que les pièces sont dans le
+       bloc chiffré comme le reste, et n'installe que ce qui n'est pas là. Rien
+       de ce qui a été saisi sur l'appareil n'est touché. Mesuré le
+       23 septembre 2026, au premier client. */
+    $("completer").addEventListener("click", function () {
+      var mot = $("mot-deja").value;
+      if (!mot) { $("mot-deja").focus(); return; }
+      $("dit-deja").hidden = true;
+      $("completer").disabled = true;
+      $("completer").textContent = "Récupération...";
+      window.setTimeout(function () {
+        ouvrir(mot).then(function (dossier) {
+          return poserPieces(dossier.documents);
+        }).then(function (n) {
+          $("completer").disabled = false;
+          $("completer").textContent = "Récupérer mes pièces";
+          $("mot-deja").value = "";
+          $("dit-deja").hidden = false;
+          $("dit-deja").className = "dit bien";
+          $("dit-deja").textContent = n
+            ? n + " pièce" + (n > 1 ? "s" : "") + " récupérée" + (n > 1 ? "s" : "") +
+              ". Vous les retrouvez dans « Mes documents »."
+            : "Vos pièces étaient déjà là, rien à récupérer.";
+          compter("compte-deja");
+        }).catch(function () {
+          $("completer").disabled = false;
+          $("completer").textContent = "Récupérer mes pièces";
+          $("dit-deja").hidden = false;
+          $("dit-deja").className = "dit mal";
+          $("dit-deja").textContent = "Ce mot de passe n'ouvre pas le dossier.";
+          $("mot-deja").select();
+        });
+      }, 40);
+    });
+
     function essayer() {
       var mot = $("mot").value;
       if (!mot) { $("mot").focus(); return; }

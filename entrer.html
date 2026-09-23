@@ -167,11 +167,33 @@
     <div class="carte">
       <h2>Déjà ouvert sur cet appareil</h2>
       <div class="coord" id="compte-deja"></div>
-      <button type="button" class="second" id="recharger">Recharger le dossier d'origine</button>
-      <p class="aide" style="color:var(--texte-3);margin-top:12px">Vos modifications sont
-        conservées ici. Recharger le dossier d'origine les remplacerait.</p>
     </div>
+
+    <!-- RÉCUPÉRER LES PIÈCES SANS TOUT RECHARGER. Un appareil ouvert avant
+         que les pièces existent ne les avait jamais reçues. Le mot de passe
+         est redemandé parce qu'elles sont dans le bloc chiffré, mais rien de
+         ce qui a été saisi ici n'est touché. -->
+    <div class="cle">
+      <h2>Récupérer mes pièces</h2>
+      <p class="aide" style="margin:0 0 14px">Le registre du personnel, l'état de parc et le
+        classeur de contrôle des chauffeurs. Seul ce qui manque est ajouté, ce que vous avez
+        saisi ici ne bouge pas.</p>
+      <label>
+        <input type="password" id="mot-deja" autocomplete="current-password"
+               placeholder="votre mot de passe" aria-label="Mot de passe">
+      </label>
+      <button type="button" id="completer">Récupérer mes pièces</button>
+      <div class="dit" id="dit-deja" hidden></div>
+    </div>
+
     <a class="entrer" href="index.html">Entrer dans l'application</a>
+
+    <div class="carte">
+      <h2>Repartir du dossier d'origine</h2>
+      <p class="aide" style="color:var(--texte-3);margin:0">Tout ce qui a été saisi sur cet
+        appareil serait remplacé par le dossier tel que nous vous l'avons remis.</p>
+      <button type="button" class="second" id="recharger">Recharger le dossier d'origine</button>
+    </div>
   </section>
 
   <p class="pied">
