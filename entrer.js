@@ -49,13 +49,42 @@
       try { window.localStorage.setItem(c, JSON.stringify(dossier[c])); } catch (e) {}
     });
     try { window.localStorage.setItem("dossier-ouvert-le", new Date().toISOString()); } catch (e) {}
+    return poserPieces(dossier.documents);
+  }
+
+  /* LES PIÈCES DU CLIENT, DANS SA BASE DE DOCUMENTS.
+
+     Les chiffres ne suffisent pas : il doit retrouver ses fichiers, le
+     registre tel qu'il nous l'a remis et le classeur que nous en avons tiré.
+     Ils entrent dans IndexedDB par la même porte que s'il les avait déposés
+     lui-même, et se retrouvent ensuite dans « Mes documents ».
+
+     Le contenu est gardé en Blob, jamais converti : un PDF recodé n'est plus
+     le même fichier, et c'est celui-là qu'un inspecteur demanderait. */
+  function poserPieces(pieces) {
+    if (!pieces || !pieces.length || !window.Documents) return Promise.resolve(0);
+    var faites = 0;
+    return pieces.reduce(function (avant, p) {
+      return avant.then(function () {
+        return window.Documents.liste(p.rubrique).then(function (deja) {
+          var vu = (deja || []).some(function (d) { return d.nom === p.nom; });
+          if (vu) return null;
+          var blob = new Blob([deBase64(p.b64)], { type: p.type });
+          faites++;
+          return window.Documents.enregistrer(p.rubrique, {
+            nom: p.nom, sorte: p.sorte, type: p.type, note: p.note, contenu: blob,
+          });
+        });
+      });
+    }, Promise.resolve()).then(function () { return faites; })
+      .catch(function () { return faites; });
   }
 
   function lire(c) {
     try { return JSON.parse(window.localStorage.getItem(c) || "null"); } catch (e) { return null; }
   }
 
-  function compter(cible) {
+  function compter(cible, pieces) {
     var p = lire("profil-entreprise") || {};
     var r = lire("registre-personnel") || {};
     var v = lire("flotte-vehicules") || [];
@@ -70,6 +99,7 @@
       ["Véhicules", String(v.length)],
       ["Fiches conducteur", String(Object.keys(c).length)],
     ];
+    if (pieces) L.push(["Pièces déposées", String(pieces)]);
     $(cible).innerHTML = L.map(function (x) {
       return '<div class="l"><span class="q">' + x[0] + '</span><span class="v">' + x[1] + "</span></div>";
     }).join("");
@@ -105,13 +135,14 @@
          rien dire pendant la seconde que prend la dérivation. */
       window.setTimeout(function () {
         ouvrir(mot).then(function (dossier) {
-          poser(dossier);
-          $("patiente").hidden = true;
-          $("e-ouvrir").hidden = true;
-          $("e-deja").hidden = true;
-          $("e-ouvert").hidden = false;
-          compter("compte");
-          window.scrollTo(0, 0);
+          return Promise.resolve(poser(dossier)).then(function (n) {
+            $("patiente").hidden = true;
+            $("e-ouvrir").hidden = true;
+            $("e-deja").hidden = true;
+            $("e-ouvert").hidden = false;
+            compter("compte", n);
+            window.scrollTo(0, 0);
+          });
         }).catch(function () {
           $("patiente").hidden = true;
           $("ouvrir").disabled = false;
