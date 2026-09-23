@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SARL TEC</title>
+<meta name="description" content="L'espace de la SARL TEC. Vos données restent sur votre appareil.">
+<meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1F3864">
+
+<!--
+  LA PORTE DU DOSSIER.
+
+  Pourquoi cet écran existe. L'application ne garde rien en ligne : tout vit
+  dans le navigateur de celui qui saisit. Pour que le client retrouve ses
+  données en ouvrant un simple lien, elles voyagent avec la page, mais
+  chiffrées : ce qui est en ligne est un bloc illisible, et seul le mot de
+  passe le rouvre.
+
+  Comment. Le mot de passe ne sert pas à déverrouiller une porte, il fabrique
+  la clé : PBKDF2-SHA256, six cent mille tours, puis AES-256-GCM. Il n'est
+  écrit nulle part, ni dans la page, ni sur le serveur, ni dans le dépôt. Sans
+  lui, le bloc ne s'ouvre pas, et aucun essai à l'aveugle n'y parvient en un
+  temps utile.
+
+  Ce qui est en clair sur cette page, et pourquoi. La dénomination, le SIRET,
+  l'adresse, le code d'activité et la convention collective : ce sont les
+  mentions publiques de l'entreprise, celles que porte son extrait
+  d'immatriculation. Aucun nom de salarié, aucune date de naissance, aucune
+  nationalité n'apparaît avant le mot de passe.
+
+  Ce qui se passe ensuite. Les données sont écrites dans le stockage local de
+  l'appareil, et l'application s'ouvre dessus comme si elles avaient été
+  saisies là. Elles n'en repartent jamais : ni vers nous, ni vers personne.
+-->
+
+<link rel="stylesheet" href="style.css">
+<style>
+  /* LA COULEUR, DISCRÈTE. Le bleu d'encre de la maison sur un papier très
+     pâle, un filet doré pour la seule ligne qui doit accrocher l'œil, et rien
+     d'autre. Demande du 23 septembre 2026 : « une très belle page en couleur
+     discret ». */
+  :root{
+    --encre-p:#1F3864;
+    --papier-p:#f7f8fa;
+    --or:#8a6d3b;
+    --or-clair:#f3ede1;
+  }
+  body{background:var(--papier-p)}
+  main.wrap{max-width:520px;padding:0 20px var(--e7)}
+
+  .fronton{padding:40px 0 4px;text-align:center}
+  .fronton .marque{display:inline-flex;align-items:center;gap:9px;
+    font:600 11px/1 system-ui;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--or);background:var(--or-clair);border-radius:999px;padding:8px 15px}
+  .fronton .marque .pastille{width:5px;height:5px;border-radius:50%;background:currentColor}
+  .fronton h1{font:600 33px/1.15 Georgia,'Times New Roman',serif;color:var(--encre-p);
+    margin:20px 0 6px;letter-spacing:-.01em}
+  .fronton .sous{font-size:var(--t4);color:var(--texte-2);margin:0}
+  .fronton .trait{width:54px;height:2px;background:var(--or);margin:22px auto 0;opacity:.7}
+
+  .carte{background:#fff;border:1px solid var(--filet);border-radius:18px;
+    padding:26px 24px;margin:26px 0 0;box-shadow:0 1px 3px rgba(31,56,100,.06)}
+  .carte h2{font:600 10px/1 system-ui;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--texte-3);margin:0 0 18px}
+
+  .coord{display:grid;gap:0}
+  .coord .l{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 18px;align-items:baseline;
+    padding:12px 0;border-bottom:1px solid #eef0f3}
+  .coord .l:last-child{border-bottom:0;padding-bottom:0}
+  .coord .q{font-size:var(--t2);color:var(--texte-3)}
+  .coord .v{font:600 var(--t3)/1.4 system-ui;color:var(--encre-p);text-align:right}
+  .coord .v.long{grid-column:1/-1;text-align:left;margin-top:-4px}
+
+  .cle{background:var(--encre-p);border-radius:18px;padding:26px 24px;margin:18px 0 0;
+    box-shadow:0 2px 10px rgba(31,56,100,.18)}
+  .cle h2{font:600 10px/1 system-ui;letter-spacing:.16em;text-transform:uppercase;
+    color:#9fb0cc;margin:0 0 16px}
+  .cle input{width:100%;box-sizing:border-box;font:400 19px/1.3 system-ui;min-height:56px;
+    padding:14px 16px;border:1px solid #cfd6e0;border-radius:12px;background:#fff;color:var(--encre-p);letter-spacing:.02em}
+  .cle input::placeholder{color:#b9c0c9;letter-spacing:0}
+  .cle button{width:100%;margin:14px 0 0;font:600 18px system-ui;padding:16px;min-height:56px;
+    border-radius:12px;background:var(--or);color:#fff;border:0;cursor:pointer}
+  .cle button:hover{background:#755c31}
+  .cle button:disabled{opacity:.6;cursor:default}
+  .cle .aide{margin:14px 0 0;font-size:var(--t2);line-height:1.55;color:#9fb0cc}
+
+  .dit{margin:14px 0 0;padding:13px 15px;border-radius:12px;font-size:var(--t2);line-height:1.5}
+  .dit.mal{background:#fdecec;color:#8E1B1B}
+  .dit.attend{background:#fff;color:var(--encre-p)}
+  .dit.bien{background:var(--vert-clair);border:1px solid var(--vert);color:var(--vert);
+    font-size:var(--t3)}
+
+  .entrer{display:block;width:100%;box-sizing:border-box;margin:22px 0 0;text-align:center;
+    text-decoration:none;font:600 18px system-ui;padding:18px;border-radius:18px;
+    background:var(--encre-p);color:#fff}
+  .entrer:hover{background:#17294a}
+
+  .carte .second{width:100%;margin:16px 0 0;font:600 16px system-ui;padding:14px;
+    min-height:52px;border-radius:12px}
+
+  .pied{margin:30px 0 0;font-size:13px;line-height:1.7;color:var(--texte-3)}
+  .pied b{color:var(--texte-2);font-weight:600}
+  .pied .sep{display:block;height:1px;background:#e6e9ee;margin:18px 0}
+  [hidden]{display:none !important}
+</style>
+</head>
+<body>
+
+<main class="wrap">
+
+  <div class="fronton">
+    <span class="marque"><span class="pastille"></span>Espace client</span>
+    <h1>SARL TEC</h1>
+    <p class="sous">Transports routiers de fret interurbains</p>
+    <div class="trait"></div>
+  </div>
+
+  <div class="carte">
+    <h2>Coordonnées</h2>
+    <div class="coord">
+      <div class="l"><span class="q">Dénomination</span><span class="v">SARL TEC</span></div>
+      <div class="l"><span class="q">SIRET</span><span class="v">538 450 479 00034</span></div>
+      <div class="l"><span class="q">Activité</span>
+        <span class="v long">Transports routiers de fret interurbains</span></div>
+      <div class="l"><span class="q">Siège</span>
+        <span class="v long">23 avenue du Château<br>95100 Argenteuil</span></div>
+      <div class="l"><span class="q">Convention collective</span>
+        <span class="v">IDCC 0016</span>
+        <span class="v long">Transports routiers et activités auxiliaires du transport</span></div>
+      <div class="l"><span class="q">Effectif inscrit</span><span class="v">85 salariés</span></div>
+      <div class="l"><span class="q">Dont en poste</span><span class="v">82 salariés</span></div>
+      <div class="l"><span class="q">Registre du personnel, édité le</span><span class="v">9 septembre 2026</span></div>
+      <div class="l"><span class="q">État de parc, arrêté au</span><span class="v">29 mai 2026</span></div>
+    </div>
+  </div>
+
+  <section id="e-ouvrir">
+    <div class="cle">
+      <h2>Mot de passe</h2>
+      <label>
+        <input type="password" id="mot" autocomplete="current-password"
+               placeholder="celui qui vous a été communiqué" autofocus
+               aria-label="Mot de passe">
+      </label>
+      <button type="button" id="ouvrir">Ouvrir mon dossier</button>
+      <p class="aide">La première ouverture demande une seconde : la clé se fabrique sur votre
+        appareil, elle n'est conservée nulle part.</p>
+      <div class="dit mal" id="erreur" hidden></div>
+      <div class="dit attend" id="patiente" hidden>Ouverture en cours...</div>
+    </div>
+  </section>
+
+  <section id="e-ouvert" hidden>
+    <div class="carte">
+      <h2>Votre dossier est ouvert</h2>
+      <div class="coord" id="compte"></div>
+      <div class="dit bien" style="margin-top:18px">Tout est maintenant sur cet appareil. Vous
+        pouvez modifier, compléter, imprimer. Rien ne repart ailleurs.</div>
+    </div>
+    <a class="entrer" href="index.html">Entrer dans l'application</a>
+  </section>
+
+  <section id="e-deja" hidden>
+    <div class="carte">
+      <h2>Déjà ouvert sur cet appareil</h2>
+      <div class="coord" id="compte-deja"></div>
+      <button type="button" class="second" id="recharger">Recharger le dossier d'origine</button>
+      <p class="aide" style="color:var(--texte-3);margin-top:12px">Vos modifications sont
+        conservées ici. Recharger le dossier d'origine les remplacerait.</p>
+    </div>
+    <a class="entrer" href="index.html">Entrer dans l'application</a>
+  </section>
+
+  <p class="pied">
+    <b>Où sont vos données.</b> Sur cet appareil, dans ce navigateur, et nulle part ailleurs.
+    Ce qui se trouve en ligne est un bloc chiffré que votre mot de passe seul déchiffre, ici.
+    Ni nous ni l'hébergeur ne pouvons le lire.
+    <span class="sep"></span>
+    <b>Sur un autre appareil.</b> Le même lien et le même mot de passe rouvrent le dossier
+    d'origine, sans les modifications faites ici.
+    <span class="sep"></span>
+    <b>Effacer.</b> Vider les données de site de ce navigateur efface tout, sans retour.
+    Exportez d'abord ce que vous tenez à garder.
+  </p>
+
+</main>
+
+<script src="dossier-tec.js"></script>
+<script src="entrer.js"></script>
+</body>
+</html>

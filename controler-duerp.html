@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contrôle du document unique</title>
+<link rel="manifest" href="manifest-audit-sst.json">
+<meta name="theme-color" content="#16181d">
+<script src="liste-choix.js"></script>
+<script src="listes-valeurs.js"></script>
+<script src="listes-auto.js"></script>
+<script src="lire-pdf.js"></script>
+<script src="lire-ocr.js"></script>
+<script src="apercu.js"></script>
+<script src="droits.js"></script>
+
+<!--
+  L'ÉCRAN DU « OUI » : le dépôt d'abord, le diagnostic, la version corrigée.
+
+  On dépose son document unique (Word .docx ou texte), il est lu dans le
+  navigateur. Chaque risque du métier y est cherché : trouvé, il est cité ;
+  introuvable, il est écrit et coché pour la version corrigée. La version
+  corrigée, c'est le texte déposé suivi des compléments, prête en Word.
+
+  « ?depart=non » renvoie à duerp.html, l'écran du document écrit : c'est le
+  lien que pose le parcours. La logique est dans controler-duerp.js.
+  Tout reste sur ce poste : rien n'est envoyé.
+-->
+
+<link rel="stylesheet" href="style.css">
+<style>
+  /* ══════ LE VERDICT ET L'ANALYSE ══════
+     Mêmes codes que le contrôle du règlement intérieur, posés le 13 septembre
+     2026 : deux cartes qui disent en deux lignes ce qui va et ce qui ne va
+     pas, puis le détail, le rouge d'abord. Demande du 14 septembre 2026 :
+     « l'application fera l'analyse détaillée avec un compte rendu ». */
+  .verdict{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0 6px}
+  .verdict .v{border-radius:12px;padding:14px;border:2px solid transparent}
+  .verdict .v .n{font:700 30px/1 system-ui;display:block}
+  .verdict .v .q{font:600 15px/1.3 system-ui;display:block;margin-top:6px}
+  .verdict .v .d{font-size:13px;line-height:1.45;margin-top:6px;display:block}
+  .verdict .ko{background:var(--rouge-clair);border-color:var(--rouge);color:var(--rouge)}
+  .verdict .ok{background:var(--vert-clair);border-color:var(--vert);color:var(--vert)}
+  .verdict .v.vide{opacity:.55}
+  @media (max-width:430px){.verdict{grid-template-columns:1fr}}
+  .bloc-t{display:flex;align-items:center;gap:9px;margin:24px 0 4px;font:600 17px/1.3 system-ui}
+  .bloc-t .pastille{width:12px;height:12px;border-radius:50%;flex:none}
+  .bloc-t.r .pastille{background:var(--rouge)}
+  .bloc-t.v .pastille{background:var(--vert)}
+  .bloc-s{font-size:14px;color:var(--texte-2);margin:0 0 8px}
+  .ligne .nom .etat{font:600 11px/1 system-ui;padding:5px 8px;border-radius:5px;text-transform:uppercase;
+    letter-spacing:.04em;margin-right:8px;display:inline-block}
+  .ligne .nom .etat.ok{background:var(--vert-clair);color:var(--vert)}
+  .ligne .nom .etat.ko{background:var(--rouge-clair);color:var(--rouge)}
+  .cr{margin:16px 0 0;border:1px solid var(--filet);border-radius:11px;overflow:hidden;background:var(--carte)}
+  .cr h3{margin:0;padding:12px 15px;font:600 16px/1.3 system-ui;background:var(--creux);border-bottom:1px solid var(--filet)}
+  .cr ul{margin:0;padding:12px 15px 12px 32px;font-size:14.5px;line-height:1.6}
+  .cr li{margin:0 0 6px}
+  .cr .suite{padding:0 15px 14px;font-size:14px;color:var(--texte-2);line-height:1.6}
+  textarea#depot{min-height:200px;font:16px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;margin:8px 0}
+  #diagnostic .groupe{margin:18px 0 0}
+  #diagnostic .ligne{gap:10px}
+  #diagnostic .ligne.deja .nom{color:var(--texte-2)}
+  #diagnostic .ligne .du{white-space:normal;font-size:14px;margin-top:2px}
+  #diagnostic .ajout{display:inline-flex;align-items:center;gap:8px;flex:none;font:600 15px/1 system-ui;
+    color:var(--texte-2);min-height:44px;cursor:pointer}
+  #diagnostic .ajout.manque{color:var(--accent)}
+  #diagnostic .ajout input{width:22px;height:22px;margin:0}
+  .feuille h3{font:700 16px/1.3 Georgia,"Times New Roman",serif;color:#1a1d22;margin:22px 0 6px}
+  .feuille ul,.feuille ol{margin:0 0 10px;padding-left:22px}
+  .feuille li{margin:0 0 4px}
+  .feuille .qui{color:var(--texte-2);font-size:14px;margin:0 0 12px}
+  .feuille .cot{color:var(--texte-2)}
+  .feuille p.ent{font-size:18px;margin:0 0 6px}
+  .feuille .depose{border-left:3px solid var(--filet);padding-left:12px;margin:0 0 14px}
+  @media print{.champs,.barre,details,#diagnostic,#lecture,#depot-zone{display:none !important}
+    .feuille .qui,.feuille .cot{color:#000}}
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <p class="marque">Contrôle</p>
+    <div class="outils">
+      <a href="index.html">Accueil</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div id="depot-zone">
+    <div class="champs" style="margin:16px 0 8px">
+      <label class="ch large"><span class="nom">Déposez votre document unique (Word, PDF ou texte)</span>
+        <input type="file" id="fichier" accept=".docx,.txt,text/plain,.pdf,application/pdf"></label>
+    </div>
+    <div id="lecture"></div>
+    <details id="coller"><summary>Ou coller le texte</summary>
+      <textarea id="depot" placeholder="Collez ici le texte de votre document unique."></textarea>
+      <button type="button" class="second" id="controler">Contrôler le texte collé</button>
+    </details>
+  </div>
+
+  <div id="diagnostic"></div>
+
+  <div id="corrige" hidden>
+    <div class="champs" style="margin:16px 0">
+      <label class="ch"><span class="nom">Responsable</span>
+        <input id="d-responsable" placeholder="nom et qualité"></label>
+      <label class="ch"><span class="nom">Établissement</span>
+        <input id="d-etablissement" placeholder="adresse du site"></label>
+    </div>
+    <div class="feuille" id="feuille"></div>
+    <div class="barre pile">
+      <button type="button" id="dl-docx">Télécharger en Word</button>
+      <button type="button" class="second" id="imprimer">Imprimer</button>
+    </div>
+  </div>
+
+  <details><summary>Voir le texte de loi</summary><div class="corps" id="textes"></div></details>
+
+  <p class="reserve">Contrôle documentaire automatisé : le résultat est indicatif et ne vaut ni avis juridique ni attestation de conformité.</p>
+</main>
+
+<script src="profil.js"></script>
+<script src="audit-export.js"></script>
+<script src="base-documents.js"></script>
+<script src="duerp-metiers.js"></script>
+<script src="duerp-transport.js"></script>
+<script src="controler-duerp.js"></script>
+<script>
+  if ("serviceWorker" in navigator)
+    window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js"); });
+</script>
+</body>
+</html>

@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1C5E36">
+<link rel="manifest" href="manifest-audit-cse.json">
+<link rel="apple-touch-icon" href="icons/icon-cse-180.png">
+<link rel="icon" href="icons/icon-cse-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Comité social</title>
+<meta name="description" content="Le comité social et économique : une ligne par obligation, oui ou non. Non : le document rempli s'ouvre. Oui : vous déposez le vôtre, il est contrôlé.">
+
+<!--
+  Le comité social et économique, aux écrans 3 et 5 de la maquette validée le
+  8 septembre 2026 (epreuve/maquette.html).
+
+  Écran 3 : une ligne par obligation du comité, deux boutons sur la ligne.
+  « Non » ouvre le document rempli, seul à l'écran (écran 5) : les élections,
+  la convocation, l'ordre du jour, le procès-verbal, le règlement intérieur
+  du comité selon la ligne. « Oui » ouvre controler-cse.html, le dépôt en
+  premier. Au-dessous de onze salariés, la page dit « pas dû » et renvoie à
+  auditer.html. Les lignes non dues à l'effectif sont en gris, sans bouton.
+
+  Écran 5 : deux ou trois champs en tête qui se glissent dans le texte, le
+  document, Télécharger en Word, Imprimer, un repli « Voir le texte de loi »,
+  le bouton Retour. Les générateurs sont dans documents-cse.js
+  (CSE-DOC-ELECTIONS, CSE-DOC-CONVOCATION, CSE-DOC-ORDRE-DU-JOUR,
+  CSE-DOC-PROCES-VERBAL, CSE-DOC-REGLEMENT).
+
+  Les articles ont été lus au relais Légifrance de l'application le
+  8 septembre 2026, deux lectures espacées et concordantes chacun, filtre par
+  le nom du code ; l'identifiant de version de chacun est dans la table
+  TEXTES ci-dessous. Le seuil de onze salariés est celui de L. 2311-2. Le
+  seuil de cinquante salariés retenu pour l'ordre du jour, le procès-verbal
+  et le règlement intérieur du comité tient à la place des articles L. 2315-23
+  à L. 2315-35 dans le code (section des entreprises d'au moins cinquante
+  salariés) : le relais ne rend pas cette place, elle vient du travail
+  antérieur du module (moteur/cse/controles-cse.js).
+
+  Rien ne quitte ce poste : tout est calculé et rédigé dans le navigateur.
+-->
+
+<link rel="stylesheet" href="style.css">
+<style>
+  body{font-size:18px;line-height:1.45}
+  main.wrap{max-width:560px;padding:0 16px var(--e7)}
+  main.wrap.large{max-width:760px}
+
+  .haut{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;padding:12px 0 10px;
+    border-bottom:1px solid var(--filet);background:var(--fond)}
+  .haut .retour{margin:0;font:600 15px system-ui;padding:10px 14px;border:1px solid var(--filet-2);
+    border-radius:10px;background:var(--surface);color:var(--encre);text-decoration:none;min-height:44px;
+    display:inline-flex;align-items:center;white-space:nowrap;flex:none;cursor:pointer}
+  .haut .retour:hover{background:var(--creux);color:var(--encre);border-color:var(--filet-2)}
+  .haut b{font-size:17px;color:var(--encre);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .haut span{color:var(--texte-2);font-size:15px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .aide{margin:14px 0 4px;color:var(--texte-2);font-size:16px;max-width:none}
+
+  /* écran 3 : une ligne par obligation */
+  .ligne{display:flex;align-items:center;gap:10px;padding:14px 0;border-bottom:1px solid var(--filet);min-height:64px}
+  .ligne .nom{flex:1;font-size:18px;line-height:1.3;color:var(--encre)}
+  .ligne .du{display:block;color:var(--texte-2);font-size:15px}
+  .ligne .oui,.ligne .non{font:600 17px system-ui;min-width:74px;min-height:46px;padding:0 12px;
+    border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
+    text-decoration:none;white-space:nowrap;flex:none;margin:0}
+  .ligne .oui{border:2px solid var(--vert);background:var(--vert-clair);color:var(--vert)}
+  .ligne .oui:hover{background:var(--vert);color:#fff;border-color:var(--vert)}
+  .ligne .non{border:2px solid var(--accent);background:var(--accent);color:#fff}
+  .ligne .non:hover{background:var(--accent-fonce);border-color:var(--accent-fonce);color:#fff}
+  .ligne.pasdu{opacity:.55}
+  .ligne.pasdu .nom{color:var(--texte-2)}
+  .ligne.pasdu .du{display:inline;white-space:nowrap}
+  @media (max-width:420px){
+    .ligne .nom{font-size:17px}
+    .ligne .oui,.ligne .non{min-width:64px;padding:0 10px;font-size:16px}
+  }
+
+  /* pas dû avant onze salariés */
+  .pasdu-txt{margin:24px 0 18px;font-size:20px;line-height:1.4;color:var(--encre)}
+  .pasdu-txt b{color:var(--texte-2);font-weight:600}
+  a.btn.plein{display:flex;justify-content:center;width:100%;box-sizing:border-box;text-decoration:none;
+    font:600 19px system-ui;padding:16px;min-height:56px;border-radius:12px;align-items:center}
+
+  /* écran 5 : les champs, les dates, la feuille, les boutons */
+  .champs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+  .champs label{display:flex;flex-direction:column;gap:5px;font-size:14px;color:var(--texte-2)}
+  .champs label.pleine{grid-column:1/-1}
+  .champs input,.champs textarea{font-size:16px;padding:10px 12px;min-height:44px;width:100%;box-sizing:border-box;
+    border-radius:10px;border:1px solid var(--filet-2);background:var(--surface);color:var(--encre);font-family:inherit}
+  .champs textarea{min-height:88px;line-height:1.4}
+
+  .dates{display:flex;flex-direction:column;gap:8px;margin:0 0 14px}
+  .d{border:1px solid var(--filet);border-left:3px solid var(--accent);border-radius:8px;padding:9px 12px;background:var(--surface)}
+  .d .q{display:block;font:600 11.5px/1.3 system-ui;text-transform:uppercase;letter-spacing:.07em;color:var(--texte-3)}
+  .d .v{display:block;font:600 17px/1.3 system-ui;margin:3px 0 1px;color:var(--encre)}
+  .d .f{display:block;font-size:12.5px;color:var(--texte-3);line-height:1.45}
+
+  .feuille{padding:20px 18px;font:16px/1.55 Georgia,"Times New Roman",serif;color:var(--encre);border-radius:12px;
+    border:1px solid var(--filet);background:var(--surface);overflow-wrap:anywhere}
+  @media (min-width:700px){.feuille{padding:38px 44px}}
+  .feuille [contenteditable]{outline:none}
+  .feuille [contenteditable]:focus{background:#fffbe9;border-radius:3px}
+  .feuille .modifie{border-left:2px solid var(--vert);padding-left:8px;margin-left:-10px}
+  .feuille .b-ent{margin:0;font:600 13px/1.5 system-ui;color:var(--texte-2)}
+  .feuille .b-t1{font:700 17px/1.3 Georgia,serif;margin:18px 0 6px;text-align:center;text-transform:uppercase;letter-spacing:.04em}
+  .feuille .b-st{font:600 13.5px/1.4 Georgia,serif;margin:0 0 20px;text-align:center;color:var(--texte-2)}
+  .feuille .b-h1{font:700 15.5px/1.35 Georgia,serif;margin:18px 0 6px}
+  .feuille .b-h2{font:600 15px/1.35 Georgia,serif;margin:15px 0 5px}
+  .feuille .b-p{margin:0 0 10px;font-size:15.5px;line-height:1.6}
+  .feuille .b-puce{margin:0 0 6px 16px;font-size:15.5px;line-height:1.55}
+  .feuille .b-trait{border:0;border-top:1px solid var(--filet);margin:18px 0}
+  .feuille .b-fond{margin:14px 0 0;font-size:13px;color:var(--texte-2)}
+  .feuille .cro{background:var(--accent-clair);border-radius:3px;padding:0 3px}
+
+  .barre{display:flex;flex-direction:column;gap:10px;margin:16px 0 8px}
+  .barre button{font:600 19px system-ui;padding:16px;min-height:56px;border-radius:12px;width:100%;margin:0}
+  @media (min-width:700px){.barre{flex-direction:row}.barre button{width:auto;flex:1}}
+
+  details.loi{border-top:1px solid var(--filet);padding-top:10px;color:var(--texte-2);font-size:15px;margin-top:8px}
+  details.loi summary{cursor:pointer;font-weight:600;color:var(--texte-2);min-height:40px;display:flex;align-items:center}
+  details.loi p{margin:0 0 8px;line-height:1.5}
+  details.loi a{color:var(--accent)}
+  details.loi .ident{font-size:11px}
+
+  [hidden]{display:none !important}
+
+  @media print{
+    .haut,.champs,.dates,.barre,details.loi,.aide,.maj-dispo{display:none !important}
+    main.wrap,main.wrap.large{max-width:none;padding:0}
+    .feuille{padding:0;border:0}
+  }
+</style>
+</head>
+<body>
+
+<div class="maj-dispo" id="maj-dispo">
+  <div class="wrap">
+    <span><b>Une nouvelle version est disponible.</b></span>
+    <button type="button" id="btn-maj">Recharger</button>
+  </div>
+</div>
+
+<main class="wrap" id="main">
+
+  <!-- écran 3 : une ligne par obligation du comité -->
+  <section id="e-liste" hidden>
+    <div class="haut">
+      <a class="retour" href="auditer.html">&larr; Retour</a>
+      <b>Comité</b>
+      <span id="ent"></span>
+    </div>
+    <p class="aide">Non = le document rempli s'ouvre. Oui = vous déposez le vôtre, il est contrôlé.</p>
+    <div id="liste"></div>
+  </section>
+
+  <!-- au-dessous de onze salariés : pas dû -->
+  <section id="e-pasdu" hidden>
+    <div class="haut">
+      <a class="retour" href="auditer.html">&larr; Retour</a>
+      <b>Comité</b>
+      <span id="ent2"></span>
+    </div>
+    <p class="pasdu-txt">Comité social et économique : <b>pas dû avant 11 salariés</b>.</p>
+    <a class="btn plein" href="auditer.html">Retour à l'audit</a>
+  </section>
+
+  <!-- écran 5 : le document, seul -->
+  <section id="e-doc" hidden>
+    <div class="haut">
+      <button type="button" class="retour" id="btn-retour">&larr; Retour</button>
+      <b id="d-titre"></b>
+    </div>
+    <form class="champs" id="d-champs" autocomplete="off" onsubmit="return false"></form>
+    <div class="dates" id="d-dates" hidden></div>
+    <div id="d-feuille"></div>
+    <div class="barre">
+      <button type="button" id="btn-word">Télécharger en Word</button>
+      <button type="button" class="second" id="btn-imprimer">Imprimer</button>
+    </div>
+    <details class="loi"><summary>Voir le texte de loi</summary><div id="d-loi"></div></details>
+  </section>
+
+</main>
+
+<script src="liste-choix.js"></script>
+<script src="listes-valeurs.js"></script>
+<script src="listes-auto.js"></script>
+<script src="apercu.js"></script>
+<script src="audit-export.js"></script>
+<script src="base-documents.js"></script>
+<script src="documents-produits.js"></script>
+<script src="documents-cse.js"></script>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var ech = function (s) { return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); };
+
+  /* ─────────────────────────────────────────────────────────── la fiche */
+  var profil = null;
+  try { profil = JSON.parse(localStorage.getItem("profil-entreprise") || "null"); } catch (e) {}
+  if (!profil || !profil.denomination) { location.replace("index.html"); return; }
+  var eff = profil.effectif != null ? parseInt(profil.effectif, 10) : 0;
+  if (isNaN(eff)) eff = 0;
+  var ENT = profil.denomination + " · " + eff + " salarié" + (eff > 1 ? "s" : "");
+  $("ent").textContent = ENT;
+  $("ent2").textContent = ENT;
+
+  /* ──────────────────────────────────────────────────────────── les textes
+
+     Chaque article a été demandé deux fois au relais Légifrance, à plusieurs
+     minutes d'intervalle, filtre par le nom du code ; les deux lectures ont
+     rendu le même identifiant et le même texte, le 8 septembre 2026. La
+     colonne « dit » reprend ce qui sert au document, dans les mots de
+     l'article. */
+  var TEXTES = {
+    "L2311-2":  { id: "LEGIARTI000035609353", dit: "un comité social et économique est mis en place dans les entreprises d'au moins onze salariés ; sa mise en place n'est obligatoire que si cet effectif est atteint pendant douze mois consécutifs" },
+    "L2314-1":  { id: "LEGIARTI000037389707", dit: "la délégation du personnel comporte un nombre égal de titulaires et de suppléants ; le suppléant assiste aux réunions en l'absence du titulaire ; un référent harcèlement sexuel est désigné par résolution" },
+    "L2314-4":  { id: "LEGIARTI000035651165", dit: "l'employeur informe le personnel tous les quatre ans de l'organisation des élections par tout moyen conférant date certaine ; le document précise la date envisagée pour le premier tour, qui se tient au plus tard le quatre-vingt-dixième jour suivant la diffusion" },
+    "L2314-5":  { id: "LEGIARTI000035651159", dit: "les organisations syndicales sont informées par tout moyen et invitées à négocier le protocole ; les représentatives, celles ayant une section syndicale et les syndicats affiliés sont invités par courrier ; l'invitation parvient au plus tard quinze jours avant la première réunion ; de onze à vingt salariés, l'invitation n'est due que si un salarié s'est porté candidat dans les trente jours" },
+    "L2312-19": { id: "LEGIARTI000036262394", dit: "un accord d'entreprise, ou un accord entre l'employeur et le comité adopté à la majorité des titulaires, peut fixer le nombre de réunions annuelles, qui ne peut être inférieur à six" },
+    "L2315-21": { id: "LEGIARTI000035624428", dit: "les membres de la délégation du personnel sont reçus collectivement par l'employeur au moins une fois par mois ; en cas d'urgence, sur leur demande" },
+    "L2315-22": { id: "LEGIARTI000035624430", dit: "note écrite des demandes remise deux jours ouvrables avant la réunion ; réponse écrite de l'employeur dans les six jours ouvrables suivant la réunion ; demandes et réponses transcrites sur un registre spécial, tenu à la disposition des salariés un jour ouvrable par quinzaine" },
+    "L2315-23": { id: "LEGIARTI000035624835", dit: "le comité a la personnalité civile ; il est présidé par l'employeur, assisté éventuellement de trois collaborateurs à voix consultative ; il désigne parmi ses titulaires un secrétaire et un trésorier" },
+    "L2315-24": { id: "LEGIARTI000036761946", dit: "le comité détermine dans un règlement intérieur les modalités de son fonctionnement et de ses rapports avec les salariés ; sauf accord de l'employeur, il ne peut lui imposer d'obligations ne résultant pas de dispositions légales" },
+    "L2315-27": { id: "LEGIARTI000036761943", dit: "au moins quatre réunions par an portent sur la santé, la sécurité et les conditions de travail ; réunion après tout accident grave ou à la demande motivée de deux membres ; l'agent de contrôle, le médecin du travail et l'agent de prévention sont informés du calendrier et confirmés par écrit quinze jours à l'avance" },
+    "L2315-28": { id: "LEGIARTI000035624857", dit: "à défaut d'accord, le comité se réunit au moins une fois par mois à partir de trois cents salariés, au moins une fois tous les deux mois en dessous ; seconde réunion à la demande de la majorité des membres" },
+    "L2315-29": { id: "LEGIARTI000035624861", dit: "l'ordre du jour est établi par le président et le secrétaire ; les consultations obligatoires y sont inscrites de plein droit" },
+    "L2315-30": { id: "LEGIARTI000035624863", dit: "l'ordre du jour est communiqué par le président aux membres, à l'agent de contrôle de l'inspection du travail et à l'agent des services de prévention trois jours au moins avant la réunion" },
+    "L2315-31": { id: "LEGIARTI000035624865", dit: "quand le comité se réunit à la demande de la majorité de ses membres, les questions jointes à la demande sont inscrites à l'ordre du jour" },
+    "L2315-32": { id: "LEGIARTI000035624869", dit: "les résolutions sont prises à la majorité des membres présents ; le président ne vote pas quand il consulte les élus en tant que délégation du personnel" },
+    "L2315-34": { id: "LEGIARTI000036262447", dit: "les délibérations sont consignées dans un procès-verbal établi par le secrétaire, dans un délai fixé par accord ou, à défaut, par décret ; transmis à l'employeur, qui fait connaître sa décision motivée à la réunion suivante" },
+    "L2315-35": { id: "LEGIARTI000035624877", dit: "le procès-verbal peut, après adoption, être affiché ou diffusé dans l'entreprise par le secrétaire, selon les modalités du règlement intérieur du comité" },
+    "R2315-25": { id: "LEGIARTI000036433679", dit: "à défaut d'accord, les procès-verbaux sont établis par le secrétaire dans un délai de quinze jours et communiqués à l'employeur et aux membres du comité" },
+    "D2315-26": { id: "LEGIARTI000036433681", dit: "à défaut d'accord, le procès-verbal est établi et transmis à l'employeur dans les quinze jours suivant la réunion, ou avant la réunion suivante si elle est prévue dans ce délai ; il contient au moins le résumé des délibérations et la décision motivée de l'employeur sur les propositions de la réunion précédente" }
+  };
+  function ref(n) { return n.replace(/^([A-Z])(\d)/, "$1. $2"); }
+  function loiHtml(nums) {
+    var h = "";
+    nums.forEach(function (n) {
+      var t = TEXTES[n]; if (!t) return;
+      h += "<p><b>" + ech(ref(n)) + "</b> du code du travail : " + ech(t.dit) +
+        '. <a href="https://www.legifrance.gouv.fr/codes/article_lc/' + ech(t.id) + '" target="_blank" rel="noopener">Lire sur Légifrance</a> <span class="ident">' + ech(t.id) + "</span></p>";
+    });
+    return h;
+  }
+
+  /* ──────────────────────────────────────────────────────────── les dates */
+  var AUJOURDHUI = new Date(); AUJOURDHUI.setHours(0, 0, 0, 0);
+  var MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+  function iso(d) {
+    var m = d.getMonth() + 1, j = d.getDate();
+    return d.getFullYear() + "-" + (m < 10 ? "0" : "") + m + "-" + (j < 10 ? "0" : "") + j;
+  }
+  function dateDe(s) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || ""));
+    if (!m) return null;
+    var d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    return isNaN(d) ? null : d;
+  }
+  function jour(d, n) { var x = new Date(d.getTime()); x.setDate(x.getDate() + n); return x; }
+  function ouvrables(d, n) {
+    var x = new Date(d.getTime()), pas = n < 0 ? -1 : 1, reste = Math.abs(n);
+    while (reste > 0) { x.setDate(x.getDate() + pas); if (x.getDay() !== 0) reste--; }
+    return x;
+  }
+  var JOURS = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
+  function dateFrJour(d) {
+    if (!d) return "[date]";
+    return JOURS[d.getDay()] + " " + (d.getDate() === 1 ? "1er" : d.getDate()) + " " + MOIS[d.getMonth()] + " " + d.getFullYear();
+  }
+  function carte(q, d, f) {
+    return '<div class="d"><span class="q">' + ech(q) + '</span><span class="v">' + ech(dateFrJour(d)) + '</span><span class="f">' + ech(f) + "</span></div>";
+  }
+
+  /* ───────────────────────────────────────────── une ligne par obligation
+
+     seuil : l'effectif à partir duquel l'obligation est due. doc : le
+     générateur qui écrit la pièce quand la réponse est « non ». oui : la page
+     de contrôle, le dépôt en premier. */
+  var SECRETAIRE = { id: "secretaire", nom: "Secrétaire du comité", t: "text", ph: "Madame Nadia ROUX" };
+  var REUNION = { id: "dateReunion", nom: "Date de la réunion", t: "date", defaut: iso(jour(AUJOURDHUI, 7)) };
+  var LIGNES = [
+    { cle: "elections", nom: "Élections du comité", seuil: 11, titre: "Élections", doc: "CSE-DOC-ELECTIONS", oui: "controler-cse.html?d=protocole",
+      champs: [
+        { id: "dateInformationPersonnel", nom: "Information du personnel", t: "date", defaut: iso(AUJOURDHUI) },
+        { id: "dateReunionNegociation", nom: "Première réunion de négociation", t: "date", defaut: iso(jour(AUJOURDHUI, 30)) },
+        { id: "datePremierTour", nom: "Premier tour", t: "date", defaut: iso(jour(AUJOURDHUI, 60)) }],
+      dates: function (v) {
+        var a = dateDe(v.dateInformationPersonnel), b = dateDe(v.dateReunionNegociation), out = [];
+        if (a) out.push(carte("Premier tour au plus tard le", jour(a, 90), "quatre-vingt-dixième jour suivant l'information du personnel (L. 2314-4)"));
+        if (b) out.push(carte("Invitation reçue par les syndicats au plus tard le", jour(b, -15), "quinze jours avant la première réunion de négociation (L. 2314-5)"));
+        if (eff >= 11 && eff <= 20 && a) out.push(carte("Candidatures reçues jusqu'au", jour(a, 30), "trente jours à compter de l'information, de onze à vingt salariés (L. 2314-5)"));
+        return out;
+      },
+      loi: ["L2311-2", "L2314-4", "L2314-5"] },
+    { cle: "convocation", nom: "Convocation des réunions", seuil: 11, titre: "Convocation", doc: "CSE-DOC-CONVOCATION", oui: "controler-cse.html?d=convocation",
+      champs: [REUNION, { id: "heure", nom: "Heure", t: "text", ph: "10 h", defaut: "10 h" }, { id: "lieuReunion", nom: "Lieu", t: "text", ph: "salle de réunion du siège" }],
+      dates: function (v) {
+        var d = dateDe(v.dateReunion); if (!d) return [];
+        if (eff < 50) return [
+          carte("Note écrite des demandes au plus tard le", ouvrables(d, -2), "deux jours ouvrables avant la réunion, dimanches exclus (L. 2315-22)"),
+          carte("Réponse écrite de l'employeur au plus tard le", ouvrables(d, 6), "six jours ouvrables suivant la réunion, dimanches exclus (L. 2315-22)")];
+        return [carte("Ordre du jour communiqué au plus tard le", jour(d, -3), "trois jours au moins avant la réunion (L. 2315-30)")];
+      },
+      loi: function () { return eff < 50 ? ["L2315-21", "L2315-22", "L2314-1"] : ["L2312-19", "L2315-27", "L2315-28", "L2315-29", "L2315-30", "L2315-31", "L2314-1"]; } },
+    { cle: "odj", nom: "Ordre du jour", seuil: 50, titre: "Ordre du jour", doc: "CSE-DOC-ORDRE-DU-JOUR", oui: "controler-cse.html?d=odj",
+      champs: [REUNION, SECRETAIRE, { id: "points", nom: "Points à l'ordre du jour, un par ligne", t: "textarea", pleine: true, ph: "Information sur les résultats du trimestre\nConsultation sur le projet de réorganisation du service" }],
+      dates: function (v) {
+        var d = dateDe(v.dateReunion); if (!d) return [];
+        return [carte("À communiquer au plus tard le", jour(d, -3), "trois jours au moins avant la réunion, aux membres, à l'inspection du travail et à l'agent de prévention (L. 2315-30)")];
+      },
+      loi: ["L2315-29", "L2315-30"] },
+    { cle: "pv", nom: "Procès-verbal des réunions", seuil: 50, titre: "Procès-verbal", doc: "CSE-DOC-PROCES-VERBAL", oui: "controler-cse.html?d=pvreunion",
+      champs: [{ id: "dateReunion", nom: "Date de la réunion", t: "date", defaut: iso(AUJOURDHUI) }, SECRETAIRE,
+        { id: "deliberations", nom: "Points délibérés, un par ligne", t: "textarea", pleine: true, ph: "Information sur les résultats du trimestre\nConsultation sur le projet de réorganisation du service" }],
+      dates: function (v) {
+        var d = dateDe(v.dateReunion); if (!d) return [];
+        return [carte("À transmettre à l'employeur au plus tard le", jour(d, 15), "quinze jours suivant la réunion, à défaut d'accord, ou avant la réunion suivante si elle tombe dans ce délai (R. 2315-25, D. 2315-26)")];
+      },
+      loi: ["L2315-32", "L2315-34", "L2315-35", "R2315-25", "D2315-26"] },
+    { cle: "reglement", nom: "Règlement intérieur du comité", seuil: 50, titre: "Règlement intérieur", doc: "CSE-DOC-REGLEMENT", oui: "controler-cse.html?d=reglement",
+      champs: [{ id: "dateAdoption", nom: "Date d'adoption", t: "date", defaut: iso(AUJOURDHUI) }, SECRETAIRE],
+      dates: function () { return []; },
+      loi: ["L2315-24", "L2315-23", "L2314-1", "L2312-19", "L2315-28", "L2315-27", "L2315-31", "L2315-29", "L2315-30", "L2315-32", "L2315-34", "R2315-25", "D2315-26", "L2315-35"] }
+  ];
+
+  function rendreListe() {
+    var liste = $("liste");
+    liste.textContent = "";
+    LIGNES.forEach(function (l) {
+      var du = eff >= l.seuil;
+      var ligne = document.createElement("div");
+      ligne.className = "ligne" + (du ? "" : " pasdu");
+      ligne.setAttribute("data-cle", l.cle);
+      var nom = document.createElement("span");
+      nom.className = "nom";
+      nom.textContent = l.nom;
+      ligne.appendChild(nom);
+      if (!du) {
+        var pas = document.createElement("span");
+        pas.className = "du";
+        pas.textContent = "pas dû avant " + l.seuil;
+        ligne.appendChild(pas);
+      } else {
+        var a = document.createElement("a");
+        a.className = "oui";
+        a.href = l.oui;
+        a.textContent = "Oui";
+        ligne.appendChild(a);
+        var n = document.createElement("button");
+        n.type = "button";
+        n.className = "non";
+        n.textContent = "Non";
+        n.addEventListener("click", function () { ouvrir(l.cle); });
+        ligne.appendChild(n);
+      }
+      liste.appendChild(ligne);
+    });
+  }
+
+  /* ───────────────────────────────────────────────── le document, seul
+
+     Le générateur rend un texte, une ligne par paragraphe. Chaque ligne
+     devient un bloc modifiable à l'écran et repart tel quel dans le .docx.
+     Un bloc corrigé à la main est retenu sur son texte d'origine. */
+  var corrections = {};
+  function empreinte(s) {
+    var h = 5381;
+    for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+    return "b" + (h >>> 0).toString(36);
+  }
+  function blocsDeTexte(t) {
+    t = String(t || "").replace(/[\u2014\u2013]/g, "-").replace(/\u00a0/g, " ");
+    var lignes = t.split("\n"), b = [], i = 0;
+    /* l'en-tête : dénomination, adresse, SIRET, puis le titre et son fondement */
+    while (i < lignes.length && lignes[i].trim() !== "") { b.push({ k: "ent", t: lignes[i].trim() }); i++; }
+    while (i < lignes.length && lignes[i].trim() === "") i++;
+    if (i < lignes.length) { b.push({ k: "t1", t: lignes[i].trim() }); i++; }
+    if (i < lignes.length && /^\(/.test(lignes[i].trim())) { b.push({ k: "st", t: lignes[i].trim().replace(/^\(|\)$/g, "") }); i++; }
+    for (; i < lignes.length; i++) {
+      var l = lignes[i];
+      if (!l.trim()) continue;
+      if (/^[═]{4,}$/.test(l.trim())) continue;
+      if (/^[─_\-]{4,}$/.test(l.trim())) { b.push({ k: "trait", t: "" }); continue; }
+      if (/^Fondement :/.test(l.trim())) { b.push({ k: "fond", t: l.trim() }); continue; }
+      if (/^\s{2,}/.test(l)) { b.push({ k: "puce", t: l.trim() }); continue; }
+      if (!/[a-zà-ÿ]/.test(l) && l.trim().length < 100) { b.push({ k: "h1", t: l.trim() }); continue; }
+      b.push({ k: "p", t: l.trim() });
+    }
+    return b;
+  }
+  function crochets(html) {
+    return html.replace(/\[[^\[\]]{1,160}\]/g, function (m) { return '<span class="cro">' + m + "</span>"; });
+  }
+  function feuilleHtml(blocs) {
+    var h = '<div class="feuille" id="feuille">';
+    blocs.forEach(function (b) {
+      if (b.k === "trait") { h += '<hr class="b-trait">'; return; }
+      var cle = empreinte(b.t);
+      var texte = Object.prototype.hasOwnProperty.call(corrections, cle) ? corrections[cle] : b.t;
+      h += '<div class="b-' + b.k + (texte !== b.t ? " modifie" : "") +
+        '" contenteditable="true" data-k="' + b.k + '" data-o="' + cle + '">' + crochets(ech(texte)) + "</div>";
+    });
+    return h + "</div>";
+  }
+  function texteDe(el) {
+    var t = el.innerText !== undefined && el.innerText !== null ? el.innerText : el.textContent;
+    return String(t).replace(/\u00a0/g, " ");
+  }
+  function relire() {
+    var out = [];
+    document.querySelectorAll("#feuille > *").forEach(function (el) {
+      if (el.tagName === "HR") { out.push({ k: "trait", t: "" }); return; }
+      out.push({ k: el.getAttribute("data-k"), t: texteDe(el) });
+    });
+    return out;
+  }
+  /* Les puces partent en paragraphes : l'export commun les ferait précéder
+     d'un tiret long, proscrit partout. */
+  var VERS_EXPORT = { ent: "sur", t1: "t1", st: "sur", h1: "h1", p: "p", puce: "p", fond: "note", trait: "trait" };
+  function exporterDocx(titre, fichier) {
+    var blocs = relire();
+    var items = blocs.map(function (b) { return { k: VERS_EXPORT[b.k] || "p", t: b.t }; });
+    window.AuditExport.telecharger(window.AuditExport.docx(items, titre), fichier,
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+  }
+  function slug(s) {
+    return String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "").toLowerCase() || "document";
+  }
+
+  var ACTIF = null, V = {};
+  function champHtml(c) {
+    var v = V[c.id] == null ? "" : V[c.id];
+    var h = '<label' + (c.pleine || c.t === "textarea" ? ' class="pleine"' : "") + ">" + ech(c.nom);
+    if (c.t === "textarea") h += '<textarea data-ch="' + c.id + '" placeholder="' + ech(c.ph || "") + '">' + ech(v) + "</textarea>";
+    else h += '<input type="' + c.t + '" data-ch="' + c.id + '" value="' + ech(v) + '" placeholder="' + ech(c.ph || "") + '">';
+    return h + "</label>";
+  }
+  function rendreDoc() {
+    var l = ACTIF; if (!l) return;
+    var gen = window.DocumentsProduits ? window.DocumentsProduits.pour(l.doc) : null;
+    var d = "";
+    l.dates(V).forEach(function (x) { d += x; });
+    $("d-dates").innerHTML = d;
+    $("d-dates").hidden = !d;
+    if (!gen) {
+      $("d-feuille").innerHTML = '<div class="feuille"><div class="b-p">Le générateur de ce document n\'a pas pu être chargé. Rechargez la page.</div></div>';
+      $("btn-word").disabled = true; $("btn-imprimer").disabled = true;
+    } else {
+      var fiche = {};
+      Object.keys(V).forEach(function (k) { fiche[k] = V[k]; });
+      fiche.effectif = eff;
+      var texte = gen.produire({ profil: profil, fiche: fiche, donnees: fiche, aujourdhui: AUJOURDHUI });
+      $("d-feuille").innerHTML = feuilleHtml(blocsDeTexte(texte));
+      $("btn-word").disabled = false; $("btn-imprimer").disabled = false;
+    }
+    $("d-loi").innerHTML = loiHtml(typeof l.loi === "function" ? l.loi() : l.loi);
+  }
+  function ouvrir(cle) {
+    var l = LIGNES.filter(function (x) { return x.cle === cle; })[0];
+    if (!l || eff < l.seuil) return;
+    ACTIF = l; V = {}; corrections = {};
+    l.champs.forEach(function (c) { V[c.id] = c.defaut == null ? "" : c.defaut; });
+    $("d-titre").textContent = l.titre;
+    $("d-champs").innerHTML = l.champs.map(champHtml).join("");
+    $("d-champs").hidden = !l.champs.length;
+    rendreDoc();
+    $("e-liste").hidden = true;
+    $("e-doc").hidden = false;
+    $("main").classList.add("large");
+    window.scrollTo(0, 0);
+    try { history.replaceState(null, "", "#" + cle); } catch (e) {}
+  }
+  function revenir() {
+    ACTIF = null;
+    $("e-doc").hidden = true;
+    $("e-liste").hidden = false;
+    $("main").classList.remove("large");
+    window.scrollTo(0, 0);
+    try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
+  }
+  $("btn-retour").addEventListener("click", revenir);
+  function surChamp(ev) {
+    var el = ev.target; if (!el || !el.getAttribute) return;
+    var id = el.getAttribute("data-ch"); if (!id) return;
+    V[id] = el.value;
+    rendreDoc();
+  }
+  $("d-champs").addEventListener("input", surChamp);
+  $("d-champs").addEventListener("change", surChamp);
+  $("btn-word").addEventListener("click", function () {
+    if (!ACTIF) return;
+    exporterDocx(ACTIF.titre + " du comité social et économique", slug(ACTIF.titre) + "-cse-" + iso(AUJOURDHUI) + ".docx");
+  });
+  $("btn-imprimer").addEventListener("click", function () { window.print(); });
+  document.addEventListener("input", function (ev) {
+    var el = ev.target;
+    if (!el || !el.getAttribute || !el.hasAttribute("contenteditable")) return;
+    corrections[el.getAttribute("data-o")] = texteDe(el);
+    el.classList.add("modifie");
+  });
+
+  /* ───────────────────────────────────────────────────────────── l'écran */
+  if (eff < 11) {
+    $("e-pasdu").hidden = false;
+  } else {
+    rendreListe();
+    $("e-liste").hidden = false;
+    var demande = (location.hash || "").replace(/^#/, "");
+    if (demande) ouvrir(demande);
+    window.addEventListener("hashchange", function () {
+      var cle = (location.hash || "").replace(/^#/, "");
+      if (cle && LIGNES.some(function (x) { return x.cle === cle; })) { if (!ACTIF || cle !== ACTIF.cle) ouvrir(cle); }
+      else if (ACTIF) revenir();
+    });
+  }
+
+  if ("serviceWorker" in navigator) {
+    var dejaControlee = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener("controllerchange", function () {
+      if (dejaControlee) $("maj-dispo").classList.add("visible");
+      dejaControlee = true;
+    });
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("sw.js").then(function (reg) { reg.update().catch(function () {}); });
+    });
+  }
+  $("btn-maj").addEventListener("click", function () { location.reload(); });
+})();
+</script>
+</body>
+</html>

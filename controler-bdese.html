@@ -1,0 +1,824 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contrôle de la base de données</title>
+<link rel="manifest" href="manifest-audit-bdese.json">
+<meta name="theme-color" content="#1c2126">
+<meta name="description" content="Vous déposez votre base de données économiques, sociales et environnementales : les rubriques qui manquent sont mises en forme, prêtes à insérer, et le classeur se télécharge.">
+<!-- Équipe, droits et journal : le point unique d'autorisation. Chargé avant
+     tout le reste, il masque la page tant que l'utilisateur n'est pas identifié.
+     Tant qu'aucun utilisateur n'a été créé, il ne fait rien. Il pose aussi le
+     bouton Retour du bandeau. Voir docs/DROITS.md. -->
+<script src="liste-choix.js"></script>
+<script src="listes-valeurs.js"></script>
+<script src="listes-auto.js"></script>
+<script src="lire-pdf.js"></script>
+<script src="lire-ocr.js"></script>
+<script src="apercu.js"></script>
+<script src="droits.js"></script>
+
+<!--
+  LA BRANCHE « OUI » DU MODULE BASE DE DONNÉES, À L'ÉCRAN 5 DE LA MAQUETTE
+  VALIDÉE LE 8 SEPTEMBRE 2026 (epreuve/maquette.html).
+
+  Le dépôt en premier : on choisit le fichier, il est lu, et l'écran passe
+  aux rubriques sans autre clic. Le bouton Retour du bandeau est posé par
+  droits.js ; la page ne le refait pas. Les deux téléchargements en premier, les
+  champs en tête, puis chaque rubrique absente de la base déposée, mise en
+  forme ligne à ligne avec ses colonnes d'années et son bouton « Insérer ».
+  Les rubriques déjà présentes suivent, au cas où la vôtre serait plus courte.
+
+  LA RÈGLE DE CET ÉCRAN : il ne nomme jamais un manque. Pas de note, pas de
+  verdict. Il y a la rubrique déjà mise en forme et le bouton qui l'insère.
+  Le repérage lexical sert seulement à ranger l'écran : il ne juge pas ce qui
+  est écrit dans la base déposée.
+
+  LA GRILLE N'EST PAS ÉCRITE ICI. Elle est découpée du texte du décret par
+  moteur/bdese/contenu-bdese.js, dont la couverture est mesurée à cent pour
+  cent sur les deux articles, et servie par docs/moteur-bdese.js.
+
+  Rien ne quitte ce poste : le fichier déposé est lu dans le navigateur.
+
+  LES ARTICLES, LUS AU RELAIS LÉGIFRANCE DE L'APPLICATION (filtre par le nom
+  du code, lectures espacées et concordantes, contenu vérifié et non le seul
+  numéro). Le 8 septembre 2026, deux lectures chacun, puis deux lectures
+  espacées de plus dans la journée, mêmes identifiants :
+
+    L. 2312-2   LEGIARTI000035650754   attributions récurrentes à cinquante salariés, douze mois
+    L. 2312-18  LEGIARTI000052437125   la base rassemble les informations, égalité, formations
+    L. 2312-21  LEGIARTI000043975329   l'accord, et les dix thèmes du plancher (alinéa 3)
+    L. 2312-36  LEGIARTI000048533625   à défaut d'accord : accès permanent, thèmes, six années
+    R. 2312-10  LEGIARTI000036411580   année en cours, deux précédentes, trois suivantes, tendances
+    R. 2312-12  LEGIARTI000036411586   support informatique ou papier selon l'effectif
+
+  Le 7 septembre 2026, trois lectures chacun (R. 2312-8 et R. 2312-9 relus
+  deux fois le 8 septembre 2026) :
+
+    L. 2312-34  LEGIARTI000035609830   seuil de trois cents réputé franchi, un an pour s'y conformer
+    R. 2312-8   LEGIARTI000049905537   contenu supplétif, moins de trois cents salariés
+    R. 2312-9   LEGIARTI000049905524   contenu supplétif, au moins trois cents salariés
+-->
+
+<link rel="stylesheet" href="style.css">
+<style>
+  /* Ce qui est propre à cette page. Tout le reste vient de style.css. */
+  main.wrap{padding-bottom:var(--e7)}
+  @media (min-width:900px){main.wrap.large{max-width:1080px}}
+
+  /* le dépôt, en premier */
+  .depot{margin:24px 0 0;display:flex;flex-direction:column;gap:12px}
+  label.btn.depose{display:flex;justify-content:center;align-items:center;width:100%;box-sizing:border-box;
+    font:600 19px system-ui;padding:16px;min-height:56px;border-radius:12px;cursor:pointer;text-align:center}
+  .depot .lu{margin:0;font-size:15px;color:var(--texte-2)}
+  .depot .lu b{color:var(--encre)}
+  .depot .ou{margin:14px 0 0;font-size:14px;color:var(--texte-2)}
+  textarea#texte{width:100%;min-height:120px;box-sizing:border-box;font:15px/1.5 inherit;padding:12px;
+    border:1px solid var(--filet-2);border-radius:10px;background:var(--surface);color:var(--encre);resize:vertical}
+  .depot button#ouvrir{font:600 19px system-ui;padding:16px;min-height:56px;border-radius:12px;width:100%;margin:0}
+  .depot .avis{margin:0}
+
+  /* les rubriques : les téléchargements, les champs, les tableaux */
+  #e-rubriques{margin:var(--e4) 0 0}
+  #e-rubriques .barre{margin:0 0 var(--e4)}
+
+  .champs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 var(--e4)}
+  .champs label{display:flex;flex-direction:column;gap:5px;font-size:14px;color:var(--texte-2)}
+  .champs input,.champs select{font-size:16px;padding:10px 12px;min-height:44px;width:100%;box-sizing:border-box;
+    border-radius:10px;border:1px solid var(--filet-2);background:var(--surface);color:var(--encre);font-family:inherit}
+  .champs label.attend input{border-color:var(--accent);background:var(--accent-clair)}
+  @media (min-width:700px){.champs{grid-template-columns:2fr 1fr 1fr 1fr}}
+
+  .etat{margin:0 0 12px;font-size:14px;color:var(--texte-2);line-height:1.5}
+  h3.deja{margin:22px 0 10px;font:600 13px system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--texte-2)}
+
+  .rb{border:1px solid var(--filet);border-radius:12px;margin:0 0 12px;background:var(--surface);overflow:hidden}
+  .rb>.tt{padding:10px 12px 10px 14px;border-bottom:1px solid var(--filet);display:flex;
+    justify-content:space-between;gap:12px;align-items:center}
+  .rb>.tt h3{margin:0;font:600 16px/1.3 system-ui;color:var(--encre)}
+  .rb>.tt .n{display:block;font:400 13px/1.3 system-ui;color:var(--texte-2)}
+  .btn-ins{font:600 15px/1 system-ui;padding:12px 16px;min-height:44px;border-radius:10px;border:2px solid var(--vert);
+    background:var(--vert);color:#fff;cursor:pointer;white-space:nowrap;margin:0;flex:none}
+  .btn-ins:hover{background:var(--vert);border-color:var(--vert);color:#fff}
+  .btn-ins.mis{background:var(--surface);color:var(--vert)}
+  .btn-ins.mis:hover{background:var(--vert-clair);color:var(--vert)}
+  .rb.retire .grille-tab{display:none}
+  .grille-tab{overflow:auto;max-height:70vh;-webkit-overflow-scrolling:touch}
+  table.g{border-collapse:separate;border-spacing:0;font-size:14px;background:var(--surface);min-width:100%}
+  table.g th,table.g td{border-bottom:1px solid var(--filet);border-right:1px solid var(--filet);
+    padding:7px 9px;text-align:left;vertical-align:top;line-height:1.35}
+  table.g thead th{position:sticky;top:0;z-index:2;background:var(--creux);font:600 12.5px/1.3 system-ui;
+    color:var(--texte-2);white-space:nowrap}
+  table.g thead th small{display:block;font-weight:400;font-size:11.5px}
+  table.g thead th.persp{color:var(--ambre)}
+  table.g th.info,table.g td.info{position:sticky;left:0;z-index:1;background:var(--surface);
+    min-width:190px;max-width:250px;box-shadow:1px 0 0 var(--filet)}
+  table.g thead th.info{z-index:3;background:var(--creux)}
+  table.g td.vide{min-width:84px;background:var(--zebre)}
+  table.g td.vide:last-child{min-width:170px}
+  table.g tr.sec td{background:var(--accent-clair);color:var(--accent);font:600 13.5px/1.35 system-ui;border-right:0}
+  table.g tr.suj td{background:var(--creux);font:600 13.5px/1.35 system-ui;color:var(--encre);border-right:0}
+  @media (min-width:700px){
+    table.g{font-size:14.5px}
+    table.g th.info,table.g td.info{min-width:280px;max-width:420px}
+    table.g td.vide{min-width:96px}
+  }
+
+  details.loi{border-top:1px solid var(--filet);padding-top:10px;color:var(--texte-2);font-size:15px;margin:var(--e2) 0 var(--e6)}
+  details.loi summary{cursor:pointer;font-weight:600;color:var(--texte-2);min-height:40px;display:flex;align-items:center}
+  details.loi p{margin:0 0 10px;line-height:1.5}
+  details.loi .vers{font-size:12px;color:var(--texte-2)}
+
+  [hidden]{display:none !important}
+
+  @media print{
+    header.site,.barre,.champs,details.loi,.btn-ins,#e-depot{display:none !important}
+    main.wrap,main.wrap.large{max-width:none;padding:0}
+    .grille-tab{max-height:none;overflow:visible}
+    .rb{break-inside:avoid;border:0}
+  }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <p class="marque">Contrôle : base de données</p>
+    <div class="outils">
+      <a href="index.html">Accueil</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap" id="main">
+
+  <!-- le dépôt, en premier -->
+  <section id="e-depot" hidden>
+    <div class="depot">
+      <label class="btn depose">
+        Déposer votre base (Excel, Word, PDF, CSV ou texte)
+        <input type="file" id="fichier" accept=".xlsx,.csv,.docx,.txt,text/plain,.pdf,application/pdf" hidden>
+      </label>
+      <p class="lu" id="lecture"></p>
+      <div id="erreur"></div>
+      <p class="ou">Ou collez ici le sommaire de votre base, puis contrôlez.</p>
+      <textarea id="texte" placeholder="Investissements, égalité professionnelle, fonds propres..."></textarea>
+      <button type="button" id="ouvrir">Contrôler</button>
+    </div>
+  </section>
+
+  <!-- les rubriques, mises en forme, prêtes à insérer -->
+  <section id="e-rubriques" hidden>
+    <div class="barre pile">
+      <button type="button" id="dl-xlsx">Télécharger le classeur</button>
+      <button type="button" class="second" id="dl-csv">Télécharger en CSV</button>
+    </div>
+
+    <form class="champs" id="champs" autocomplete="off" onsubmit="return false">
+      <label>Entreprise<input type="text" id="ent" placeholder="dénomination sociale"></label>
+      <label>Effectif<input type="number" id="eff" min="0" step="1" placeholder="salariés"></label>
+      <label>Année en cours<input type="number" id="an" min="1990" max="2200" step="1"></label>
+      <label>Un accord définit la base
+        <select id="acc"><option value="non">non</option><option value="oui">oui</option></select></label>
+    </form>
+    <p class="etat" id="etat"></p>
+
+    <div id="rubriques"></div>
+    <div id="presentes"></div>
+
+    <details class="loi"><summary>Voir le texte de loi</summary><div id="loi"></div></details>
+  </section>
+
+  <p class="reserve">Contrôle documentaire automatisé : le résultat est indicatif et ne vaut ni avis juridique ni attestation de conformité.</p>
+</main>
+
+<script src="moteur-bdese.js"></script>
+<script src="profil.js"></script>
+<script>
+(function () {
+  "use strict";
+  var AUD = (window.MoteurBDESE && window.MoteurBDESE.audit) || null;
+  var P = window.Profil || null;
+  var $ = function (s) { return document.querySelector(s); };
+  var ech = function (s) { return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); };
+
+  var CTX = null, CHOIX = {}, PRESENTES = {};
+
+  var profil = P ? (P.lire() || {}) : {};
+  var effProfil = (profil.effectif !== undefined && profil.effectif !== null && String(profil.effectif).trim() !== "")
+    ? parseInt(profil.effectif, 10) : null;
+  if (effProfil !== null && isNaN(effProfil)) effProfil = null;
+
+  function montrer(id) {
+    ["e-depot", "e-rubriques"].forEach(function (e) { document.getElementById(e).hidden = (e !== id); });
+    document.getElementById("main").classList.toggle("large", id === "e-rubriques");
+    window.scrollTo(0, 0);
+  }
+  /* Le bouton Retour du bandeau, posé par droits.js : depuis les rubriques,
+     il revient au dépôt ; depuis le dépôt, il quitte la page. */
+  document.addEventListener("click", function (ev) {
+    var a = ev.target.closest ? ev.target.closest("header.site a.retour") : null;
+    if (!a || $("#e-rubriques").hidden) return;
+    ev.preventDefault(); ev.stopPropagation();
+    montrer("e-depot");
+  }, true);
+
+  /* ---------------------------------------------------------------- */
+  /* LE ZIP, EN LECTURE. Un .docx comme un .xlsx sont des archives zip. On lit
+     le répertoire central une fois, on garde toutes les entrées, puis on
+     décomprime celles dont on a besoin avec le flux natif du navigateur.
+     Aucun octet ne sort de la page. */
+  function u16(v, i) { return v.getUint16(i, true); }
+  function u32(v, i) { return v.getUint32(i, true); }
+
+  function entreesZip(buf) {
+    var v = new DataView(buf), n = buf.byteLength, out = {};
+    var fin = -1;
+    for (var i = n - 22; i >= 0 && i > n - 65558; i--) if (u32(v, i) === 0x06054b50) { fin = i; break; }
+    if (fin < 0) throw new Error("Ce fichier n'est pas une archive lisible.");
+    var nb = u16(v, fin + 10), pos = u32(v, fin + 16);
+    var dec = new TextDecoder("utf-8");
+    for (var k = 0; k < nb; k++) {
+      if (u32(v, pos) !== 0x02014b50) throw new Error("Répertoire de l'archive illisible.");
+      var methode = u16(v, pos + 10), taille = u32(v, pos + 20);
+      var lnom = u16(v, pos + 28), lextra = u16(v, pos + 30), lcom = u16(v, pos + 32);
+      var debut = u32(v, pos + 42);
+      var nom = dec.decode(new Uint8Array(buf, pos + 46, lnom));
+      var ln = u16(v, debut + 26), lx = u16(v, debut + 28);
+      out[nom] = { methode: methode, data: new Uint8Array(buf, debut + 30 + ln + lx, taille) };
+      pos += 46 + lnom + lextra + lcom;
+    }
+    return out;
+  }
+
+  function inflater(u8) {
+    if (typeof DecompressionStream !== "function")
+      return Promise.reject(new Error("Ce navigateur ne sait pas décomprimer le fichier. Collez le texte à la place."));
+    var flux = new Blob([u8]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+    return new Response(flux).arrayBuffer();
+  }
+
+  function lireEntree(e) {
+    if (!e) return Promise.resolve("");
+    if (e.methode === 0) return Promise.resolve(new TextDecoder("utf-8").decode(e.data));
+    if (e.methode !== 8) return Promise.reject(new Error("Compression inconnue dans ce fichier."));
+    return inflater(e.data).then(function (b) { return new TextDecoder("utf-8").decode(new Uint8Array(b)); });
+  }
+
+  function sansBalises(xml) {
+    return String(xml).replace(/<[^>]+>/g, " ")
+      .replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&")
+      .replace(/\s+/g, " ").trim();
+  }
+
+  function lireDocx(fichier) {
+    return fichier.arrayBuffer().then(function (buf) {
+      var z = entreesZip(buf);
+      if (!z["word/document.xml"]) throw new Error("Le fichier ne contient pas de document Word.");
+      return lireEntree(z["word/document.xml"]);
+    }).then(function (xml) {
+      return xml.replace(/<w:tab[^>]*\/>/g, "\t").replace(/<w:br[^>]*\/>/g, "\n")
+        .replace(/<\/w:p>/g, "\n").replace(/<[^>]+>/g, "")
+        .replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+        .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&")
+        .replace(/\n{3,}/g, "\n\n").trim();
+    });
+  }
+
+  /* Un .xlsx : les libellés vivent soit dans la table des chaînes partagées,
+     soit en clair dans les feuilles. On lit les deux. */
+  function lireXlsx(fichier) {
+    return fichier.arrayBuffer().then(function (buf) {
+      var z = entreesZip(buf);
+      var parts = Object.keys(z).filter(function (n) {
+        return n === "xl/sharedStrings.xml" || /^xl\/worksheets\/.*\.xml$/.test(n);
+      });
+      if (!parts.length) throw new Error("Le fichier ne contient pas de feuille de calcul lisible.");
+      return Promise.all(parts.map(function (n) { return lireEntree(z[n]); }));
+    }).then(function (xmls) { return xmls.map(sansBalises).join("\n"); });
+  }
+
+  function dit(html) { $("#lecture").innerHTML = html || ""; }
+
+  /* Le fichier choisi est lu, puis les rubriques s'ouvrent sans autre clic. */
+  $("#fichier").addEventListener("change", function (ev) {
+    var f = ev.target.files && ev.target.files[0];
+    if (!f) return;
+    $("#erreur").innerHTML = "";
+    dit("Lecture de <b>" + ech(f.name) + "</b>...");
+    var suite;
+    if (window.LirePdf && window.LirePdf.estPdf(f)) suite = window.LirePdf.texte(f);
+    else if (/\.xlsx$/i.test(f.name)) suite = lireXlsx(f);
+    else if (/\.docx$/i.test(f.name)) suite = lireDocx(f);
+    else suite = f.text();
+    suite.then(function (t) {
+      $("#texte").value = t;
+      dit("<b>" + ech(f.name) + "</b> lu.");
+      ouvrir();
+    }).catch(function (e) {
+      dit("");
+      $("#erreur").innerHTML = '<div class="avis att"><b>Ce fichier n\'a pas pu être lu.</b>' + ech(e.message) +
+        " Collez le sommaire de la base ci-dessous.</div>";
+    });
+  });
+
+  /* ---------------------------------------------------------------- */
+  function nombre(v) {
+    var s = String(v == null ? "" : v).trim();
+    return s !== "" && isFinite(+s) ? Number(s) : null;
+  }
+
+  function contexte() {
+    var c = {
+      ent: $("#ent").value.trim(),
+      eff: nombre($("#eff").value),
+      an: nombre($("#an").value) || new Date().getFullYear(),
+      accord: $("#acc").value === "oui",
+    };
+    c.mil = AUD ? AUD.millesimes(c.an) : [];
+    /* L'effectif commande la grille : R. 2312-8 en deçà de trois cents
+       salariés, R. 2312-9 au-delà. La grille du décret n'est due qu'à défaut
+       d'accord : sous accord, ou tant que l'effectif n'est pas connu, restent
+       les dix thèmes de L. 2312-21, alinéa 3. */
+    c.grille = AUD ? AUD.grilleDue(c.eff, c.accord) : null;
+    c.plancher = (AUD && AUD.plancher) || [];
+    return c;
+  }
+
+  function rubriques(c) {
+    if (c.grille) {
+      return c.grille.rubriques.map(function (r) {
+        var lignes = [];
+        (r.sections || []).forEach(function (s) {
+          (s.sujets || []).forEach(function (su) {
+            var infos = (su.informations && su.informations.length) ? su.informations : [su.intitule];
+            infos.forEach(function (i) {
+              lignes.push({ section: (s.lettre ? s.lettre + ". " : "") + s.titre,
+                sujet: (su.lettre ? su.lettre + ") " : "") + su.intitule, info: i });
+            });
+          });
+        });
+        if (!lignes.length) lignes.push({ section: "", sujet: "", info: r.titre });
+        return { id: "r" + r.n, n: r.n, titre: r.titre, lignes: lignes,
+          fond: c.grille.article === "R2312-9" ? "R. 2312-9" : "R. 2312-8" };
+      });
+    }
+    return c.plancher.map(function (t, i) {
+      var titre = t.charAt(0).toUpperCase() + t.slice(1);
+      return { id: "p" + (i + 1), n: i + 1, titre: titre,
+        lignes: [{ section: "", sujet: "", info: titre }], fond: "L. 2312-21, al. 3" };
+    });
+  }
+
+  /* Un titre de section ou de sujet qui est lui-même la ligne à renseigner
+     ne s'écrit qu'une fois : « A. Environnement » puis « Environnement »
+     serait la même chose deux fois. */
+  function sansLettre(t) { return String(t || "").replace(/^([A-Z]+\.|[a-z]+\))\s*/, ""); }
+  function entetes(c) {
+    return ["Section", "Sujet", "Information"]
+      .concat(c.mil.map(function (m) { return m.annee + " (" + m.nature + ")"; }))
+      .concat(["Ne peut être renseigné : raison (R. 2312-10)"]);
+  }
+
+  function texteApplicable(c) {
+    if (c.grille)
+      return c.grille.article === "R2312-9"
+        ? "R. 2312-9, à défaut d'accord, au moins trois cents salariés"
+        : "R. 2312-8, à défaut d'accord, moins de trois cents salariés";
+    return c.accord
+      ? "L'accord de l'article L. 2312-21. Les dix thèmes du plancher de son alinéa 3 restent dus."
+      : "Les dix thèmes du plancher de L. 2312-21, alinéa 3. L'effectif ouvrira la grille du décret.";
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Le repérage, lexical, qui ne sert qu'à ranger l'écran. */
+  function normaliser(s) {
+    return String(s || "").toLowerCase()
+      .normalize("NFD").replace(/[̀-ͯ]/g, "")
+      .replace(/[’']/g, "'").replace(/\s+/g, " ");
+  }
+  function reperee(rb, t) {
+    var cand = [rb.titre];
+    rb.lignes.slice(0, 40).forEach(function (l) {
+      if (l.section) cand.push(l.section.replace(/^[A-Z]+\.\s*/, ""));
+      if (l.sujet) cand.push(l.sujet.replace(/^[a-z]+\)\s*/, ""));
+    });
+    var vus = {}, n = 0;
+    cand.forEach(function (x) {
+      var k = normaliser(x);
+      if (k.length < 14 || vus[k]) return;
+      vus[k] = true;
+      if (t.indexOf(k) >= 0) n++;
+    });
+    return n >= 2;
+  }
+
+  function classer() {
+    var t = normaliser($("#texte").value);
+    CHOIX = {}; PRESENTES = {};
+    rubriques(CTX).forEach(function (rb) {
+      PRESENTES[rb.id] = reperee(rb, t);
+      CHOIX[rb.id] = !PRESENTES[rb.id];
+    });
+  }
+
+  function ouvrir() {
+    $("#erreur").innerHTML = "";
+    if (!AUD) {
+      $("#erreur").innerHTML = '<div class="avis non"><b>Le moteur de la base ne s\'est pas chargé.</b>' +
+        "Rechargez la page.</div>";
+      return;
+    }
+    CTX = contexte();
+    classer();
+    rendre();
+    montrer("e-rubriques");
+  }
+  $("#ouvrir").addEventListener("click", ouvrir);
+
+  /* ---------------------------------------------------------------- */
+  function rendre() {
+    var liste = rubriques(CTX);
+    var mis = liste.filter(function (rb) { return CHOIX[rb.id]; }).length;
+    var lignes = liste.reduce(function (n, rb) { return n + (CHOIX[rb.id] ? rb.lignes.length : 0); }, 0);
+
+    $("#etat").textContent = mis + " rubrique" + (mis > 1 ? "s" : "") + " à insérer, " +
+      lignes + " ligne" + (lignes > 1 ? "s" : "");
+
+    var aPoser = liste.filter(function (rb) { return !PRESENTES[rb.id]; });
+    var deja = liste.filter(function (rb) { return PRESENTES[rb.id]; });
+    $("#rubriques").innerHTML = aPoser.map(carte).join("");
+    $("#presentes").innerHTML = deja.length
+      ? '<h3 class="deja">Déjà dans votre base</h3>' + deja.map(carte).join("") : "";
+
+    Array.prototype.forEach.call(document.querySelectorAll("[data-ins]"), function (b) {
+      b.addEventListener("click", function () {
+        var id = b.getAttribute("data-ins");
+        CHOIX[id] = !CHOIX[id];
+        rendre();
+      });
+    });
+
+    $("#champs").querySelector("label:nth-child(1)").classList.toggle("attend", !CTX.ent);
+    $("#champs").querySelector("label:nth-child(2)").classList.toggle("attend", CTX.eff === null);
+  }
+
+  function carte(rb) {
+    var pris = !!CHOIX[rb.id];
+    var nbCol = 1 + CTX.mil.length + 1;
+    var head = '<tr><th class="info">Information</th>' +
+      CTX.mil.map(function (m) {
+        return '<th' + (m.nature === "perspective" ? ' class="persp"' : "") + ">" + m.annee +
+          "<small>" + ech(m.nature) + "</small></th>";
+      }).join("") + "<th>Ne peut être renseigné<small>raison (R. 2312-10)</small></th></tr>";
+    var corps = "", sec = null, suj = null;
+    rb.lignes.forEach(function (l) {
+      if (l.section && l.section !== sec) {
+        sec = l.section; suj = null;
+        if (sansLettre(l.section) !== l.info)
+          corps += '<tr class="sec"><td class="info">' + ech(l.section) + '</td><td colspan="' + (nbCol - 1) + '"></td></tr>';
+      }
+      if (l.sujet && l.sujet !== suj) {
+        suj = l.sujet;
+        if (sansLettre(l.sujet) !== l.info)
+          corps += '<tr class="suj"><td class="info">' + ech(l.sujet) + '</td><td colspan="' + (nbCol - 1) + '"></td></tr>';
+      }
+      corps += '<tr><td class="info">' + ech(l.info) + "</td>" +
+        CTX.mil.map(function () { return '<td class="vide"></td>'; }).join("") + '<td class="vide"></td></tr>';
+    });
+    return '<div class="rb' + (pris ? "" : " retire") + '"><div class="tt"><h3>' + rb.n + ". " + ech(rb.titre) +
+      '<span class="n">' + ech(rb.fond) + " · " + rb.lignes.length + " ligne" + (rb.lignes.length > 1 ? "s" : "") + "</span></h3>" +
+      '<button type="button" class="btn-ins' + (pris ? "" : " mis") + '" data-ins="' + ech(rb.id) + '">' +
+      (pris ? "Retirer" : "Insérer") + "</button></div>" +
+      '<div class="grille-tab"><table class="g"><thead>' + head + "</thead><tbody>" + corps +
+      "</tbody></table></div></div>";
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* LE CLASSEUR .XLSX, ÉCRIT À LA MAIN. Même procédé que docs/audit-bdese.html
+     et docs/bdese.html : un zip de quelques fichiers XML, sans compression.
+     Styles (xl/styles.xml) : 1 = titre, 2 = en-tête, 3 = cellule cadrée. */
+  var TABLE = (function () {
+    var t = new Uint32Array(256), c, n, k;
+    for (n = 0; n < 256; n++) { c = n;
+      for (k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
+      t[n] = c >>> 0; }
+    return t;
+  })();
+  function crc32(u) { var c = 0xFFFFFFFF;
+    for (var i = 0; i < u.length; i++) c = TABLE[(c ^ u[i]) & 0xFF] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0; }
+  function octets(s) { return new TextEncoder().encode(s); }
+
+  function zip(entrees) {
+    var parts = [], centre = [], offset = 0;
+    function w16(v) { return [v & 255, (v >> 8) & 255]; }
+    function w32(v) { return [v & 255, (v >> 8) & 255, (v >> 16) & 255, (v >>> 24) & 255]; }
+    entrees.forEach(function (e) {
+      var nom = octets(e.nom), data = octets(e.contenu), crc = crc32(data);
+      var local = [].concat(w32(0x04034b50), w16(20), w16(0), w16(0), w16(0), w16(0),
+        w32(crc), w32(data.length), w32(data.length), w16(nom.length), w16(0));
+      parts.push(new Uint8Array(local), nom, data);
+      centre.push({ nom: nom, crc: crc, taille: data.length, offset: offset });
+      offset += local.length + nom.length + data.length;
+    });
+    var debutCentre = offset, centreOctets = [];
+    centre.forEach(function (c) {
+      var h = [].concat(w32(0x02014b50), w16(20), w16(20), w16(0), w16(0), w16(0), w16(0),
+        w32(c.crc), w32(c.taille), w32(c.taille), w16(c.nom.length),
+        w16(0), w16(0), w16(0), w16(0), w32(0), w32(c.offset));
+      centreOctets.push(new Uint8Array(h), c.nom);
+      offset += h.length + c.nom.length;
+    });
+    var fin = new Uint8Array([].concat(w32(0x06054b50), w16(0), w16(0),
+      w16(centre.length), w16(centre.length), w32(offset - debutCentre), w32(debutCentre), w16(0)));
+    var tout = parts.concat(centreOctets, [fin]);
+    var total = tout.reduce(function (n, x) { return n + x.length; }, 0);
+    var out = new Uint8Array(total), p = 0;
+    tout.forEach(function (x) { out.set(x, p); p += x.length; });
+    return out;
+  }
+
+  var echX = function (s) {
+    return String(s == null ? "" : s)
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "")
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  };
+  function colonne(n) {
+    var s = "";
+    while (n > 0) { var r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = (n - r - 1) / 26; }
+    return s;
+  }
+  function nomOnglet(t, pris) {
+    var s = String(t || "Feuille").replace(/[\\\/\?\*\[\]:]/g, " ").replace(/\s+/g, " ").trim();
+    if (s.length > 28) {
+      s = s.slice(0, 28);
+      var e = s.lastIndexOf(" ");
+      if (e > 12) s = s.slice(0, e);
+    }
+    s = s.replace(/[\s,;.\-]+$/, "");
+    if (!s) s = "Feuille";
+    var base = s, n = 2;
+    while (pris[s.toLowerCase()]) { s = base.slice(0, 26) + " " + n; n++; }
+    pris[s.toLowerCase()] = true;
+    return s;
+  }
+  function feuilleXml(lignes, largeurs) {
+    var x = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">';
+    function pleines(l) { return (l || []).filter(function (c) { return c !== null && c !== undefined && c !== ""; }).length; }
+    var tete = -1;
+    lignes.forEach(function (l, i) { if (tete < 0 && pleines(l) >= 4) tete = i; });
+    if (tete >= 0) {
+      x += '<sheetViews><sheetView workbookViewId="0"><pane ySplit="' + (tete + 1) +
+        '" topLeftCell="A' + (tete + 2) + '" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>';
+    }
+    x += '<sheetFormatPr defaultRowHeight="15"/>';
+    if (largeurs && largeurs.length) {
+      x += "<cols>";
+      largeurs.forEach(function (l, i) {
+        x += '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + l + '" customWidth="1"/>';
+      });
+      x += "</cols>";
+    }
+    x += "<sheetData>";
+    var nbCol = Math.max.apply(null, lignes.map(function (l) { return (l || []).length; }).concat([1]));
+    lignes.forEach(function (ligne, i) {
+      var vide = !(ligne || []).some(function (c) { return c !== null && c !== undefined && c !== ""; });
+      if (vide) { x += '<row r="' + (i + 1) + '"/>'; return; }
+      var titre = (i === 0 && pleines(ligne) === 1);
+      var style = titre ? 1 : (i === tete ? 2 : 3);
+      var largeur = titre ? 1 : (i < tete || tete < 0 ? ligne.length : nbCol);
+      x += '<row r="' + (i + 1) + '"' + (titre ? ' ht="22" customHeight="1"' : "") + '>';
+      for (var j = 0; j < largeur; j++) {
+        var cel = ligne[j];
+        var ref = colonne(j + 1) + (i + 1);
+        if (cel === null || cel === undefined || cel === "") { x += '<c r="' + ref + '" s="' + style + '"/>'; continue; }
+        x += '<c r="' + ref + '" s="' + style + '" t="inlineStr"><is><t xml:space="preserve">' +
+          echX(cel) + "</t></is></c>";
+      }
+      x += "</row>";
+    });
+    return x + "</sheetData></worksheet>";
+  }
+  var STYLES_XLSX = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    '<fonts count="3"><font><sz val="11"/><name val="Calibri"/></font>' +
+    '<font><b/><sz val="13"/><color rgb="FF1F3864"/><name val="Calibri"/></font>' +
+    '<font><b/><sz val="11"/><name val="Calibri"/></font></fonts>' +
+    '<fills count="3"><fill><patternFill patternType="none"/></fill>' +
+    '<fill><patternFill patternType="gray125"/></fill>' +
+    '<fill><patternFill patternType="solid"><fgColor rgb="FFE7EAF0"/><bgColor indexed="64"/></patternFill></fill></fills>' +
+    /* Cadres en gras, les mêmes que sur le classeur de la base de données et
+       sur tous les autres. Demande du 15 septembre 2026. */
+    '<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border>' +
+    '<border><left style="medium"><color rgb="FF4A5568"/></left><right style="medium"><color rgb="FF4A5568"/></right>' +
+    '<top style="medium"><color rgb="FF4A5568"/></top><bottom style="medium"><color rgb="FF4A5568"/></bottom><diagonal/></border></borders>' +
+    '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+    '<cellXfs count="4">' +
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+    '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment vertical="center"/></xf>' +
+    '<xf numFmtId="0" fontId="2" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>' +
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>' +
+    '</cellXfs></styleSheet>';
+  function xlsx(feuilles) {
+    var pris = {};
+    var noms = feuilles.map(function (f) { return nomOnglet(f.titre, pris); });
+    var entrees = [
+      { nom: "[Content_Types].xml", contenu: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+        '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+        '<Default Extension="xml" ContentType="application/xml"/>' +
+        '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+        feuilles.map(function (f, i) {
+          return '<Override PartName="/xl/worksheets/sheet' + (i + 1) + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>';
+        }).join("") + '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' + "</Types>" },
+      { nom: "_rels/.rels", contenu: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+        "</Relationships>" },
+      { nom: "xl/workbook.xml", contenu: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" ' +
+        'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>' +
+        noms.map(function (n, i) {
+          return '<sheet name="' + echX(n) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>';
+        }).join("") + "</sheets></workbook>" },
+      { nom: "xl/_rels/workbook.xml.rels", contenu: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+        feuilles.map(function (f, i) {
+          return '<Relationship Id="rId' + (i + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet' + (i + 1) + '.xml"/>';
+        }).join("") + '<Relationship Id="rId' + (feuilles.length + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' + "</Relationships>" },
+      { nom: "xl/styles.xml", contenu: STYLES_XLSX },
+    ];
+    feuilles.forEach(function (f, i) {
+      entrees.push({ nom: "xl/worksheets/sheet" + (i + 1) + ".xml", contenu: feuilleXml(f.lignes, f.largeurs) });
+    });
+    var octets = zip(entrees);
+    /* Le classeur garde son rendu lisible : c'est ce que l'apercu montrera. */
+    if (window.Apercu)
+      window.Apercu.poser(octets, { titre: "Le classeur",
+        html: window.Apercu.htmlFeuilles(feuilles) });
+    return octets;
+  }
+
+  /* Rien ne s'enregistre avant d'avoir ete vu. Sur un telephone, Safari
+     depose le fichier dans iCloud Drive sans rien montrer : il faut sortir de
+     l'application pour savoir ce qu'on vient de telecharger. Demande du
+     13 septembre 2026, « je dois pouvoir l'ouvrir d'abord ». L'apercu rend le
+     classeur feuille par feuille, ou les lignes du CSV, et le bouton
+     « Enregistrer » fait seul partir le fichier. */
+  function telecharger(contenu, nom, type, rendu) {
+    var vu = rendu || (window.Apercu ? window.Apercu.pour(contenu) : null);
+    if (vu && window.Apercu) {
+      window.Apercu.montrer(vu, nom, function () { enregistrer(contenu, nom, type); });
+      return;
+    }
+    enregistrer(contenu, nom, type);
+  }
+  function enregistrer(contenu, nom, type) {
+    var b = new Blob([contenu], { type: type });
+    var u = URL.createObjectURL(b);
+    var a = document.createElement("a");
+    a.href = u; a.setAttribute("download", nom); a.rel = "noopener";
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(u); a.remove(); }, 2000);
+  }
+
+  /* ---------------------------------------------------------------- */
+  function retenues() {
+    return rubriques(CTX).filter(function (rb) { return CHOIX[rb.id]; });
+  }
+
+  function feuilles() {
+    var head = entetes(CTX);
+    var vides = head.length - 3;
+    var largeurs = [30, 44, 60].concat(CTX.mil.map(function () { return 16; })).concat([44]);
+    var couverture = { titre: "La base", largeurs: [36, 90], lignes: [
+      ["Base de données économiques, sociales et environnementales"],
+      ["Entreprise", CTX.ent || "[à renseigner]"],
+      ["Effectif", CTX.eff === null ? "[à renseigner]" : String(CTX.eff)],
+      ["Année en cours", String(CTX.an)],
+      ["Texte qui commande le contenu", texteApplicable(CTX)],
+      ["Version du texte lue", CTX.grille ? CTX.grille.version : "LEGIARTI000043975329"],
+      ["Millésimes", CTX.mil.map(function (m) { return m.annee + " (" + m.nature + ")"; }).join(", ")],
+      ["Années à venir", "Données chiffrées ou, à défaut, grandes tendances. Les informations qui ne peuvent recevoir ni chiffres ni tendances sont indiquées, avec les raisons, dans la dernière colonne de chaque onglet (R. 2312-10)."],
+      ["Support", CTX.eff !== null && CTX.eff >= 300
+        ? "À défaut d'accord, support informatique (R. 2312-12)."
+        : "À défaut d'accord, support informatique ou papier (R. 2312-12)."],
+      ["Accès", "Accessible en permanence aux membres de la délégation du personnel du comité, à ceux du comité central et aux délégués syndicaux (L. 2312-36)."],
+    ] };
+    return [couverture].concat(retenues().map(function (rb) {
+      var lignes = [[rb.titre].concat(new Array(head.length - 1).fill("")), head];
+      rb.lignes.forEach(function (l) {
+        lignes.push([l.section, l.sujet, l.info].concat(new Array(vides).fill("")));
+      });
+      return { titre: rb.n + " " + rb.titre, lignes: lignes, largeurs: largeurs };
+    }));
+  }
+
+  function nomFichier(ext) {
+    var e = String(CTX && CTX.ent ? CTX.ent : "").normalize("NFD")
+      .replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "").toLowerCase().slice(0, 40);
+    return "bdese-complement" + (e ? "-" + e : "") + "-" +
+      new Date().toISOString().slice(0, 10) + "." + ext;
+  }
+
+  $("#dl-xlsx").addEventListener("click", function () {
+    telecharger(xlsx(feuilles()), nomFichier("xlsx"),
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+  });
+
+  $("#dl-csv").addEventListener("click", function () {
+    var head = entetes(CTX);
+    var l = [
+      ["Base de données économiques, sociales et environnementales"],
+      ["Entreprise", CTX.ent || "[à renseigner]"],
+      ["Effectif", CTX.eff === null ? "[à renseigner]" : String(CTX.eff)],
+      ["Année en cours", String(CTX.an)],
+      ["Texte qui commande le contenu", texteApplicable(CTX)],
+      ["Version du texte lue", CTX.grille ? CTX.grille.version : "LEGIARTI000043975329"],
+      ["Millésimes", CTX.mil.map(function (m) { return m.annee + " (" + m.nature + ")"; }).join(", ")],
+      [],
+      ["Rubrique"].concat(head)];
+    retenues().forEach(function (rb) {
+      rb.lignes.forEach(function (x) {
+        l.push([rb.n + ". " + rb.titre, x.section, x.sujet, x.info]
+          .concat(new Array(head.length - 3).fill("")));
+      });
+    });
+    var csv = "﻿" + l.map(function (r) {
+      return r.map(function (c) { return '"' + String(c).replace(/"/g, '""') + '"'; }).join(";");
+    }).join("\r\n");
+    telecharger(csv, nomFichier("csv"), "text/csv;charset=utf-8",
+      window.Apercu ? { titre: "Le CSV", html: window.Apercu.tableHtml(l) } : null);
+  });
+
+  /* ---------------------------------------------------------------- */
+  $("#loi").innerHTML =
+    "<p><b>L. 2312-36 du code du travail</b> <span class=\"vers\">(LEGIARTI000048533625, lu le 8 septembre 2026, deux lectures espacées)</span> : " +
+    "« En l'absence d'accord prévu à l'article L. 2312-21, une base de données économiques, sociales et environnementales, " +
+    "mise régulièrement à jour, rassemble un ensemble d'informations que l'employeur met à disposition du comité social et économique. " +
+    "La base de données est accessible en permanence aux membres de la délégation du personnel du comité social et économique " +
+    "ainsi qu'aux membres de la délégation du personnel du comité social et économique central d'entreprise, et aux délégués syndicaux. » " +
+    "Et plus loin : « Ces informations portent sur les deux années précédentes et l'année en cours et intègrent des perspectives " +
+    "sur les trois années suivantes. »</p>" +
+    "<p><b>R. 2312-10</b> <span class=\"vers\">(LEGIARTI000036411580, lu le 8 septembre 2026, deux lectures espacées)</span> : " +
+    "« En l'absence d'accord prévu à l'article L. 2312-21, les informations figurant dans la base de données portent sur l'année en cours, " +
+    "sur les deux années précédentes et, telles qu'elles peuvent être envisagées, sur les trois années suivantes. Ces informations sont " +
+    "présentées sous forme de données chiffrées ou, à défaut, pour les années suivantes, sous forme de grandes tendances. L'employeur indique, " +
+    "pour ces années, les informations qui, eu égard à leur nature ou aux circonstances, ne peuvent pas faire l'objet de données chiffrées " +
+    "ou de grandes tendances, pour les raisons qu'il précise. »</p>" +
+    "<p><b>R. 2312-12</b> <span class=\"vers\">(LEGIARTI000036411586, lu le 8 septembre 2026, deux lectures espacées)</span> : " +
+    "« En l'absence d'accord prévu à l'article L. 2312-21, la base de données est tenue à la disposition des personnes mentionnées au " +
+    "dernier alinéa de l'article L. 2312-36 sur un support informatique pour les entreprises d'au moins trois cents salariés, et sur un " +
+    "support informatique ou papier pour les entreprises de moins de trois cents salariés. »</p>" +
+    "<p><b>L. 2312-21</b> <span class=\"vers\">(LEGIARTI000043975329, lu le 8 septembre 2026, deux lectures espacées)</span> : un accord d'entreprise, ou à défaut " +
+    "de délégué syndical un accord entre l'employeur et le comité, « définit : 1° L'organisation, l'architecture et le contenu de la base " +
+    "de données économiques, sociales et environnementales ». Et : « La base de données comporte au moins les thèmes suivants : " +
+    "l'investissement social, l'investissement matériel et immatériel, l'égalité professionnelle entre les femmes et les hommes au sein " +
+    "de l'entreprise, les fonds propres, l'endettement, l'ensemble des éléments de la rémunération des salariés et dirigeants, les " +
+    "activités sociales et culturelles, la rémunération des financeurs, les flux financiers à destination de l'entreprise et les " +
+    "conséquences environnementales de l'activité de l'entreprise. »</p>" +
+    "<p><b>R. 2312-8</b> <span class=\"vers\">(LEGIARTI000049905537)</span> et <b>R. 2312-9</b> " +
+    "<span class=\"vers\">(LEGIARTI000049905524)</span>, lus le 7 septembre 2026, relus le 8 : le contenu de la base à défaut d'accord, " +
+    "au-dessous et à partir de trois cents salariés. Les rubriques, sections, sujets et lignes de cet écran en sont le découpage, mot pour mot.</p>";
+
+  /* ---------------------------------------------------------------- */
+  (function prealable() {
+    $("#an").value = new Date().getFullYear();
+    if (profil.denomination) $("#ent").value = profil.denomination;
+    if (effProfil !== null) $("#eff").value = effProfil;
+
+    /* Chaque réponse portée en tête redessine les rubriques : les colonnes
+       changent de millésime, la grille change de texte, sans quitter la page. */
+    function majour() {
+      if (!CTX) return;
+      var avant = CTX.grille ? CTX.grille.article : (CTX.accord ? "accord" : "plancher");
+      CTX = contexte();
+      var apres = CTX.grille ? CTX.grille.article : (CTX.accord ? "accord" : "plancher");
+      if (avant !== apres) classer();
+      rendre();
+      if (P) {
+        var patch = {};
+        if (CTX.ent) patch.denomination = CTX.ent;
+        if (CTX.eff !== null) patch.effectif = CTX.eff;
+        if (Object.keys(patch).length) P.ecrire(patch);
+      }
+    }
+    $("#champs").addEventListener("input", majour);
+    $("#champs").addEventListener("change", majour);
+    montrer("e-depot");
+  })();
+})();
+</script>
+<script>
+  if ("serviceWorker" in navigator)
+    window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js"); });
+</script>
+<script src="base-documents.js"></script>
+</body>
+</html>

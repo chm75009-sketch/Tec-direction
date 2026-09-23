@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Égalité professionnelle</title>
+<meta name="theme-color" content="#16181d">
+<link rel="stylesheet" href="style.css">
+<!-- Équipe, droits et journal : le point unique d'autorisation. Chargé avant
+     tout le reste, il masque la page tant que l'utilisateur n'est pas identifié.
+     Tant qu'aucun utilisateur n'a été créé, il ne fait rien. Voir docs/DROITS.md. -->
+<script src="liste-choix.js"></script>
+<script src="listes-valeurs.js"></script>
+<script src="listes-auto.js"></script>
+<script src="apercu.js"></script>
+<script src="droits.js"></script>
+
+<!--
+  LE PLAN D'ACTION, EN PREMIER ET SEUL À L'ÉCRAN.
+
+  Le plan d'action annuel pour l'égalité professionnelle entre les femmes et
+  les hommes est dû à défaut d'accord (L. 2242-3). Cette page l'écrit au nom de
+  l'entreprise, déjà rempli avec la fiche : la dénomination, l'adresse, le
+  signataire, l'effectif. Trois champs en tête le complètent frappe par
+  frappe : l'année du plan et les domaines d'action retenus à côté de la
+  rémunération effective, que R. 2242-2 impose. À partir de trois cents
+  salariés, un quatrième domaine apparaît : c'est le minimum que le même
+  article fixe à cet effectif.
+
+  C'est l'écran 5 de la maquette validée le 8 septembre 2026 : les champs en
+  tête, la feuille, Télécharger en Word, Imprimer, « Voir le texte de loi »
+  replié, et Retour. Rien d'autre : ni chapeau, ni étape, ni exposé du droit
+  avant d'agir. Les huit onglets qui occupaient cette page (le cadre, l'année
+  écoulée, les objectifs, les actions, l'index, le dépôt, le report, le
+  document) ont été retirés le 8 septembre 2026. Quand un accord ou un plan
+  existe déjà, c'est controler-egalite.html qui le prend et le complète.
+
+  L'ORDRE DU DOCUMENT EST CELUI DU TEXTE. L. 2242-3 : « après avoir évalué les
+  objectifs fixés et les mesures prises au cours de l'année écoulée, ce plan
+  d'action [...] détermine les objectifs de progression prévus pour l'année à
+  venir, définit les actions qualitatives et quantitatives permettant de les
+  atteindre et évalue leur coût. Ce plan d'action est déposé auprès de
+  l'autorité administrative. » L'évaluation vient donc en premier, les
+  objectifs et les actions ensuite, le coût, puis le dépôt.
+
+  LES TEXTES. Chaque article cité a été demandé deux fois au relais Légifrance
+  le 8 septembre 2026, à plusieurs minutes d'intervalle, filtre par nom du
+  code ; les deux lectures ont rendu le même identifiant de version et le même
+  texte. L'identifiant LEGIARTI est dans la table TEXTES, à côté du numéro.
+
+  CE QUI RESTE ENTRE CROCHETS. Les chiffres de l'entreprise : le taux de
+  départ, la cible, l'enveloppe, le coût, le résultat de l'index. Un crochet
+  est un champ à remplir, jamais une affirmation : aucun chiffre n'est inventé.
+
+  Rien ne sort du poste : tout est rédigé dans le navigateur.
+-->
+
+<style>
+  /* Ce qui est propre à cette page. Tout le reste vient de style.css. */
+  #ecran-doc{margin:var(--e4) 0 0}
+  #ecran-doc .champs{margin:0 0 var(--e4)}
+  #ecran-doc .barre{margin:var(--e4) 0}
+  #ecran-doc details{margin:var(--e2) 0 var(--e6)}
+  #sources{margin-top:8px;font-size:var(--t1);line-height:1.6;color:var(--texte-2)}
+  #sources div{margin:0 0 6px}
+  #sources b{color:var(--encre)}
+
+  /* La feuille : le document tel qu'il sortira sur le papier. */
+  .feuille [contenteditable]{outline:none}
+  .feuille [contenteditable]:focus{background:#fffbe9;border-radius:3px}
+  .feuille .modifie{border-left:2px solid var(--vert);padding-left:8px;margin-left:-10px}
+  .feuille .b-t1{font:700 18px/1.35 system-ui;margin:0 0 6px;text-align:center}
+  .feuille .b-st{font:600 13.5px/1.4 system-ui;margin:0 0 22px;text-align:center;color:var(--texte-2)}
+  .feuille .b-h1{font:700 15px/1.35 system-ui;margin:20px 0 7px}
+  .feuille .b-h2{font:600 14px/1.35 system-ui;margin:15px 0 5px}
+  .feuille .b-p{margin:0 0 9px;font-size:14.5px;line-height:1.68}
+  .feuille .b-puce{margin:0 0 5px 18px;font-size:14.5px;line-height:1.6}
+  /* Une note de marge s'adresse à l'employeur : elle ne part pas dans le
+     fichier emporté, elle doit donc se voir comme telle. */
+  .feuille .b-note{margin:9px 0 12px;padding:0 0 0 10px;border-left:2px dashed var(--filet-2);
+    font-size:12.5px;font-style:italic;line-height:1.55;color:var(--texte-3)}
+  .feuille .b-vide{height:9px}
+  .feuille .b-trait{border:0;border-top:1px solid var(--filet);margin:20px 0}
+  .feuille .b-sign{margin:20px 0 0;font-size:14.5px;white-space:pre-wrap;line-height:1.7}
+
+  @media print{
+    .champs,.barre,details,.b-note{display:none !important}
+  }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <p class="marque">Égalité professionnelle</p>
+    <div class="outils">
+      <a href="index.html">Accueil</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ═══════════ LE PLAN D'ACTION, SEUL À L'ÉCRAN ═══════════ -->
+  <section id="ecran-doc">
+    <form class="champs" id="champs" autocomplete="off" onsubmit="return false">
+      <label class="ch"><span class="nom">Année du plan</span>
+        <input type="number" id="c-annee" min="2000" max="2100"></label>
+      <label class="ch"><span class="nom">Deuxième domaine d'action</span>
+        <select id="c-dom2"></select></label>
+      <label class="ch"><span class="nom">Troisième domaine d'action</span>
+        <select id="c-dom3"></select></label>
+      <label class="ch" id="w-dom4" hidden><span class="nom">Quatrième domaine d'action</span>
+        <select id="c-dom4"></select></label>
+    </form>
+
+    <div id="doc"></div>
+
+    <div class="barre pile">
+      <button type="button" id="btn-word">Télécharger en Word</button>
+      <button type="button" class="second" id="btn-imprimer">Imprimer</button>
+    </div>
+
+    <details>
+      <summary>Voir le texte de loi</summary>
+      <div id="sources"></div>
+    </details>
+  </section>
+
+</main>
+
+<script src="audit-export.js"></script>
+<script src="base-documents.js"></script>
+<script src="profil.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var $ = function (s) { return document.querySelector(s); };
+  var ech = function (s) { return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); };
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     LES TEXTES.
+
+     Chacun a été demandé deux fois au relais Légifrance le 8 septembre 2026,
+     à plusieurs minutes d'intervalle, filtre par nom du code ; les deux
+     lectures ont rendu le même identifiant et le même texte. La colonne
+     « dit » ne reprend que ce qui sert à la rédaction, dans les mots de
+     l'article.
+     ══════════════════════════════════════════════════════════════════════ */
+  var TEXTES = {
+    "L2242-1": { id: "LEGIARTI000043893962",
+      dit: "dans les entreprises où sont constituées une ou plusieurs sections syndicales d'organisations représentatives, l'employeur engage au moins une fois tous les quatre ans une négociation sur l'égalité professionnelle entre les femmes et les hommes, portant notamment sur les mesures visant à supprimer les écarts de rémunération, et la qualité de vie et des conditions de travail (2°)" },
+    "L2242-3": { id: "LEGIARTI000037389684",
+      dit: "en l'absence d'accord relatif à l'égalité professionnelle à l'issue de la négociation du 2° de l'article L. 2242-1, l'employeur établit un plan d'action annuel ; après avoir évalué les objectifs fixés et les mesures prises au cours de l'année écoulée, ce plan, fondé sur des critères clairs, précis et opérationnels, détermine les objectifs de progression prévus pour l'année à venir, définit les actions qualitatives et quantitatives permettant de les atteindre et évalue leur coût ; il est déposé auprès de l'autorité administrative" },
+    "L2242-8": { id: "LEGIARTI000051289082",
+      dit: "les entreprises d'au moins cinquante salariés sont soumises à une pénalité en l'absence d'accord relatif à l'égalité professionnelle ou, à défaut d'accord, de plan d'action ; dans les entreprises d'au moins 300 salariés, ce défaut d'accord est attesté par un procès-verbal de désaccord ; le montant de la pénalité est fixé au maximum à 1 % des rémunérations et gains versés au cours des périodes non couvertes, et fixé par l'autorité administrative en fonction des efforts constatés" },
+    "R2242-2": { id: "LEGIARTI000038430967",
+      dit: "l'accord ou, à défaut, le plan d'action fixe les objectifs de progression et les actions permettant de les atteindre portant sur au moins trois des domaines d'action mentionnés au 2° de l'article L. 2312-36 pour les entreprises de moins de 300 salariés et sur au moins quatre pour les entreprises de 300 salariés et plus : embauche, formation, promotion professionnelle, qualification, classification, conditions de travail, sécurité et santé au travail, rémunération effective et articulation entre l'activité professionnelle et la vie personnelle et familiale ; les objectifs et les actions sont accompagnés d'indicateurs chiffrés ; la rémunération effective est obligatoirement comprise dans les domaines retenus ; dans les entreprises d'au moins cinquante salariés, les objectifs, actions et indicateurs de ce domaine tiennent compte des indicateurs de l'article L. 1142-8 et, le cas échéant, des mesures de correction de l'article L. 1142-9" },
+    "L1142-8": { id: "LEGIARTI000044605453",
+      dit: "dans les entreprises d'au moins cinquante salariés, l'employeur publie chaque année l'ensemble des indicateurs relatifs aux écarts de rémunération entre les femmes et les hommes et aux actions mises en œuvre pour les supprimer, selon des modalités et une méthodologie définies par décret" }
+  };
+  /* « L2242-3 » s'écrit « L. 2242-3 » dans un document. */
+  function ref(nums) {
+    return nums.map(function (n) { return n.replace(/^([LRD])(\d)/, "$1. $2"); }).join(", ");
+  }
+
+  /* ═════════════════════════════════════════════ le profil de l'entreprise */
+  var profil = null;
+  try { profil = JSON.parse(localStorage.getItem("profil-entreprise") || "null"); } catch (e) {}
+  if ((!profil || !profil.denomination) && window.Profil) profil = window.Profil.lire();
+  if (!profil) profil = {};
+
+  function nomSociete() { return profil.denomination || "[dénomination de l'entreprise]"; }
+  function societe() {
+    var t = nomSociete();
+    if (profil.adresse) t += ", dont le siège social est situé " + profil.adresse;
+    if (profil.siret) t += ", identifiée sous le numéro SIRET " + profil.siret;
+    return t;
+  }
+  function signataire() { return profil.responsable || "[nom et qualité du signataire]"; }
+  function ville() {
+    var m = String(profil.adresse || "").match(/\d{5}\s+(.+)$/);
+    return m ? m[1].trim() : "[ville]";
+  }
+  function effectif() {
+    var n = Number(profil.effectif);
+    return isFinite(n) && n > 0 ? n : null;
+  }
+  /* R. 2242-2 : trois domaines au moins sous trois cents salariés, quatre à
+     partir de trois cents. */
+  function minimumDomaines() { var n = effectif(); return n !== null && n >= 300 ? 4 : 3; }
+
+  var MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août",
+    "septembre", "octobre", "novembre", "décembre"];
+  function dateFr(d) {
+    if (!d) return "[date]";
+    return (d.getDate() === 1 ? "1er" : d.getDate()) + " " + MOIS[d.getMonth()] + " " + d.getFullYear();
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     LES NEUF DOMAINES D'ACTION DE R. 2242-2, dans l'ordre et les mots du
+     texte. La rémunération effective est toujours retenue ; les autres se
+     choisissent en tête. Chaque domaine porte un objectif de progression, des
+     actions et des indicateurs chiffrés : les valeurs propres à l'entreprise
+     restent entre crochets.
+     ══════════════════════════════════════════════════════════════════════ */
+  var DOMAINES = [
+    { cle: "embauche", nom: "Embauche",
+      objectif: function (an) { return "Porter la part du sexe sous-représenté parmi les recrutements en contrat à durée indéterminée de [__] %, taux constaté en " + (an - 1) + ", à [__] % au 31 décembre " + an + ", sur les emplois où ce sexe représente moins de 40 % de l'effectif."; },
+      actions: [
+        "Rédiger toutes les offres d'emploi en double genre, sans mention d'âge ni de situation de famille, et les faire relire avant diffusion par [service ou personne désignée].",
+        "Constituer pour chaque poste ouvert une liste courte comportant au moins une candidature de chaque sexe lorsque des candidatures des deux sexes ont été reçues, et consigner par écrit le motif du choix retenu.",
+        "Former à la non-discrimination à l'embauche toutes les personnes qui conduisent des entretiens de recrutement : [__] sessions dans l'année."],
+      indicateurs: [
+        "Nombre de candidatures reçues, par sexe et par emploi.",
+        "Nombre d'embauches, par sexe, par catégorie professionnelle et par type de contrat.",
+        "Part des listes courtes mixtes ; nombre de recruteurs formés dans l'année."] },
+    { cle: "formation", nom: "Formation",
+      objectif: function (an) { return "Ramener à [2] points au plus l'écart entre le taux d'accès à la formation des femmes et celui des hommes au 31 décembre " + an + ", et proposer une action de formation à 100 % des salariés de retour d'un congé de maternité, d'adoption ou parental de plus de [4] mois, dans les [3] mois de leur reprise."; },
+      actions: [
+        "Programmer les formations sur le temps de travail et prévenir les participants au moins [15] jours avant.",
+        "Proposer à tout salarié de retour de congé familial un entretien de reprise, puis une action de remise à niveau adaptée au poste retrouvé.",
+        "Réserver [__] % des heures du plan de développement des compétences aux salariés à temps partiel."],
+      indicateurs: [
+        "Nombre d'heures de formation suivies, par sexe et par catégorie professionnelle.",
+        "Taux d'accès à la formation par sexe, et écart entre les deux taux.",
+        "Nombre de retours de congé familial ayant donné lieu à une formation."] },
+    { cle: "promotion", nom: "Promotion professionnelle",
+      objectif: function (an) { return "Porter à [__] % la part des femmes parmi les promotions prononcées dans l'année, part au moins égale à celle qu'elles représentent dans l'effectif de la catégorie d'origine, au 31 décembre " + an + "."; },
+      actions: [
+        "Tenir chaque année, avant arbitrage, une revue des promotions envisagées présentant la répartition par sexe et par catégorie, et écrire le motif de tout écart supérieur à [5] points.",
+        "Neutraliser les périodes de congé de maternité, d'adoption et de congé parental dans le décompte de l'ancienneté servant aux critères de promotion.",
+        "Tenir un entretien professionnel au retour de chaque congé familial, dans les [2] mois de la reprise."],
+      indicateurs: [
+        "Taux de promotion par sexe et par catégorie professionnelle.",
+        "Ancienneté moyenne dans le poste avant promotion, par sexe.",
+        "Part des femmes et des hommes dans chaque niveau d'encadrement."] },
+    { cle: "qualification", nom: "Qualification",
+      objectif: function (an) { return "Porter à [__] le nombre de salariés du sexe sous-représenté accédant chaque année à une qualification supérieure reconnue (certification, titre professionnel, validation des acquis de l'expérience), au 31 décembre " + an + "."; },
+      actions: [
+        "Recenser les emplois où un sexe est représenté à moins de 30 % et ouvrir [__] parcours qualifiants par an sur ces emplois.",
+        "Financer [__] démarches de validation des acquis de l'expérience par an, avec [__] heures d'accompagnement chacune, sur le temps de travail.",
+        "Proposer un entretien de positionnement à tout salarié à temps partiel dont la qualification n'a pas évolué depuis [5] ans."],
+      indicateurs: [
+        "Nombre de qualifications obtenues dans l'année, par sexe.",
+        "Répartition des femmes et des hommes par niveau de qualification.",
+        "Nombre de démarches de validation des acquis engagées, et nombre abouties."] },
+    { cle: "classification", nom: "Classification",
+      objectif: function (an) { return "Ramener à zéro, au 31 décembre " + an + ", le nombre de situations où une femme et un homme exerçant des fonctions de valeur égale sont positionnés à des coefficients différents sans qu'un critère objectif l'explique. Nombre de situations examinées dans l'année : [__]."; },
+      actions: [
+        "Comparer, coefficient par coefficient, les emplois occupés par des femmes et par des hommes, sur des critères écrits et objectifs : contenu du travail, technicité, autonomie, responsabilités, charge physique et charge nerveuse.",
+        "Écrire, pour chaque écart constaté, soit le critère objectif qui l'explique, soit la correction retenue et sa date d'effet, au plus tard [__] mois après le constat.",
+        "Remplacer les intitulés d'emploi genrés par des intitulés neutres dans la grille, les fiches de poste et les bulletins de paie."],
+      indicateurs: [
+        "Répartition des femmes et des hommes par coefficient et par niveau.",
+        "Nombre de situations examinées, nombre corrigées, nombre expliquées.",
+        "Coût des corrections de positionnement, en euros."] },
+    { cle: "conditions", nom: "Conditions de travail",
+      objectif: function (an) { return "Aménager [__] postes par an parmi ceux dont les contraintes actuelles font obstacle à la mixité (port de charges, horaires, équipements, locaux), et ramener à [__] le nombre de postes non mixtes pour ce motif au 31 décembre " + an + "."; },
+      actions: [
+        "Recenser, unité de travail par unité de travail, les postes dont l'aménagement conditionne l'accès de l'autre sexe, et arrêter un programme daté d'aménagement.",
+        "Fournir des équipements de protection individuelle adaptés à la morphologie de chacun : [__] postes équipés dans l'année.",
+        "Examiner par écrit, dans un délai de [__] jours, toute demande de passage à temps partiel, de retour à temps plein ou d'aménagement d'horaire, et motiver tout refus."],
+      indicateurs: [
+        "Nombre de postes aménagés dans l'année, rapporté au programme.",
+        "Part des salariés à temps partiel, par sexe et par catégorie.",
+        "Nombre de demandes d'aménagement reçues, acceptées, refusées et motivées."] },
+    { cle: "sst", nom: "Sécurité et santé au travail",
+      objectif: function (an) { return "Traiter 100 % des signalements de harcèlement ou d'agissements sexistes dans un délai de [__] jours ouvrés, et porter à 100 % la part des unités de travail dont l'évaluation des risques distingue l'exposition selon le sexe et l'état de grossesse, au 31 décembre " + an + "."; },
+      actions: [
+        "Reprendre le document unique unité de travail par unité de travail pour y faire apparaître les risques liés au sexe, à la grossesse et à l'allaitement, et les mesures de prévention correspondantes.",
+        "Désigner et faire connaître par affichage les personnes chargées d'orienter et d'accompagner les salariés en matière de harcèlement sexuel et d'agissements sexistes.",
+        "Arrêter par écrit la procédure de signalement et de traitement, et former [__] personnes de l'encadrement dans l'année."],
+      indicateurs: [
+        "Nombre de signalements reçus, nombre traités, délai moyen de traitement.",
+        "Nombre d'unités de travail dont l'évaluation a été mise à jour.",
+        "Accidents du travail et maladies professionnelles, par sexe et par unité."] },
+    { cle: "remuneration", nom: "Rémunération effective", obligatoire: true,
+      objectif: function (an) { return "Supprimer, au 31 décembre " + an + ", les écarts de rémunération entre les femmes et les hommes de même catégorie de postes équivalents qu'aucun élément objectif n'explique, et consacrer à ce rattrapage une enveloppe de [__] euros, soit [__] % de la masse salariale de l'exercice."; },
+      actions: [
+        "Établir la comparaison des rémunérations par sexe, par tranche d'âge et par catégorie de postes équivalents, et écrire pour chaque écart soit le motif objectif qui l'explique, soit la correction retenue et sa date d'effet.",
+        "Corriger les situations non expliquées au plus tard le [date], et informer individuellement chaque salarié concerné du montant et du motif.",
+        "Appliquer à toute salariée de retour de congé de maternité ou d'adoption la moyenne des augmentations individuelles accordées, pendant son congé, aux salariés de la même catégorie professionnelle.",
+        "Vérifier à l'embauche, poste par poste, que le salaire proposé se situe dans la fourchette pratiquée pour l'emploi, sans distinction de sexe."],
+      indicateurs: [
+        "Écart de rémunération moyenne entre les femmes et les hommes, par tranche d'âge et par catégorie de postes équivalents.",
+        "Nombre de situations corrigées, montant total et montant moyen ; part de l'enveloppe consommée.",
+        "Écart de taux d'augmentations individuelles entre les femmes et les hommes.",
+        "Nombre de salariées augmentées dans l'année de leur retour de congé de maternité, rapporté au nombre de retours."] },
+    { cle: "articulation", nom: "Articulation entre l'activité professionnelle et la vie personnelle et familiale",
+      objectif: function (an) { return "Tenir 100 % des réunions internes dans la plage [9 h - 17 h], ramener à zéro le nombre de réunions engagées après [18 h] et répondre sous [__] jours à toute demande d'aménagement d'horaire, au 31 décembre " + an + "."; },
+      actions: [
+        "Fixer les réunions dans la plage horaire commune et diffuser convocation et ordre du jour au moins [5] jours à l'avance.",
+        "Ouvrir le télétravail à [__] jours par semaine pour les emplois qui le permettent, sans distinction de sexe ni de situation de famille.",
+        "Tenir un entretien avant le départ et au retour de tout congé de maternité, d'adoption ou parental."],
+      indicateurs: [
+        "Nombre de réunions tenues hors de la plage horaire retenue.",
+        "Nombre de demandes d'aménagement d'horaire reçues, acceptées, refusées, et délai moyen de réponse.",
+        "Nombre de jours de télétravail pris, par sexe."] }
+  ];
+  function domaine(cle) {
+    return DOMAINES.filter(function (d) { return d.cle === cle; })[0];
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     LE RENDU.
+
+     Un document est une liste de blocs. Chaque bloc devient une ligne
+     modifiable à l'écran et repart telle quelle dans le .docx. Quand les
+     champs changent, tout est réécrit, sauf les blocs corrigés à la main : la
+     correction est retenue sur une empreinte du texte d'origine, pas sur la
+     place du bloc.
+     ══════════════════════════════════════════════════════════════════════ */
+  var corrections = {};
+  function empreinte(s) {
+    var h = 5381;
+    for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+    return "b" + (h >>> 0).toString(36);
+  }
+  function feuilleHtml(blocs) {
+    var h = '<div class="feuille" id="feuille">';
+    blocs.forEach(function (b) {
+      if (b.k === "trait") { h += '<hr class="b-trait">'; return; }
+      if (b.k === "vide") { h += '<div class="b-vide"></div>'; return; }
+      var cle = empreinte(b.t);
+      var texte = Object.prototype.hasOwnProperty.call(corrections, cle) ? corrections[cle] : b.t;
+      h += '<div class="b-' + b.k + (texte !== b.t ? " modifie" : "") +
+        '" contenteditable="true" data-k="' + b.k + '" data-o="' + cle + '">' +
+        ech(texte) + "</div>";
+    });
+    return h + "</div>";
+  }
+  function texteDe(el) {
+    var t = el.innerText !== undefined && el.innerText !== null ? el.innerText : el.textContent;
+    return String(t).replace(/ /g, " ");
+  }
+  function relire() {
+    var out = [];
+    document.querySelectorAll("#feuille > *").forEach(function (el) {
+      if (el.tagName === "HR") { out.push({ k: "trait", t: "" }); return; }
+      if (el.classList.contains("b-vide")) { out.push({ k: "p", t: "" }); return; }
+      out.push({ k: el.getAttribute("data-k"), t: texteDe(el) });
+    });
+    return out;
+  }
+  var VERS_EXPORT = { t1: "t1", st: "sur", h1: "h1", h2: "h2", p: "p", puce: "puce",
+    note: "note", sign: "p", trait: "trait" };
+  /* Ce qui part dans le fichier : le plan, et lui seul. Les notes de marge
+     s'adressent à l'employeur, elles restent à l'écran. */
+  function pourFichier() {
+    var blocs = relire().filter(function (b) { return b.k !== "note"; });
+    var titre = blocs.length && blocs[0].k === "t1" ? blocs.shift().t : "";
+    return { titre: titre, blocs: blocs };
+  }
+
+  /* ═══════════════════════════════════════════════════ la lecture des champs */
+  function lire() {
+    var an = Number($("#c-annee").value);
+    if (!isFinite(an) || an < 2000) an = new Date().getFullYear();
+    var choisis = ["remuneration"];
+    ["#c-dom2", "#c-dom3", "#c-dom4"].forEach(function (id, i) {
+      if (i === 2 && minimumDomaines() < 4) return;
+      var v = $(id).value;
+      if (v && choisis.indexOf(v) < 0) choisis.push(v);
+    });
+    return { annee: an, domaines: choisis };
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     LE PLAN D'ACTION, dans l'ordre de L. 2242-3
+     ══════════════════════════════════════════════════════════════════════ */
+  function plan(d) {
+    var b = [], n = 0, eff = effectif(), an = d.annee;
+    function p(t) { b.push({ k: "p", t: t }); }
+    function puce(t) { b.push({ k: "puce", t: t }); }
+    function S(t) { n++; b.push({ k: "h1", t: n + ". " + t }); }
+
+    b.push({ k: "t1", t: "PLAN D'ACTION ANNUEL POUR L'ÉGALITÉ PROFESSIONNELLE ENTRE LES FEMMES ET LES HOMMES" });
+    b.push({ k: "st", t: nomSociete() + (eff !== null ? " - " + eff + " salariés" : "") + " - année " + an });
+
+    p("Le présent plan d'action est établi par " + societe() + ", représentée par " + signataire() +
+      ", en l'absence d'accord relatif à l'égalité professionnelle entre les femmes et les hommes " +
+      "à l'issue de la négociation mentionnée au 2° de l'article " + ref(["L2242-1"]) +
+      ", en application de l'article " + ref(["L2242-3"]) + " du code du travail.");
+
+    S("Évaluation des objectifs fixés et des mesures prises au cours de l'année " + (an - 1));
+    p("Objectifs fixés pour " + (an - 1) + " : [premier plan d'action de l'entreprise, aucun objectif " +
+      "antérieur / reprendre ici chaque objectif du plan précédent].");
+    puce("Objectif : [intitulé] ; indicateur : [ce qui se mesure] ; cible fixée : [valeur] ; " +
+      "résultat constaté : [valeur] ; [atteint / partiellement atteint / non atteint].");
+    puce("Mesures prises : [ce qui a été fait, quand, par qui]. Ce qui n'a pas été fait, et " +
+      "pourquoi : [à renseigner, ou « sans objet »].");
+    p("Modalités de suivi de la réalisation des objectifs et des mesures : [qui suit, à quelle " +
+      "fréquence, sur quels indicateurs, devant quelle instance].");
+
+    S("Objectifs de progression pour l'année " + an + ", et actions permettant de les atteindre");
+    p("Le plan porte sur " + d.domaines.length + " domaines d'action parmi ceux mentionnés au 2° de " +
+      "l'article L. 2312-36, le minimum applicable à l'entreprise étant de " + minimumDomaines() +
+      ". La rémunération effective y est obligatoirement comprise. Chaque objectif et chaque " +
+      "action sont accompagnés d'indicateurs chiffrés (" + ref(["R2242-2"]) + ").");
+    d.domaines.forEach(function (cle, i) {
+      var dom = domaine(cle);
+      if (!dom) return;
+      b.push({ k: "h2", t: "Domaine " + (i + 1) + " : " + dom.nom });
+      p("Objectif de progression : " + dom.objectif(an));
+      p("Actions retenues :");
+      dom.actions.forEach(function (a) { puce(a); });
+      p("Indicateurs chiffrés :");
+      dom.indicateurs.forEach(function (x) { puce(x); });
+      if (dom.obligatoire && eff !== null && eff >= 50)
+        p("Les objectifs, les actions et les indicateurs de ce domaine tiennent compte des " +
+          "indicateurs mentionnés à l'article " + ref(["L1142-8"]) + " et, le cas échéant, des " +
+          "mesures de correction définies dans les conditions prévues à l'article L. 1142-9 (" +
+          ref(["R2242-2"]) + ").");
+      p("Échéance : 31 décembre " + an + ". Coût évalué des actions de ce domaine : [__] euros.");
+    });
+
+    S("Évaluation du coût des actions");
+    p("Coût total évalué pour l'année " + an + " : [__] euros, somme des coûts évalués domaine par " +
+      "domaine (" + ref(["L2242-3"]) + ").");
+
+    if (eff !== null && eff >= 50) {
+      S("Indicateurs relatifs aux écarts de rémunération");
+      p("L'entreprise, qui compte " + eff + " salariés, publie chaque année l'ensemble des " +
+        "indicateurs relatifs aux écarts de rémunération entre les femmes et les hommes et aux " +
+        "actions mises en œuvre pour les supprimer (" + ref(["L1142-8"]) + "). Résultat au titre de " +
+        "l'année " + (an - 1) + " : [__] points, publié le [date] : [où].");
+    }
+
+    S("Dépôt");
+    p("Le présent plan d'action est déposé auprès de l'autorité administrative (" +
+      ref(["L2242-3"]) + "). Dépôt le [date] ; récépissé : [référence].");
+    if (eff !== null && eff >= 300)
+      p("Le défaut d'accord est attesté par le procès-verbal de désaccord établi le [date] à " +
+        "l'issue de la négociation (" + ref(["L2242-8"]) + ").");
+
+    b.push({ k: "trait", t: "" });
+    b.push({ k: "sign", t: "Fait à " + ville() + ", le " + dateFr(new Date()) + "\n\n" +
+      signataire() + "\n" + nomSociete() });
+
+    if (eff !== null && eff >= 50)
+      b.push({ k: "note", t: "À " + eff + " salariés, l'absence d'accord ou, à défaut d'accord, de " +
+        "plan d'action expose l'entreprise à une pénalité fixée au maximum à 1 % des rémunérations " +
+        "et gains versés au cours des périodes non couvertes (" + ref(["L2242-8"]) + "). Le dépôt " +
+        "établit la formalité : ne laissez aucun crochet dans le plan déposé." });
+    else
+      b.push({ k: "note", t: "La pénalité de l'article " + ref(["L2242-8"]) + " ne vise que les " +
+        "entreprises d'au moins cinquante salariés. Ne laissez aucun crochet dans le plan déposé." });
+    return b;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════ le rendu */
+  var BLOCS = [];
+  function rendre() {
+    $("#w-dom4").hidden = minimumDomaines() < 4;
+    BLOCS = plan(lire());
+    $("#doc").innerHTML = feuilleHtml(BLOCS);
+    sources();
+  }
+
+  /* Les textes que le document cite, avec leur identifiant de version. */
+  function sources() {
+    var cites = {};
+    BLOCS.forEach(function (b) {
+      var m = String(b.t).match(/\b[LRD]\. \d{4}-\d{1,2}\b/g) || [];
+      m.forEach(function (x) { cites[x.replace(". ", "")] = true; });
+    });
+    var h = "";
+    Object.keys(TEXTES).forEach(function (k) {
+      if (!cites[k]) return;
+      h += "<div><b>" + ech(ref([k])) + "</b> · " + ech(TEXTES[k].dit) + " · " + TEXTES[k].id + "</div>";
+    });
+    $("#sources").innerHTML = "<div>Code du travail, lu au relais Légifrance le 8 septembre 2026, " +
+      "deux lectures concordantes par article.</div>" + h;
+  }
+
+  /* Chaque frappe réécrit le document. */
+  $("#champs").addEventListener("input", rendre);
+  $("#champs").addEventListener("change", rendre);
+
+  /* Une correction faite à la main dans le document est retenue sur le texte
+     d'origine du bloc : elle survit à la réécriture des autres. */
+  document.addEventListener("input", function (ev) {
+    var el = ev.target;
+    if (!el || !el.getAttribute || !el.hasAttribute("contenteditable")) return;
+    if (!el.closest("#feuille")) return;
+    corrections[el.getAttribute("data-o")] = texteDe(el);
+    el.classList.add("modifie");
+  });
+
+  $("#btn-word").addEventListener("click", function () {
+    var f = pourFichier();
+    /* Les puces partent en paragraphes précédés du trait d'union : le rendu
+       « puce » d'audit-export.js les ferait précéder d'un tiret long. */
+    var items = f.blocs.map(function (b) {
+      if (b.k === "puce") return { k: "p", t: "- " + b.t };
+      return { k: VERS_EXPORT[b.k] || "p", t: b.t };
+    });
+    window.AuditExport.telecharger(
+      window.AuditExport.docx(items, f.titre || "Plan d'action pour l'égalité professionnelle"),
+      "plan-egalite-" + new Date().toISOString().slice(0, 10) + ".docx",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+  });
+  $("#btn-imprimer").addEventListener("click", function () { window.print(); });
+
+  /* Les valeurs de départ, pour que le plan soit écrit avant la première
+     frappe : l'année en cours, puis l'embauche, la formation et, à partir de
+     trois cents salariés, la promotion professionnelle, à côté de la
+     rémunération effective. */
+  (function depart() {
+    var options = DOMAINES.filter(function (d) { return !d.obligatoire; }).map(function (d) {
+      return '<option value="' + d.cle + '">' + ech(d.nom) + "</option>";
+    }).join("");
+    ["#c-dom2", "#c-dom3", "#c-dom4"].forEach(function (id) { $(id).innerHTML = options; });
+    $("#c-dom2").value = "embauche";
+    $("#c-dom3").value = "formation";
+    $("#c-dom4").value = "promotion";
+    $("#c-annee").value = new Date().getFullYear();
+  })();
+
+  rendre();
+})();
+</script>
+<script>
+  if ("serviceWorker" in navigator)
+    window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js"); });
+</script>
+<script src="assistant.js" defer></script>
+</body>
+</html>

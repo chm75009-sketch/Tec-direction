@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jurisprudence</title>
+<meta name="description" content="Votre fiche d'entreprise, puis deux boutons : Audit et Gérer.">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1c2126">
+
+<!--
+  L'accueil, en deux écrans.
+
+  Écran 1 : la fiche d'entreprise, une seule fois. Dénomination, effectif,
+  secteur, convention collective. Un bouton Continuer.
+
+  Écran 2 : la fiche rappelée sur une ligne avec un bouton Modifier, deux
+  phrases, deux grands boutons, Audit et Gérer. Rien d'autre.
+
+  Si la fiche est déjà remplie, on arrive directement à l'écran 2.
+  Maquette validée le 8 septembre 2026 (epreuve/maquette.html).
+-->
+
+<link rel="stylesheet" href="style.css">
+<style>
+  body{font-size:18px;line-height:1.45}
+  main.wrap{max-width:560px;padding:0 16px}
+
+  /* ecran 1 : la fiche */
+  .fiche{padding:20px 0 40px}
+  .fiche h1{font:600 26px/1.2 system-ui;margin:4px 0 16px}
+  .fiche fieldset{border:0;background:none;border-radius:0;padding:0;margin:0}
+  .fiche legend{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .fiche .grille{display:flex;flex-direction:column;align-items:stretch;gap:14px}
+  .fiche input,.fiche select{width:100%}
+  .fiche label{display:flex;flex-direction:column;gap:6px;position:relative}
+  .fiche label .nom{font:400 16px/1.35 system-ui;color:var(--texte-2);margin:0}
+  .fiche input,.fiche select{font:18px system-ui;padding:12px 14px;min-height:48px;
+    border:1px solid var(--filet-2);border-radius:10px;background:var(--surface);color:var(--texte)}
+  .fiche .idcc-liste{font-size:16px}
+  .fiche .idcc-liste .idcc-o{min-height:44px}
+  .btn-suite{display:block;width:100%;margin:22px 0 0;font:600 19px system-ui;padding:16px;
+    min-height:56px;border-radius:12px}
+
+  /* ecran 2 : la ligne, le chapeau, les deux boutons */
+  /* LE RETOUR À LA FICHE. Il était un bouton « Modifier » posé au bout de la
+     ligne du rappel, à droite d'un nom d'entreprise et d'une convention qui
+     l'écrasaient : demandé le 12 septembre 2026, « un bouton retour en arrière
+     que je ne vois pas ». Il passe au-dessus, seul sur sa ligne, avec la
+     flèche et le mot retour. */
+  /* Le dépôt a déjà un bouton de retour, blanc et discret (style.css, « le
+     même partout »). Sur cet écran il se perdait ; ici, et ici seulement, il
+     prend le bleu des deux portes pour qu'on le voie du premier coup d'œil.
+     L'identifiant dans le sélecteur est ce qui lui permet de passer devant la
+     règle commune. */
+  #modifier-fiche.retour{display:flex;width:100%;margin:16px 0 0;
+    justify-content:flex-start;font:600 17px/1.2 system-ui;padding:14px 16px;
+    min-height:52px;border-radius:12px;
+    background:var(--accent-clair);color:var(--accent);border:2px solid var(--accent)}
+  #modifier-fiche.retour:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .rappel{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--filet)}
+  .rappel .texte{flex:1;min-width:0;font-size:16px;line-height:1.35;color:var(--texte-2)}
+  .rappel .texte b{color:var(--texte);font-size:17px}
+  .chapeau{margin:20px 0 0;font-size:17px;line-height:1.5;color:var(--texte-2)}
+  .chapeau b{color:var(--texte)}
+  .portes{display:flex;flex-direction:column;gap:14px;margin:20px 0 0}
+  .grand{display:flex;align-items:center;min-height:92px;padding:26px 20px;border-radius:16px;
+    border:2px solid var(--accent);background:var(--accent-clair);color:var(--accent);
+    font:600 26px/1.2 system-ui;text-decoration:none}
+  .grand:hover{background:var(--accent);color:#fff}
+  @media (min-width:700px){
+    main.wrap{max-width:720px}
+    .portes{flex-direction:row}
+    .grand{flex:1;min-height:110px;justify-content:center}
+  }
+
+  footer{margin:40px 0 32px;padding-top:14px;border-top:1px solid var(--filet);
+    font-size:15px;color:var(--texte-2);text-align:center}
+  [hidden]{display:none !important}
+  footer #adresse-app{color:var(--accent);word-break:break-all}
+  footer .tel{display:block;margin:10px auto 0;max-width:34em;color:var(--texte-3)}
+  footer .boutons{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:10px 0 64px}
+  footer .lien-copie{border:1px solid var(--filet);background:var(--surface);
+    color:var(--encre);border-radius:var(--r2);font:600 14px/1 system-ui;padding:12px 16px;min-height:44px;width:auto}
+  footer .lien-copie.efface{color:var(--texte-3)}
+</style>
+<script>
+/* LA PORTE AVANT L'ACCUEIL.
+
+   Tant que le dossier n'a pas été ouvert sur cet appareil, l'application
+   n'aurait rien à montrer : on renvoie vers entrer.html, qui demande le mot
+   de passe et installe les données. */
+(function () {
+  "use strict";
+  try {
+    var r = JSON.parse(localStorage.getItem("registre-personnel") || "null");
+    if (!(r && r.salaries && r.salaries.length)) location.replace("entrer.html");
+  } catch (e) { location.replace("entrer.html"); }
+})();
+</script>
+</head>
+<body>
+
+<div class="maj-dispo" id="maj-dispo">
+  <div class="wrap">
+    <span><b>Une nouvelle version est disponible.</b></span>
+    <button type="button" id="btn-maj">Recharger</button>
+  </div>
+</div>
+
+<header class="site">
+  <div class="wrap">
+    <p class="marque">Jurisprudence <span>relations collectives</span></p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="fiche" id="ecran-fiche" hidden>
+    <h1>Votre entreprise</h1>
+    <div id="fiche-accueil"></div>
+    <button type="button" class="btn-suite" id="continuer-fiche">Continuer</button>
+  </section>
+
+  <section id="ecran-portes" hidden>
+    <button type="button" id="modifier-fiche" class="retour">&#8592; Retour à la fiche</button>
+    <div class="rappel">
+      <div class="texte"><b id="rail-ent"></b> <span id="rail-ent-txt"></span></div>
+    </div>
+    <p class="chapeau"><b>Audit</b> : une question par obligation, oui ou non ; à non, le document
+    manquant est écrit pour vous ; à oui, vous déposez le vôtre et il est contrôlé.
+    <b>Gérer</b> : les documents du quotidien, de l'embauche à la rupture, contrat, sanction,
+    licenciement, comité, remplis au nom de votre entreprise et prêts en Word.</p>
+    <div class="portes">
+      <a class="grand" href="auditer.html">Audit</a>
+      <a class="grand" href="gerer.html">Gérer</a>
+      <a class="grand second" href="mes-documents.html">Mes documents</a>
+    </div>
+  </section>
+
+  <footer>Les contrôles, les documents déposés et ce que vous saisissez restent
+    dans votre navigateur. Seul l'assistant, si vous l'ouvrez avec votre clé,
+    envoie votre question à son fournisseur.<br>
+    <span id="version-app"></span><br>
+    <a id="adresse-app" href="#"></a><br>
+    <span class="tel">Sur un téléphone, cette adresse s'installe comme une application :
+      ouvrez-la, puis dans le menu du navigateur choisissez « Ajouter à l'écran d'accueil »
+      sur Android, ou « Sur l'écran d'accueil » depuis le bouton Partager sur iPhone.</span><br>
+    <span class="boutons">
+      <button type="button" id="copier-adresse" class="lien-copie">Copier le lien</button>
+      <button type="button" id="effacer-poste" class="lien-copie efface">Effacer mes données de ce poste</button>
+    </span>
+  </footer>
+
+</main>
+
+<script src="liste-choix.js"></script>
+<script src="listes-valeurs.js"></script>
+<script src="listes-auto.js"></script>
+<script src="droits.js"></script>
+<script src="version.js"></script>
+<script src="idcc.js"></script>
+<script src="profil.js"></script>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  if (window.VERSION_APP) $("version-app").textContent = "Version " + window.VERSION_APP + ", " + window.VERSION_DATE;
+
+  /* L'ADRESSE DE L'APPLICATION, SOUS LES YEUX.
+
+     Demande du 15 septembre 2026 : « je ne vois pas le lien url de
+     l'application ». Elle se lit ici telle qu'elle est ouverte, quel que soit
+     l'hébergement, et se copie d'un bouton pour être envoyée à un client. */
+  (function adresse() {
+    var a = $("adresse-app"), b = $("copier-adresse");
+    if (!a) return;
+    var u = location.origin + location.pathname.replace(/[^\/]*$/, "");
+    a.href = u;
+    a.textContent = u;
+    if (!b) return;
+    b.addEventListener("click", function () {
+      var fini = function (ok) {
+        b.textContent = ok ? "Lien copié" : "Copie impossible";
+        setTimeout(function () { b.textContent = "Copier le lien"; }, 2500);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText)
+        navigator.clipboard.writeText(u).then(function () { fini(true); }, function () { fini(false); });
+      else fini(false);
+    });
+  })();
+
+  /* EFFACER CE POSTE.
+
+     Tout ce que l'application garde vit ici : la fiche d'entreprise, les
+     réponses des écrans de contrôle, les documents déposés et produits. Il
+     n'existait aucun moyen de tout reprendre à zéro, alors qu'un navigateur
+     partagé rend la fiche du client précédent à celui qui vient après.
+     Demande du 15 septembre 2026, après l'audit extérieur. */
+  (function () {
+    var b = $("effacer-poste");
+    if (!b) return;
+    b.addEventListener("click", function () {
+      if (!window.confirm("Effacer la fiche de l'entreprise, toutes les réponses " +
+        "et tous les documents gardés sur ce poste ? C'est sans retour.")) return;
+      try { localStorage.clear(); } catch (e) {}
+      try { sessionStorage.clear(); } catch (e) {}
+      var fini = function () { location.reload(); };
+      if (window.indexedDB && window.indexedDB.deleteDatabase) {
+        var d = window.indexedDB.deleteDatabase("jurisprudence-documents");
+        d.onsuccess = fini; d.onerror = fini; d.onblocked = fini;
+        setTimeout(fini, 1500);
+      } else fini();
+    });
+  })();
+
+  /* Les huit champs de la fiche, sans texte d'aide, avec des intitulés courts.
+     Le SIRET, l'adresse et le représentant légal en font partie depuis le
+     12 septembre 2026 : ils sont l'en-tête et la signature de tout document
+     produit, et sans eux chaque courrier sortait avec trois crochets à
+     remplir à la main. L'adresse électronique a suivi le même jour. L'ordre
+     suit celui de la fiche complète (Profil.IDENTITE), que le filtre
+     ci-dessous conserve. */
+  var NOMS = {
+    denomination: "Dénomination",
+    siret: "SIRET",
+    adresse: "Adresse du siège",
+    responsable: "Représentant légal (nom, qualité)",
+    courriel: "Adresse e-mail",
+    effectif: "Effectif (salariés)",
+    secteur: "Secteur",
+    conventionCollective: "Convention collective (IDCC)"
+  };
+  /* Ce qui n'empêche pas de continuer. Le courriel est une coordonnée, non un
+     élément d'identité : un document se dépose au greffe sans lui. */
+  var FACULTATIFS = { courriel: true };
+  var CHAMPS = (window.Profil ? window.Profil.IDENTITE : []).filter(function (ch) {
+    return NOMS[ch.c] !== undefined;
+  }).map(function (ch) {
+    var c = {};
+    for (var k in ch) if (Object.prototype.hasOwnProperty.call(ch, k)) c[k] = ch[k];
+    c.nom = NOMS[ch.c];
+    c.aide = "";
+    return c;
+  });
+
+  function profil() { return window.Profil ? window.Profil.lire() : {}; }
+  function complet(p) {
+    if (!p) return false;
+    if (String(p.effectif == null ? "" : p.effectif).trim() === "") return false;
+    for (var c in NOMS) {
+      if (c === "effectif" || FACULTATIFS[c]) continue;
+      if (!String(p[c] || "").trim()) return false;
+    }
+    return true;
+  }
+
+  /* La convention, en court : le numéro et l'intitulé sans son préambule. */
+  function conventionCourte(s) {
+    s = String(s || "").trim();
+    if (!s) return "";
+    var m = s.match(/^(\d{3,4})\s*[^\w\s]?\s*(.*)$/);
+    var num = m ? String(Number(m[1])) : "";
+    var t = m ? m[2] : s;
+    t = t.replace(/^convention collective( nationale| régionale| départementale| interrégionale)?( de travail)?( des | de la | de l'| du | de | d')?/i, "");
+    t = t.replace(/\s+du \d{1,2}(er)? \S+ \d{4}$/i, "").trim();
+    if (t) t = t.charAt(0).toUpperCase() + t.slice(1);
+    return (num ? "IDCC " + num + (t ? ", " : "") : "") + t;
+  }
+
+  function majRappel(p) {
+    var bits = [];
+    var e = p.effectif != null ? parseInt(p.effectif, 10) : null;
+    if (e != null && !isNaN(e)) bits.push(e + " salarié" + (e > 1 ? "s" : ""));
+    var cc = conventionCourte(p.conventionCollective);
+    if (cc) bits.push(cc);
+    $("rail-ent").textContent = p.denomination || "";
+    $("rail-ent-txt").textContent = bits.length ? "· " + bits.join(" · ") : "";
+  }
+
+  function montrerFiche() {
+    $("ecran-portes").hidden = true;
+    $("ecran-fiche").hidden = false;
+    $("continuer-fiche").disabled = !complet(profil());
+    window.scrollTo(0, 0);
+  }
+  function montrerPortes() {
+    var p = profil();
+    majRappel(p);
+    $("ecran-fiche").hidden = true;
+    $("ecran-portes").hidden = false;
+    window.scrollTo(0, 0);
+  }
+
+  if (window.Profil && CHAMPS.length === Object.keys(NOMS).length) {
+    window.Profil.rendre($("fiche-accueil"), {
+      champs: CHAMPS,
+      legende: "Votre entreprise",
+      echange: false,
+      onChange: function (p) { $("continuer-fiche").disabled = !complet(p); }
+    });
+    var autre = $("fiche-accueil").querySelector('option[value="__autre"]');
+    if (autre) autre.textContent = "Autre";
+    var cc = $("fc-conventionCollective");
+    if (cc) { cc.placeholder = "numéro ou intitulé"; cc.setAttribute("data-garde-placeholder", "1"); }
+  }
+
+  $("continuer-fiche").addEventListener("click", function () {
+    if (!complet(profil())) return;
+    montrerPortes();
+  });
+  $("modifier-fiche").addEventListener("click", montrerFiche);
+
+  /* La fiche s'affiche à chaque ouverture, pré-remplie de ce qui est déjà
+     enregistré : demande du 8 septembre 2026, « à chaque fois je choisis le
+     secteur, la convention et l'effectif que je veux ». Continuer mène aux
+     deux boutons. */
+  montrerFiche();
+
+  /* Mise à jour de l'application : un bandeau, jamais un rechargement imposé. */
+  if ("serviceWorker" in navigator) {
+    var dejaControlee = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener("controllerchange", function () {
+      if (dejaControlee) $("maj-dispo").classList.add("visible");
+      dejaControlee = true;
+    });
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("sw.js").then(function (reg) { if (reg && reg.update) reg.update().catch(function () {}); }).catch(function () {});
+    });
+  }
+  $("btn-maj").addEventListener("click", function () { location.reload(); });
+})();
+</script>
+<script src="assistant.js" defer></script>
+</body>
+</html>

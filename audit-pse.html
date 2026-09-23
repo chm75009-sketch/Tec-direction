@@ -1,0 +1,1463 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#8C3A12">
+<link rel="manifest" href="manifest-audit-pse.json">
+<link rel="apple-touch-icon" href="icons/icon-pse-180.png">
+<link rel="icon" href="icons/icon-pse-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Plan de sauvegarde</title>
+<meta name="description" content="Une question, et les documents du plan de sauvegarde déjà écrits : notification du projet, convocations du comité, plan, réponse motivée, demande de validation ou d'homologation, lettre.">
+<script src="liste-choix.js"></script>
+<script src="listes-valeurs.js"></script>
+<script src="listes-auto.js"></script>
+<script src="lire-pdf.js"></script>
+<script src="lire-ocr.js"></script>
+<script src="apercu.js"></script>
+<script src="droits.js"></script>
+
+<!--
+  CE QUE FAIT CETTE PAGE.
+
+  Une question, et une seule : « Avez-vous un plan de sauvegarde de
+  l'emploi ? »
+
+  Avant de la poser, elle regarde la fiche d'entreprise. Le plan n'est dû que
+  dans les entreprises d'au moins cinquante salariés, lorsque le projet
+  concerne au moins dix salariés dans une même période de trente jours
+  (L. 1233-61). Sous cinquante, la question ne se pose pas : la page dit
+  « pas dû avant 50 » et renvoie à audit.html, l'écran du licenciement pour
+  motif économique.
+
+  « Non » ouvre les documents, déjà écrits à partir de la fiche, un onglet par
+  document : la notification du projet à l'administration, la convocation du
+  comité à la première réunion avec les sept renseignements que la loi y
+  joint, la convocation à la seconde réunion, le plan lui-même rubrique par
+  rubrique, la réponse motivée aux suggestions du comité, la demande de
+  validation ou d'homologation, et la lettre de licenciement qui ne part
+  qu'après la décision. Sur chaque onglet : deux ou trois champs en tête qui
+  se glissent dans le texte, le document seul, Télécharger en Word, Imprimer,
+  « Voir le texte de loi » replié, et Retour. C'est l'écran 5 de la maquette
+  validée le 8 septembre 2026. Rien d'autre : ni chapeau, ni étape, ni exposé
+  du droit avant d'agir.
+
+  « Oui » prend le plan existant, le confronte aux rubriques de L. 1233-62,
+  aux modalités de suivi de L. 1233-63 et aux mentions du reclassement, et
+  rend pour chaque manque le texte à insérer, prêt à coller.
+
+  LE POINT QUI FAIT PERDRE LES DOSSIERS. Les critères de départage entre
+  salariés en cas de candidatures multiples doivent figurer dans la liste des
+  postes diffusée, et pas seulement dans le plan, avec le délai de candidature
+  (D. 1233-2-1, III). Chambre sociale, 8 janvier 2025, pourvoi n° 22-24.724,
+  publié.
+
+  CE QUE LA PAGE NE FAIT PAS. Elle n'apprécie aucun montant. Aucun texte ne
+  fixe le montant d'un plan, et le caractère suffisant des mesures au regard
+  des moyens de l'entreprise appartient à l'autorité administrative puis au
+  juge (L. 1233-57-3).
+
+  LES TEXTES. Chaque article cité a été lu au relais Légifrance le 7 septembre
+  2026, deux fois à quelques minutes d'intervalle, avec le même identifiant de
+  version et le même texte aux deux lectures. L. 1233-61, L. 1233-71,
+  L. 1233-46 et L. 1233-30 ont été relus deux fois le 8 septembre 2026, même
+  identifiant. L'identifiant LEGIARTI figure dans la table TEXTES et sous
+  « Voir le texte de loi ».
+
+  Rien ne sort du poste : tout est calculé et rédigé dans le navigateur.
+-->
+
+<link rel="stylesheet" href="style.css">
+<style>
+  main.wrap{max-width:820px;padding-bottom:var(--e7)}
+
+  /* La question d'entrée : elle occupe l'écran, et deux boutons y répondent. */
+  .question{max-width:720px;margin:11vh auto 0;text-align:center}
+  .question h1{font:600 clamp(24px,3.6vw,32px)/1.3 system-ui;margin:0 0 var(--e6)}
+  .question .deux{display:flex;gap:var(--e3);justify-content:center;flex-wrap:wrap}
+  .question .deux button,.question .deux .btn{min-width:150px;font-size:17px;padding:16px 26px}
+  .question .fiche{margin:var(--e6) 0 0;font-size:var(--t3);color:var(--texte-2)}
+  .question .fiche a{color:var(--accent)}
+
+  /* Le document seul à l'écran : les onglets, deux ou trois champs en tête,
+     la feuille, la barre, le texte de loi replié. */
+  #ecran-doc{margin:var(--e4) 0 0}
+  .onglets{margin:0 0 var(--e4)}
+  #ecran-doc .champs{grid-template-columns:1fr 1fr;gap:10px;margin:0 0 var(--e4)}
+  #ecran-doc .champs label.ch .nom{font-size:14px;margin:0 0 4px}
+  #ecran-doc .champs input,#ecran-doc .champs select,#ecran-doc .champs textarea{font-size:16px;padding:10px 12px;min-height:44px}
+  #ecran-doc .champs textarea{min-height:88px}
+  #ecran-doc .barre{margin:var(--e4) 0}
+  #ecran-doc details{margin:var(--e2) 0 var(--e6)}
+  #sources{margin-top:8px;font-size:var(--t1);line-height:1.6;color:var(--texte-2)}
+  #sources div{margin:0 0 6px}
+  #sources b{color:var(--encre)}
+  .renvoi{background:var(--rouge-clair);border:1px solid #e6cccc;border-radius:var(--r2);
+    padding:var(--e4);color:var(--rouge);font-size:var(--t3);line-height:1.55;margin:0 0 var(--e4)}
+  .renvoi a{color:var(--rouge);font-weight:600}
+
+  /* Les arrêts sur lesquels repose le document, et leur copie intégrale. */
+  #arrets{margin:var(--e4) 0 0}
+  #arrets h3{font:600 15px/1.35 system-ui;margin:0 0 8px;color:var(--encre)}
+  .arret{border:1px solid var(--trait);border-radius:var(--r2);padding:12px 14px;margin:0 0 10px;
+    background:var(--fond-2,#fafafa)}
+  .arret .ref{font-weight:600;font-size:var(--t2);color:var(--encre);margin:0 0 4px}
+  .arret .dit{font-size:var(--t1);line-height:1.55;color:var(--texte-2);margin:0 0 10px}
+  .arret a.pdf{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:8px 14px;
+    border:1px solid var(--trait);border-radius:var(--r2);background:#fff;color:var(--encre);
+    font:600 14px/1 system-ui;text-decoration:none}
+  .arret a.pdf:hover{background:var(--rouge-clair);border-color:#e6cccc;color:var(--rouge)}
+
+  /* La feuille : le document tel qu'il sortira sur le papier. */
+  .feuille [contenteditable]{outline:none}
+  .feuille [contenteditable]:focus{background:#fffbe9;border-radius:3px}
+  .feuille .modifie{border-left:2px solid var(--vert);padding-left:8px;margin-left:-10px}
+  .feuille .b-t1{font:700 17px/1.35 Georgia,"Times New Roman",serif;margin:0 0 6px;text-align:center;text-transform:uppercase;letter-spacing:.02em}
+  .feuille .b-st{font:600 14px/1.4 system-ui;margin:0 0 22px;text-align:center;color:var(--texte-2)}
+  .feuille .b-h1{font:700 15px/1.35 Georgia,"Times New Roman",serif;margin:20px 0 7px}
+  .feuille .b-h2{font:600 15px/1.35 Georgia,"Times New Roman",serif;margin:15px 0 5px}
+  .feuille .b-p{margin:0 0 10px}
+  .feuille .b-puce{margin:0 0 5px 18px}
+  .feuille .b-ligne{margin:0 0 4px;padding:4px 0;border-bottom:1px solid var(--filet);font-size:15px;
+    line-height:1.5;overflow-wrap:anywhere}
+  .feuille .b-vide{height:9px}
+  .feuille .b-trait{border:0;border-top:1px solid var(--filet);margin:20px 0}
+  .feuille .b-sign{margin:20px 0 0;white-space:pre-wrap;line-height:1.7}
+
+  /* La branche « oui » : le plan déposé, puis les manques. */
+  #ecran-oui{margin:var(--e4) 0 0}
+  textarea#depot{min-height:200px;font:14px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;padding:12px;margin:var(--e3) 0 0}
+  .manque{border:1px solid var(--filet);border-radius:var(--r2);margin:var(--e3) 0;
+    background:var(--surface);overflow:hidden}
+  .manque>.tt{padding:12px 15px;display:grid;grid-template-columns:auto 1fr;gap:11px;
+    align-items:start;border-bottom:1px solid var(--filet)}
+  .manque .obj{font:600 15px/1.35 system-ui}
+  .manque .fond{font-size:var(--t1);color:var(--texte-3);margin-top:2px}
+  .etat{font:600 11px/1 system-ui;padding:6px 9px;border-radius:var(--r1);white-space:nowrap;
+    text-transform:uppercase;letter-spacing:.04em}
+  .etat.absent{background:var(--rouge-clair);color:var(--rouge)}
+  .etat.present{background:var(--vert-clair);color:var(--vert)}
+  .manque .texte{padding:12px 15px;font-size:var(--t3);line-height:1.65}
+  .manque .texte p{margin:0 0 8px}
+  .manque .pret{background:var(--vert-clair);border-radius:var(--r1);padding:12px 14px;
+    font-size:var(--t2);line-height:1.6;color:var(--vert);white-space:pre-wrap}
+  .chiffre{background:var(--accent-clair);border-radius:var(--r1);padding:11px 14px;
+    margin:var(--e3) 0;color:var(--accent);font-size:var(--t2);line-height:1.6}
+  .alerte{background:var(--ambre-clair);border:1px solid #e8ddc6;border-radius:var(--r1);
+    padding:11px 14px;margin:var(--e3) 0;color:var(--ambre);font-size:var(--t2);line-height:1.6}
+
+  @media print{
+    header.site,.maj-dispo,.onglets,.champs,.barre,details,.question,#ecran-oui,.renvoi,#arrets{display:none !important}
+    main.wrap{max-width:none;padding:0}
+    .feuille{border:0;padding:0}
+  }
+</style>
+</head>
+<body>
+
+<div class="maj-dispo" id="maj-dispo">
+  <div class="wrap">
+    <span><b>Une nouvelle version est disponible.</b> Celle affichée date de votre dernière ouverture.</span>
+    <button type="button" id="btn-maj">Recharger maintenant</button>
+  </div>
+</div>
+
+<header class="site">
+  <div class="wrap">
+    <p class="marque" id="marque">Plan de sauvegarde</p>
+    <div class="outils">
+      <a href="index.html">Accueil</a>
+      <span id="etat-version"></span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ═══════════════════ LA QUESTION, ET RIEN D'AUTRE ═══════════════════ -->
+  <section class="question" id="ecran-question">
+    <h1 id="q-titre">Avez-vous un plan de sauvegarde de l'emploi ?</h1>
+    <div class="deux" id="q-deux">
+      <button type="button" class="second" id="rep-oui">Oui</button>
+      <button type="button" id="rep-non">Non</button>
+    </div>
+    <div class="deux" id="q-renvoi" hidden>
+      <a class="btn" href="audit.html">Ouvrir le licenciement économique</a>
+    </div>
+    <p class="fiche" id="fiche-rappel"></p>
+  </section>
+
+  <!-- ═══════════════ « NON » : LES DOCUMENTS, UN ONGLET CHACUN ═══════════════ -->
+  <section id="ecran-doc" hidden>
+    <div class="onglets" id="onglets"></div>
+    <form class="champs" id="champs" autocomplete="off" onsubmit="return false"></form>
+    <div id="doc"></div>
+    <div class="barre pile" id="barre-doc">
+      <button type="button" id="btn-word">Télécharger en Word</button>
+      <button type="button" class="second" id="btn-imprimer">Imprimer</button>
+    </div>
+    <div id="arrets"></div>
+    <details id="loi">
+      <summary>Voir le texte de loi</summary>
+      <div id="sources"></div>
+    </details>
+  </section>
+
+  <!-- ═══════════════ « OUI » : LE DÉPÔT ET LES MANQUES ═══════════════ -->
+  <section id="ecran-oui" hidden>
+    <div class="barre pile">
+      <label class="btn second" style="display:inline-flex;align-items:center;justify-content:center;gap:9px;cursor:pointer">
+        Déposer votre plan (Word ou texte)
+        <input type="file" id="fichier" accept=".docx,.txt,text/plain,.pdf,application/pdf" style="display:none">
+      </label>
+    </div>
+    <div id="lecture"></div>
+    <textarea id="depot" placeholder="Ou collez ici votre plan de sauvegarde de l'emploi."></textarea>
+    <div id="o-resultat"></div>
+  </section>
+
+</main>
+
+<script src="audit-export.js"></script>
+<script src="base-documents.js"></script>
+<script src="profil.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var $ = function (s) { return document.querySelector(s); };
+  var ech = function (s) { return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); };
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     LES TEXTES.
+
+     Chacun a été interrogé deux fois au relais Légifrance le 7 septembre 2026,
+     à quelques minutes d'intervalle, et les deux lectures ont rendu le même
+     identifiant de version et le même texte, caractère pour caractère.
+     L'identifiant est conservé ici : un article change sans changer de numéro,
+     et seul le LEGIARTI dit lequel a été lu.
+     ══════════════════════════════════════════════════════════════════════ */
+  var TEXTES = {
+    "L1233-3": { id: "LEGIARTI000036762081",
+      dit: "définition du licenciement économique : suppression ou transformation d'emploi, ou modification refusée d'un élément essentiel du contrat, consécutives à des difficultés économiques, des mutations technologiques, une réorganisation nécessaire à la sauvegarde de la compétitivité ou une cessation d'activité" },
+    "L1233-4": { id: "LEGIARTI000036261863",
+      dit: "reclassement préalable sur le territoire national dans l'entreprise ou le groupe ; offres adressées de manière personnalisée ou liste diffusée par tout moyen ; les offres proposées sont écrites et précises" },
+    "D1233-2-1": { id: "LEGIARTI000036248612",
+      dit: "six mentions de chaque offre écrite ; la liste diffusée précise les critères de départage entre salariés en cas de candidatures multiples et le délai de candidature, qui ne peut être inférieur à quinze jours francs à compter de la publication" },
+    "L1233-5": { id: "LEGIARTI000036261856",
+      dit: "critères d'ordre : charges de famille, ancienneté, caractéristiques sociales rendant la réinsertion difficile, qualités professionnelles ; périmètre au moins égal à la zone d'emplois à défaut d'accord" },
+    "L1233-16": { id: "LEGIARTI000036762077",
+      dit: "la lettre de licenciement comporte l'énoncé des motifs économiques et mentionne la priorité de réembauche et ses conditions de mise en oeuvre" },
+    "L1233-24-1": { id: "LEGIARTI000036261836",
+      dit: "un accord collectif peut déterminer le contenu du plan et les modalités de consultation ; il est signé par des organisations ayant recueilli au moins 50 % des suffrages exprimés en faveur d'organisations représentatives au premier tour des dernières élections des titulaires" },
+    "L1233-24-2": { id: "LEGIARTI000036261824",
+      dit: "l'accord porte sur le contenu du plan et peut porter sur les modalités d'information et de consultation, la pondération et le périmètre des critères d'ordre, le calendrier, le nombre de suppressions et les catégories professionnelles, les modalités des mesures de formation, d'adaptation et de reclassement" },
+    "L1233-24-4": { id: "LEGIARTI000035652928",
+      dit: "à défaut d'accord, un document élaboré par l'employeur après la dernière réunion du comité fixe le contenu du plan et précise les éléments prévus aux 1° à 5° de l'article L. 1233-24-2" },
+    "L1233-28": { id: "LEGIARTI000035652699",
+      dit: "l'employeur qui envisage un licenciement collectif d'au moins dix salariés dans une même période de trente jours réunit et consulte le comité social et économique" },
+    "L1233-30": { id: "LEGIARTI000035643899",
+      dit: "deux consultations, sur l'opération projetée et sur le projet de licenciement ; au moins deux réunions espacées d'au moins quinze jours ; avis rendus dans un délai de deux, trois ou quatre mois selon que les licenciements sont inférieurs à cent, d'au moins cent et inférieurs à deux cent cinquante, ou d'au moins deux cent cinquante" },
+    "L1233-31": { id: "LEGIARTI000035643895",
+      dit: "sept renseignements joints à la convocation à la première réunion : raisons du projet, nombre de licenciements envisagé, catégories professionnelles et critères proposés pour l'ordre, effectif de l'établissement, calendrier prévisionnel, mesures de nature économique, conséquences en matière de santé, de sécurité ou de conditions de travail" },
+    "L1233-32": { id: "LEGIARTI000025579021",
+      dit: "dans les entreprises d'au moins cinquante salariés, l'employeur adresse aux représentants du personnel le plan de sauvegarde de l'emploi" },
+    "L1233-33": { id: "LEGIARTI000035652923",
+      dit: "l'employeur met à l'étude les suggestions relatives aux mesures sociales et les propositions alternatives formulées par le comité, et leur donne une réponse motivée" },
+    "L1233-34": { id: "LEGIARTI000036762068",
+      dit: "le comité peut décider, lors de la première réunion, de recourir à une expertise ; le rapport de l'expert est remis au plus tard quinze jours avant l'expiration du délai mentionné à l'article L. 1233-30" },
+    "L1233-35": { id: "LEGIARTI000036261799",
+      dit: "l'expert désigné par le comité demande à l'employeur les informations nécessaires" },
+    "L1233-39": { id: "LEGIARTI000027566048",
+      dit: "dans les entreprises de cinquante salariés ou plus, l'employeur notifie le licenciement après la notification de la décision de validation ou d'homologation, ou à l'expiration des délais ; il ne peut, à peine de nullité, rompre les contrats avant" },
+    "L1233-45": { id: "LEGIARTI000029144908",
+      dit: "priorité de réembauche pendant un an à compter de la rupture, sur demande du salarié formée dans ce délai ; information des représentants du personnel sur les postes disponibles" },
+    "L1233-46": { id: "LEGIARTI000035652915",
+      dit: "notification du projet à l'autorité administrative, au plus tôt le lendemain de la première réunion, accompagnée de tout renseignement concernant la convocation, l'ordre du jour et la tenue de cette réunion, et de l'intention d'ouvrir la négociation le cas échéant" },
+    "L1233-57-2": { id: "LEGIARTI000035652786",
+      dit: "l'autorité administrative valide l'accord collectif après s'être assurée de sa conformité, de la régularité de la procédure et de la présence des mesures prévues" },
+    "L1233-57-3": { id: "LEGIARTI000036431884",
+      dit: "en l'absence d'accord ou en cas d'accord ne portant pas sur l'ensemble des points, l'autorité administrative homologue le document en s'assurant notamment de la régularité de la procédure et du caractère suffisant des mesures au regard des moyens de l'entreprise, de l'unité économique et sociale et du groupe" },
+    "L1233-57-4": { id: "LEGIARTI000035652911",
+      dit: "décision de validation notifiée dans les quinze jours de la réception de l'accord, décision d'homologation dans les vingt et un jours de la réception du document complet ; le silence vaut décision d'acceptation ; la décision est portée à la connaissance des salariés par voie d'affichage" },
+    "L1233-61": { id: "LEGIARTI000036261733",
+      dit: "dans les entreprises d'au moins cinquante salariés, lorsque le projet de licenciement concerne au moins dix salariés dans une même période de trente jours, l'employeur établit et met en oeuvre un plan de sauvegarde de l'emploi intégrant un plan de reclassement" },
+    "L1233-62": { id: "LEGIARTI000036261725",
+      dit: "le plan prévoit des mesures telles que le reclassement interne, les actions favorisant la reprise d'activités, les créations d'activités nouvelles, le reclassement externe, le soutien à la création ou à la reprise d'activités par les salariés, les actions de formation, de validation des acquis ou de reconversion, les mesures de réduction ou d'aménagement du temps de travail" },
+    "L1233-63": { id: "LEGIARTI000035652729",
+      dit: "le plan détermine les modalités de suivi de la mise en oeuvre effective des mesures du plan de reclassement ; ce suivi fait l'objet d'une consultation régulière et détaillée du comité, dont l'avis est transmis à l'autorité administrative, laquelle reçoit un bilan de l'employeur" },
+    "L1233-66": { id: "LEGIARTI000031013988",
+      dit: "lorsque le licenciement donne lieu à un plan de sauvegarde de l'emploi, la proposition du contrat de sécurisation professionnelle est faite après la notification par l'autorité administrative de sa décision de validation ou d'homologation" },
+    "L1233-71": { id: "LEGIARTI000042683537",
+      dit: "dans les entreprises ou établissements d'au moins mille salariés, congé de reclassement d'une durée qui ne peut excéder douze mois, portés à vingt-quatre en cas de formation de reconversion" }
+  };
+
+  /* Les arrêts sur lesquels reposent les documents. Chacun a été lu texte
+     intégral à la source (Judilibre) et sa copie est servie en PDF depuis
+     arrets/. La référence part dans le document, en note ; le bouton, lui,
+     reste à l'écran. */
+  var ARRETS = {
+    departage: {
+      ref: "Cass. soc., 8 janvier 2025, pourvoi n° 22-24.724, publié au Bulletin",
+      dit: "l'employeur doit indiquer, dans la liste des postes disponibles mise à disposition " +
+        "des salariés concernés, les critères de départage arrêtés afin de pouvoir identifier le " +
+        "salarié retenu, sur des bases objectives, en cas de candidatures multiples pour un même " +
+        "poste. A défaut de cette mention, l'offre est imprécise en ce qu'elle ne donne pas les " +
+        "éléments d'information de nature à donner aux salariés les outils de réflexion déterminant " +
+        "leur décision, ce qui caractérise un manquement de l'employeur à son obligation de " +
+        "reclassement et prive le licenciement de cause réelle et sérieuse",
+      pdf: "arrets/Cass-soc-08-janvier-2025-22-24724.pdf" },
+    mentions: {
+      ref: "Cass. soc., 23 octobre 2024, pourvoi n° 23-19.629, publié au Bulletin",
+      dit: "à défaut de l'une des six mentions que l'offre doit porter, l'offre est imprécise, ce " +
+        "qui caractérise un manquement de l'employeur à son obligation de reclassement et prive le " +
+        "licenciement de cause réelle et sérieuse",
+      pdf: "arrets/Cass-soc-23-octobre-2024-23-19629.pdf" },
+    postes: {
+      ref: "Cass. soc., 28 octobre 2015, pourvoi n° 14-17.712, publié au Bulletin",
+      dit: "le plan de reclassement doit préciser le nombre, la nature, la localisation, le statut " +
+        "et la rémunération des emplois disponibles au sein du groupe ; les recherches auprès des " +
+        "sociétés du groupe n'ont pas à être assorties du profil personnalisé de chaque salarié",
+      pdf: "arrets/Cass-soc-28-octobre-2015-14-17712.pdf" },
+    secteur: {
+      ref: "Cass. soc., 26 juin 2024, pourvoi n° 23-15.503, publié au Bulletin",
+      dit: "la spécialisation d'une entreprise dans le groupe ne suffit pas à exclure son " +
+        "rattachement à un secteur d'activité plus étendu, au sein duquel doivent être appréciées " +
+        "les difficultés économiques, les mutations technologiques ou la nécessité de sauvegarder " +
+        "la compétitivité de l'entreprise",
+      pdf: "arrets/Cass-soc-26-juin-2024-23-15503.pdf" },
+    categories: {
+      ref: "Cass. soc., 20 avril 2022, pourvoi n° 20-20.567, publié au Bulletin",
+      dit: "il appartient à l'autorité administrative de s'assurer que les catégories " +
+        "professionnelles regroupent l'ensemble des salariés qui exercent des fonctions de même " +
+        "nature supposant une formation professionnelle commune, et de vérifier la conformité des " +
+        "critères d'ordre et de leurs règles de pondération ; l'inobservation des règles relatives " +
+        "à l'ordre des licenciements ne prive pas le licenciement de cause réelle et sérieuse mais " +
+        "donne lieu à des dommages-intérêts pouvant aller jusqu'à la perte injustifiée de l'emploi",
+      pdf: "arrets/Cass-soc-20-avril-2022-20-20567.pdf" },
+    criteres: {
+      ref: "Cass. soc., 12 juillet 2022, pourvoi n° 20-23.651, publié au Bulletin",
+      dit: "l'employeur prend notamment en compte, dans le choix du salarié concerné, le critère " +
+        "tenant à la situation des salariés qui présentent des caractéristiques sociales rendant " +
+        "leur réinsertion professionnelle particulièrement difficile",
+      pdf: "arrets/Cass-soc-12-juillet-2022-20-23651.pdf" },
+    reembauche: {
+      ref: "Cass. soc., 26 février 2025, pourvoi n° 23-15.427, publié au Bulletin",
+      dit: "lorsque la rupture résulte de l'acceptation d'un contrat de sécurisation " +
+        "professionnelle, la priorité de réembauche doit être mentionnée dans le document écrit " +
+        "énonçant le motif économique, et donc portée à la connaissance du salarié au plus tard au " +
+        "moment de son acceptation ; son défaut ne prive pas la rupture de cause réelle et sérieuse " +
+        "mais permet au salarié qui justifie d'un préjudice d'obtenir des dommages-intérêts",
+      pdf: "arrets/Cass-soc-26-fevrier-2025-23-15427.pdf" },
+    competence: {
+      ref: "Cass. soc., 12 juin 2024, pourvoi n° 23-12.969, publié au Bulletin",
+      dit: "le juge judiciaire ne peut, sans violer le principe de séparation des pouvoirs, en " +
+        "l'état d'une décision de validation devenue définitive, apprécier par voie d'exception la " +
+        "légalité des mesures figurant dans le plan, en particulier celles déterminant les " +
+        "catégories professionnelles concernées par le licenciement",
+      pdf: "arrets/Cass-soc-12-juin-2024-23-12969.pdf" },
+    ensemble: {
+      ref: "Cass. soc., 15 mai 2013, pourvoi n° 11-27.458, publié au Bulletin",
+      dit: "sauf accord collectif conclu au niveau de l'entreprise ou à un niveau plus élevé, les " +
+        "critères déterminant l'ordre des licenciements doivent être mis en oeuvre à l'égard de " +
+        "l'ensemble du personnel de l'entreprise",
+      pdf: "arrets/Cass-soc-15-mai-2013-11-27458.pdf" }
+  };
+  var ARRET = ARRETS.departage;
+
+  function ref(nums) {
+    return nums.map(function (n) { return n.replace(/^([LRD])(\d)/, "$1. $2"); }).join(", ");
+  }
+
+  /* ═══════════════════════════════════════════════ la fiche d'entreprise */
+  var profil = null;
+  try { profil = JSON.parse(localStorage.getItem("profil-entreprise") || "null"); } catch (e) {}
+  if ((!profil || !profil.denomination) && window.Profil) profil = window.Profil.lire();
+  if (!profil || !profil.denomination) { location.replace("index.html"); return; }
+  var effectif = Number(profil.effectif) || 0;
+  var mille = effectif >= 1000;
+
+  function societe() {
+    var t = profil.denomination;
+    if (profil.adresse) t += ", dont le siège social est situé " + profil.adresse;
+    if (profil.siret) t += ", identifiée sous le numéro SIRET " + profil.siret;
+    return t;
+  }
+  function signataire() { return profil.responsable || "[nom et qualité du signataire]"; }
+  function ville() {
+    var m = String(profil.adresse || "").match(/\d{5}\s+(.+)$/);
+    return m ? m[1].trim() : "[ville]";
+  }
+
+  /* ═══════════════════════════════════════════════════════ dates et calculs */
+  function paques(an) {
+    var a = an % 19, b = Math.floor(an / 100), c = an % 100;
+    var d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+    var g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+    var i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7;
+    var m = Math.floor((a + 11 * h + 22 * l) / 451);
+    var mois = Math.floor((h + l - 7 * m + 114) / 31);
+    var jourM = ((h + l - 7 * m + 114) % 31) + 1;
+    return new Date(an, mois - 1, jourM);
+  }
+  var cacheFeries = {};
+  function feries(an) {
+    if (cacheFeries[an]) return cacheFeries[an];
+    var p = paques(an), j = 86400000, l = {};
+    function pose(d) { l[d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate()] = true; }
+    [[0, 1], [4, 1], [4, 8], [6, 14], [7, 15], [10, 1], [10, 11], [11, 25]].forEach(function (x) {
+      pose(new Date(an, x[0], x[1]));
+    });
+    pose(new Date(p.getTime() + j));
+    pose(new Date(p.getTime() + 39 * j));
+    pose(new Date(p.getTime() + 50 * j));
+    cacheFeries[an] = l;
+    return l;
+  }
+  function estFerie(d) {
+    return !!feries(d.getFullYear())[d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate()];
+  }
+  /* Jour ouvrable : tous les jours de la semaine sauf le dimanche et les jours
+     fériés. La règle est dite sous « Voir le texte de loi ». */
+  function estOuvrable(d) { return d.getDay() !== 0 && !estFerie(d); }
+  function jour(d, n) { var x = new Date(d.getTime()); x.setDate(x.getDate() + n); return x; }
+  function prochainOuvrable(d) { var x = new Date(d.getTime()); while (!estOuvrable(x)) x = jour(x, 1); return x; }
+  function plusMois(d, n) {
+    var x = new Date(d.getTime()), voulu = x.getDate();
+    x.setMonth(x.getMonth() + n);
+    if (x.getDate() < voulu) x.setDate(0);
+    return x;
+  }
+  function iso(d) {
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" +
+      String(d.getDate()).padStart(2, "0");
+  }
+  function deIso(v) {
+    if (!v) return null;
+    var p = String(v).split("-");
+    if (p.length !== 3) return null;
+    var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+    return isNaN(d.getTime()) ? null : d;
+  }
+  var MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août",
+    "septembre", "octobre", "novembre", "décembre"];
+  var JOURS = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
+  function dateFr(d) {
+    if (!d) return "[date]";
+    return (d.getDate() === 1 ? "1er" : d.getDate()) + " " + MOIS[d.getMonth()] + " " + d.getFullYear();
+  }
+  function dateFrJour(d) { return d ? JOURS[d.getDay()] + " " + dateFr(d) : "[date]"; }
+  function civiliteDe(nom) {
+    if (/^\s*madame/i.test(nom)) return "Madame";
+    if (/^\s*monsieur/i.test(nom)) return "Monsieur";
+    return "Madame, Monsieur";
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     LE RENDU. Un document est une liste de blocs. Chaque bloc devient une
+     ligne modifiable à l'écran et repart telle quelle dans le .docx. Quand les
+     champs changent, tout est réécrit, sauf les blocs corrigés à la main.
+     ══════════════════════════════════════════════════════════════════════ */
+  var corrections = {};
+  function empreinte(s) {
+    var h = 5381;
+    for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+    return "b" + (h >>> 0).toString(36);
+  }
+  function feuilleHtml(blocs) {
+    var h = '<div class="feuille" id="feuille">';
+    blocs.forEach(function (b) {
+      if (b.k === "trait") { h += '<hr class="b-trait">'; return; }
+      if (b.k === "vide") { h += '<div class="b-vide"></div>'; return; }
+      var cle = empreinte(b.t);
+      var texte = Object.prototype.hasOwnProperty.call(corrections, cle) ? corrections[cle] : b.t;
+      h += '<div class="b-' + b.k + (texte !== b.t ? " modifie" : "") +
+        '" contenteditable="true" data-k="' + b.k + '" data-o="' + cle + '">' +
+        ech(texte) + "</div>";
+    });
+    return h + "</div>";
+  }
+  function texteDe(el) {
+    var t = el.innerText !== undefined && el.innerText !== null ? el.innerText : el.textContent;
+    return String(t).replace(/ /g, " ");
+  }
+  function relire() {
+    var out = [];
+    document.querySelectorAll("#feuille > *").forEach(function (el) {
+      if (el.tagName === "HR") { out.push({ k: "trait", t: "" }); return; }
+      if (el.classList.contains("b-vide")) { out.push({ k: "p", t: "" }); return; }
+      out.push({ k: el.getAttribute("data-k"), t: texteDe(el) });
+    });
+    return out;
+  }
+  var VERS_EXPORT = { t1: "t1", st: "sur", h1: "h1", h2: "h2", p: "p", puce: "puce", note: "note",
+    ligne: "p", sign: "p", trait: "trait" };
+  function pourFichier() {
+    var blocs = relire();
+    var titre = blocs.length && blocs[0].k === "t1" ? blocs.shift().t : "";
+    return { titre: titre, blocs: blocs };
+  }
+  function slug(s) {
+    return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "")
+      .replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "").toLowerCase() || "salarie";
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     LES CHAMPS. Un seul état pour toute la page ; chaque onglet n'en montre
+     que deux ou trois, ceux qui se glissent dans son document.
+     ══════════════════════════════════════════════════════════════════════ */
+  var CAUSES = {
+    difficultes: { al: "1°", t: "des difficultés économiques" },
+    mutations: { al: "2°", t: "des mutations technologiques" },
+    competitivite: { al: "3°", t: "une réorganisation de l'entreprise nécessaire à la sauvegarde de sa compétitivité" },
+    cessation: { al: "4°", t: "la cessation d'activité de l'entreprise" }
+  };
+  var VOIES = {
+    accord: "Accord collectif majoritaire",
+    document: "Document unilatéral de l'employeur"
+  };
+  var CHAMPS = {
+    nombre: { nom: "Licenciements envisagés sur trente jours", t: "number" },
+    reunion1: { nom: "Première réunion du comité", t: "date" },
+    reunion2: { nom: "Seconde réunion du comité", t: "date" },
+    voie: { nom: "Voie retenue", t: "select", options: VOIES },
+    cause: { nom: "Cause économique", t: "select", options: null },
+    faits: { nom: "Les faits qui l'établissent, dans vos mots", t: "textarea", pleine: true,
+      ph: "Le chiffre d'affaires du secteur a reculé de 31 % sur quatre trimestres consécutifs, passant de..." },
+    categories: { nom: "Catégories professionnelles concernées, une par ligne", t: "textarea", pleine: true,
+      ph: "catégorie ; nombre de suppressions" },
+    mesures: { nom: "Mesures du plan, une par ligne", t: "textarea", pleine: true, haute: true },
+    publication: { nom: "Diffusion de la liste des postes", t: "date" },
+    depot: { nom: "Dépôt de la demande", t: "date" },
+    departage: { nom: "Critères de départage, un par ligne", t: "textarea", pleine: true },
+    nom: { nom: "Nom et prénom du salarié", t: "text", ph: "Madame Lucie MARTIN" },
+    adresse: { nom: "Adresse du salarié", t: "text", ph: "12 rue des Lilas, 51100 Reims" },
+    poste: { nom: "Emploi occupé", t: "text", ph: "opérateur de production" }
+  };
+  var etat = {};
+  (function valeursDeDepart() {
+    var a = new Date();
+    etat.nombre = "10";
+    etat.voie = "document";
+    etat.cause = "difficultes";
+    etat.faits = "";
+    etat.categories = "[catégorie professionnelle] ; [nombre de suppressions]";
+    etat.reunion1 = iso(prochainOuvrable(jour(a, 7)));
+    etat.reunion2 = iso(prochainOuvrable(jour(a, 23)));
+    etat.depot = iso(prochainOuvrable(jour(a, 25)));
+    etat.publication = iso(prochainOuvrable(jour(a, 7)));
+    etat.departage = [
+      "l'adéquation entre les compétences du candidat et les exigences du poste, appréciée sur des éléments objectifs et vérifiables",
+      "les charges de famille, en particulier celles des parents isolés",
+      "l'ancienneté de service dans l'établissement ou l'entreprise",
+      "la situation du salarié dont les caractéristiques sociales rendent la réinsertion professionnelle particulièrement difficile"
+    ].join("\n");
+    etat.mesures = [
+      "1° Reclassement interne ; diffusion de la liste des postes disponibles dans l'entreprise et le groupe ; tous les salariés concernés ; [budget]",
+      "1° bis Reprise d'activités ; recherche d'un repreneur pour [établissement] afin d'éviter sa fermeture ; [bénéficiaires] ; [budget]",
+      "2° Créations d'activités nouvelles ; [mesure] ; [bénéficiaires] ; [budget]",
+      "3° Reclassement externe ; cellule d'accompagnement de [durée], prospection du bassin d'emploi ; tous les salariés licenciés ; [budget]",
+      "4° Création ou reprise d'activités par les salariés ; aide de [montant] euros et accompagnement du projet ; les salariés porteurs d'un projet ; [budget]",
+      "5° Formation, validation des acquis, reconversion ; [mesure] ; tous les salariés concernés ; [budget]",
+      "6° Réduction ou aménagement du temps de travail ; réduction du volume des heures supplémentaires régulières ; [bénéficiaires] ; [budget]"
+    ].join("\n");
+    etat.nom = ""; etat.adresse = ""; etat.poste = "";
+  })();
+
+  /* Le délai d'avis du comité : deux, trois ou quatre mois selon le nombre de
+     licenciements, à compter de la première réunion (L. 1233-30). */
+  function moisAvis(n) { return n < 100 ? 2 : (n < 250 ? 3 : 4); }
+  /* Le délai de candidature : quinze jours francs au moins à compter de la
+     publication (D. 1233-2-1, III). Le jour de la publication ne compte pas,
+     et le dernier jour est entier. */
+  function clotureCandidatures(p) { return p ? jour(p, 16) : null; }
+  function lignes(brut, defaut) {
+    var l = String(brut || "").split(/\n+/).map(function (s) { return s.trim(); })
+      .filter(function (s) { return s.length; });
+    return l.length ? l : (defaut || []);
+  }
+
+  function lire() {
+    var reunion1 = deIso(etat.reunion1);
+    var nombre = Math.max(1, Number(etat.nombre) || 10);
+    var accord = etat.voie === "accord";
+    var depot = deIso(etat.depot);
+    return {
+      nombre: nombre,
+      accord: accord,
+      cause: CAUSES[etat.cause] || CAUSES.difficultes,
+      faits: String(etat.faits || "").trim(),
+      categories: String(etat.categories || "").trim(),
+      reunion1: reunion1,
+      reunion2: deIso(etat.reunion2),
+      /* La notification du projet à l'administration : au plus tôt le
+         lendemain de la première réunion (L. 1233-46). Elle est datée de ce
+         lendemain, et se corrige dans le document. */
+      notifadmin: reunion1 ? jour(reunion1, 1) : null,
+      depot: depot,
+      decision: depot ? jour(depot, accord ? 15 : 21) : null,
+      mesures: String(etat.mesures || "").trim(),
+      publication: deIso(etat.publication),
+      departage: String(etat.departage || "").trim(),
+      nom: String(etat.nom || "").trim(),
+      adresse: String(etat.adresse || "").trim(),
+      poste: String(etat.poste || "").trim()
+    };
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     LES DOCUMENTS, UN PAR ONGLET.
+     ══════════════════════════════════════════════════════════════════════ */
+  function enTeteAdmin(b, objet, date) {
+    b.push({ k: "p", t: profil.denomination });
+    if (profil.adresse) b.push({ k: "p", t: profil.adresse });
+    b.push({ k: "vide", t: "" });
+    b.push({ k: "p", t: "Direction régionale de l'économie, de l'emploi, du travail et des " +
+      "solidarités, unité départementale de [département]" });
+    b.push({ k: "p", t: "[adresse du service]" });
+    b.push({ k: "vide", t: "" });
+    b.push({ k: "p", t: ville() + ", le " + dateFr(date) });
+    b.push({ k: "p", t: "Objet : " + objet });
+    b.push({ k: "vide", t: "" });
+    b.push({ k: "p", t: "Madame, Monsieur," });
+  }
+  function signer(b) {
+    b.push({ k: "p", t: "Nous vous prions d'agréer, Madame, Monsieur, l'expression de nos " +
+      "salutations distinguées." });
+    b.push({ k: "sign", t: "\n" + signataire() + "\n" + profil.denomination });
+  }
+
+  /* 1. La notification du projet à l'administration. */
+  function docNotification(d) {
+    var b = [];
+    b.push({ k: "t1", t: "Notification d'un projet de licenciement collectif" });
+    enTeteAdmin(b, "notification d'un projet de licenciement pour motif économique d'au moins " +
+      "dix salariés dans une même période de trente jours", d.notifadmin);
+    b.push({ k: "p", t: "La société " + societe() + " vous notifie son projet de licenciement pour " +
+      "motif économique de " + d.nombre + " salariés dans une même période de trente jours." });
+    b.push({ k: "p", t: "Le comité social et économique a été réuni une première fois le " +
+      dateFr(d.reunion1) + ". Sont joints à la présente la convocation adressée à ses membres, " +
+      "l'ordre du jour de cette réunion et les éléments établissant sa tenue, ainsi que les " +
+      "renseignements adressés aux représentants du personnel avec cette convocation." });
+    b.push({ k: "p", t: d.accord
+      ? "Nous vous indiquons notre intention d'ouvrir la négociation d'un accord collectif " +
+        "déterminant le contenu du plan de sauvegarde de l'emploi ainsi que les modalités de " +
+        "consultation du comité et de mise en oeuvre des licenciements."
+      : "Le contenu du plan de sauvegarde de l'emploi sera fixé par un document élaboré après la " +
+        "dernière réunion du comité social et économique." });
+    signer(b);
+    return b;
+  }
+
+  /* 2. La convocation à la première réunion, avec les sept renseignements. */
+  function docConvocation1(d) {
+    var b = [];
+    b.push({ k: "t1", t: "Convocation du comité social et économique : première réunion" });
+    b.push({ k: "st", t: profil.denomination + ", réunion du " + dateFr(d.reunion1) });
+    b.push({ k: "p", t: "Les membres du comité social et économique sont convoqués à une réunion qui " +
+      "se tiendra le " + dateFrJour(d.reunion1) + ", au siège de la société." });
+    b.push({ k: "h1", t: "Ordre du jour" });
+    b.push({ k: "puce", t: "- Consultation sur l'opération projetée et ses modalités d'application." });
+    b.push({ k: "puce", t: "- Consultation sur le projet de licenciement collectif : nombre de " +
+      "suppressions d'emploi, catégories professionnelles concernées, critères d'ordre, calendrier " +
+      "prévisionnel des licenciements, mesures sociales d'accompagnement prévues par le plan de " +
+      "sauvegarde de l'emploi et conséquences des licenciements projetés en matière de santé, de " +
+      "sécurité ou de conditions de travail." });
+    b.push({ k: "puce", t: "- Faculté pour le comité de décider, lors de la présente réunion, de " +
+      "recourir à une expertise." });
+    b.push({ k: "h1", t: "Les renseignements joints à la présente convocation" });
+    b.push({ k: "puce", t: "1° Les raisons économiques, financières ou techniques du projet : " +
+      d.cause.t + "." });
+    (d.faits ? d.faits.split(/\n+/) : ["[Éléments chiffrés et datés qui l'établissent.]"])
+      .forEach(function (l) { if (l.trim()) b.push({ k: "p", t: l.trim() }); });
+    b.push({ k: "puce", t: "2° Le nombre de licenciements envisagé : " + d.nombre + "." });
+    b.push({ k: "puce", t: "3° Les catégories professionnelles concernées et les critères proposés " +
+      "pour l'ordre des licenciements :" });
+    lignes(d.categories, ["[catégorie professionnelle] ; [nombre de suppressions]"])
+      .forEach(function (l) { b.push({ k: "ligne", t: l }); });
+    b.push({ k: "p", t: "Les critères proposés sont les charges de famille, en particulier celles " +
+      "des parents isolés, l'ancienneté de service dans l'établissement ou l'entreprise, la " +
+      "situation des salariés dont les caractéristiques sociales rendent la réinsertion " +
+      "professionnelle particulièrement difficile, notamment les personnes handicapées et les " +
+      "salariés âgés, et les qualités professionnelles appréciées par catégorie. Leur pondération " +
+      "et leur périmètre d'application figurent au plan joint." });
+    b.push({ k: "puce", t: "4° Le nombre de salariés, permanents ou non, employés dans " +
+      "l'établissement : " + (effectif || "[effectif]") + "." });
+    b.push({ k: "puce", t: "5° Le calendrier prévisionnel des licenciements : seconde réunion le " +
+      dateFr(d.reunion2) + ", demande " + (d.accord ? "de validation" : "d'homologation") +
+      " déposée le " + dateFr(d.depot) + ", notifications des licenciements à compter de la " +
+      "notification de la décision de l'autorité administrative." });
+    b.push({ k: "puce", t: "6° Les mesures de nature économique envisagées : [   ]." });
+    b.push({ k: "puce", t: "7° Les conséquences de la réorganisation en matière de santé, de " +
+      "sécurité ou de conditions de travail : [   ]." });
+    b.push({ k: "p", t: "Le plan de sauvegarde de l'emploi est joint à la présente convocation." });
+    b.push({ k: "sign", t: "\n" + signataire() + "\n" + profil.denomination });
+    return b;
+  }
+
+  /* 3. La convocation à la seconde réunion. */
+  function docConvocation2(d) {
+    var b = [];
+    b.push({ k: "t1", t: "Convocation du comité social et économique : seconde réunion" });
+    b.push({ k: "st", t: profil.denomination + ", réunion du " + dateFr(d.reunion2) });
+    b.push({ k: "p", t: "Les membres du comité social et économique sont convoqués à une seconde " +
+      "réunion qui se tiendra le " + dateFrJour(d.reunion2) + ", au siège de la société." });
+    b.push({ k: "h1", t: "Ordre du jour" });
+    b.push({ k: "puce", t: "- Poursuite et clôture de la consultation sur l'opération projetée et " +
+      "sur le projet de licenciement collectif." });
+    b.push({ k: "puce", t: "- Réponse motivée de la direction aux suggestions relatives aux mesures " +
+      "sociales et aux propositions alternatives formulées lors de la première réunion du " +
+      dateFr(d.reunion1) + "." });
+    b.push({ k: "puce", t: "- Recueil des deux avis du comité." });
+    b.push({ k: "p", t: "Le comité rend ses deux avis dans un délai qui ne peut être supérieur à " +
+      moisAvis(d.nombre) + " mois à compter de la date de sa première réunion, soit au plus tard le " +
+      (d.reunion1 ? dateFr(plusMois(d.reunion1, moisAvis(d.nombre))) : "[date]") + ". En l'absence " +
+      "d'avis rendu dans ce délai, le comité est réputé avoir été consulté." });
+    b.push({ k: "sign", t: "\n" + signataire() + "\n" + profil.denomination });
+    return b;
+  }
+
+  /* 4. Le plan lui-même. */
+  function docPlan(d) {
+    var b = [], cloture = clotureCandidatures(d.publication);
+    b.push({ k: "t1", t: "Plan de sauvegarde de l'emploi" });
+    b.push({ k: "st", t: profil.denomination + ", " + d.nombre + " licenciements envisagés, " +
+      (d.accord ? "accord collectif majoritaire" : "document unilatéral de l'employeur") });
+    b.push({ k: "h1", t: "Article 1 - Objet et champ d'application" });
+    b.push({ k: "p", t: "Le présent plan a pour objet d'éviter les licenciements envisagés ou d'en " +
+      "limiter le nombre. Il intègre un plan de reclassement visant à faciliter le reclassement sur " +
+      "le territoire national des salariés dont le licenciement ne pourrait être évité, notamment " +
+      "celui des salariés âgés ou présentant des caractéristiques sociales ou de qualification " +
+      "rendant leur réinsertion professionnelle particulièrement difficile." });
+    b.push({ k: "p", t: "Il s'applique aux salariés relevant des catégories professionnelles " +
+      "suivantes :" });
+    lignes(d.categories, ["[catégorie professionnelle] ; [nombre de suppressions]"])
+      .forEach(function (l) { b.push({ k: "ligne", t: l }); });
+
+    b.push({ k: "h1", t: "Article 2 - La cause économique" });
+    b.push({ k: "p", t: "L'entreprise connaît " + d.cause.t + "." });
+    (d.faits ? d.faits.split(/\n+/) : ["[Éléments chiffrés et datés qui l'établissent.]"])
+      .forEach(function (l) { if (l.trim()) b.push({ k: "p", t: l.trim() }); });
+    b.push({ k: "note", t: "Les difficultés économiques s'apprécient au niveau du secteur " +
+      "d'activité du groupe : " + ARRETS.secteur.ref + "." });
+
+    b.push({ k: "h1", t: "Article 3 - Les mesures du plan" });
+    b.push({ k: "p", t: "Les mesures ci-dessous sont classées par rubrique. Le budget indiqué est " +
+      "celui que l'entreprise arrête : aucun texte ne fixe le montant d'un plan." });
+    b.push({ k: "ligne", t: "Rubrique ; mesure ; bénéficiaires ; budget" });
+    lignes(d.mesures).forEach(function (l) { b.push({ k: "ligne", t: l }); });
+
+    b.push({ k: "h1", t: "Article 4 - Le reclassement interne" });
+    b.push({ k: "p", t: "Les postes disponibles situés sur le territoire national dans l'entreprise " +
+      "et dans les autres entreprises du groupe dont elle fait partie et dont l'organisation, les " +
+      "activités ou le lieu d'exploitation assurent la permutation de tout ou partie du personnel " +
+      "sont diffusés à l'ensemble des salariés concernés, par tout moyen permettant de conférer date " +
+      "certaine, le " + dateFr(d.publication) + "." });
+    b.push({ k: "p", t: "Le reclassement s'effectue sur un emploi relevant de la même catégorie que " +
+      "celui occupé ou sur un emploi équivalent assorti d'une rémunération équivalente ; à défaut, " +
+      "et sous réserve de l'accord exprès du salarié, sur un emploi de catégorie inférieure." });
+    b.push({ k: "p", t: "Chaque offre est écrite et précise. Elle indique l'intitulé du poste et son " +
+      "descriptif, le nom de l'employeur, la nature du contrat de travail, la localisation du poste, " +
+      "le niveau de rémunération et la classification du poste." });
+    b.push({ k: "note", t: "Les six mentions sont exigées à peine d'imprécision : " +
+      ARRETS.mentions.ref + ". Les postes du groupe sont décrits par leur nombre, leur nature, leur " +
+      "localisation, leur statut et leur rémunération : " + ARRETS.postes.ref + "." });
+    b.push({ k: "h2", t: "Le délai de candidature" });
+    b.push({ k: "p", t: "Les candidatures sont présentées par écrit et reçues jusqu'au " +
+      (cloture ? dateFr(cloture) + " inclus" : "[date]") + ", soit un délai de quinze jours francs à " +
+      "compter de la publication de la liste. L'absence de candidature écrite à l'issue de ce délai " +
+      "vaut refus des offres." });
+    b.push({ k: "h2", t: "Les critères de départage en cas de candidatures multiples" });
+    b.push({ k: "p", t: "Lorsque plusieurs salariés se portent candidats sur un même poste, le " +
+      "salarié retenu est identifié sur les bases objectives suivantes, appliquées dans cet ordre :" });
+    lignes(d.departage).forEach(function (l) { b.push({ k: "puce", t: "- " + l }); });
+    b.push({ k: "p", t: "Ces critères sont repris dans la liste diffusée aux salariés, et non " +
+      "seulement dans le présent plan. Le salarié dont la candidature n'est pas retenue en est " +
+      "informé par écrit, avec l'indication du critère qui a départagé les candidatures." });
+    b.push({ k: "note", t: "Leur absence de la liste diffusée rend l'offre imprécise et prive le " +
+      "licenciement de cause réelle et sérieuse : " + ARRETS.departage.ref + "." });
+
+    b.push({ k: "h1", t: "Article 5 - Les critères d'ordre des licenciements" });
+    b.push({ k: "p", t: "Les critères retenus pour fixer l'ordre des licenciements sont les charges " +
+      "de famille, en particulier celles des parents isolés, l'ancienneté de service dans " +
+      "l'établissement ou l'entreprise, la situation des salariés dont les caractéristiques sociales " +
+      "rendent la réinsertion professionnelle particulièrement difficile, notamment les personnes " +
+      "handicapées et les salariés âgés, et les qualités professionnelles appréciées par catégorie." });
+    b.push({ k: "p", t: "Leur pondération est la suivante : un point par enfant à charge et un point " +
+      "supplémentaire pour un parent isolé ; un point par année d'ancienneté révolue, dans la limite " +
+      "de vingt points ; deux points au titre des caractéristiques sociales ; de zéro à quatre points " +
+      "au titre des qualités professionnelles, appréciées sur des éléments objectifs et vérifiables. " +
+      "Aucun critère n'est écarté. Le total le plus faible désigne le salarié dont le licenciement " +
+      "est envisagé en premier." });
+    b.push({ k: "p", t: "Le périmètre d'application des critères est " + (d.accord
+      ? "celui que fixe le présent accord, soit [périmètre], qui ne peut être inférieur à la zone " +
+        "d'emplois dans laquelle est situé l'établissement concerné."
+      : "la zone d'emplois dans laquelle est situé l'établissement concerné par les suppressions " +
+        "d'emplois, soit la zone d'emplois de " + ville() + ".") });
+    b.push({ k: "note", t: "Aucun critère ne peut être écarté, et la situation sociale rendant la " +
+      "réinsertion difficile ne se limite pas au handicap reconnu : " + ARRETS.criteres.ref + ". " +
+      "Les catégories professionnelles et la pondération retenue sont contrôlées par " +
+      "l'administration, et l'ordre mal appliqué se paie en dommages-intérêts : " +
+      ARRETS.categories.ref + "." });
+
+    b.push({ k: "h1", t: "Article 6 - L'accompagnement individuel" });
+    b.push({ k: "p", t: mille
+      ? "L'entreprise employant au moins mille salariés, un congé de reclassement est proposé à " +
+        "chaque salarié dont le licenciement est envisagé. Sa durée ne peut excéder douze mois, " +
+        "portés à vingt-quatre mois en cas de formation de reconversion professionnelle. Il est pris " +
+        "pendant le préavis, que le salarié est dispensé d'exécuter, et l'entreprise en finance " +
+        "l'ensemble des actions."
+      : "Le bénéfice du contrat de sécurisation professionnelle est proposé à chaque salarié dont le " +
+        "licenciement est envisagé, après la notification par l'autorité administrative de sa " +
+        "décision de validation ou d'homologation." });
+
+    b.push({ k: "h1", t: "Article 7 - La priorité de réembauche" });
+    b.push({ k: "p", t: "Chaque salarié licencié bénéficie d'une priorité de réembauche pendant un " +
+      "délai d'un an à compter de la date de rupture de son contrat, s'il en fait la demande au " +
+      "cours de ce même délai. L'entreprise l'informe alors de tout emploi devenu disponible et " +
+      "compatible avec sa qualification, et informe les représentants du personnel des postes " +
+      "disponibles. Le salarié ayant acquis une nouvelle qualification en bénéficie également au " +
+      "titre de celle-ci, s'il en informe l'entreprise." });
+    b.push({ k: "note", t: "Elle est portée à la connaissance du salarié au plus tard au moment " +
+      "où il accepte le contrat de sécurisation professionnelle : " + ARRETS.reembauche.ref + "." });
+
+    b.push({ k: "h1", t: "Article 8 - Le suivi de la mise en oeuvre" });
+    b.push({ k: "p", t: "Une commission de suivi est constituée. Elle comprend [nombre] " +
+      "représentants de la direction et [nombre] membres désignés par le comité social et " +
+      "économique. Elle se réunit tous les [périodicité] jusqu'à l'épuisement des mesures du plan de " +
+      "reclassement." });
+    b.push({ k: "p", t: "Elle examine, mesure par mesure, le nombre de bénéficiaires, les sommes " +
+      "engagées et les reclassements obtenus. Le comité social et économique est consulté de façon " +
+      "régulière et détaillée sur ce suivi, et son avis est transmis à l'autorité administrative." });
+    b.push({ k: "p", t: "L'autorité administrative est associée au suivi de ces mesures et reçoit un " +
+      "bilan, établi par l'entreprise, de la mise en oeuvre effective du plan." });
+    b.push({ k: "sign", t: "\n" + (d.accord
+      ? "Pour les organisations syndicales signataires\n\n\nPour la société\n" + signataire()
+      : signataire() + "\n" + profil.denomination) });
+    return b;
+  }
+
+  /* 5. La réponse motivée aux suggestions du comité. */
+  function docReponse(d) {
+    var b = [];
+    b.push({ k: "t1", t: "Réponse motivée aux suggestions et propositions du comité" });
+    b.push({ k: "st", t: "Réunion du " + dateFr(d.reunion1) + ", réponse remise le " +
+      dateFr(d.reunion2) });
+    b.push({ k: "p", t: "Les suggestions relatives aux mesures sociales envisagées et les " +
+      "propositions alternatives au projet de restructuration formulées par le comité social et " +
+      "économique lors de sa réunion du " + dateFr(d.reunion1) + " ont été mises à l'étude. La " +
+      "réponse de la direction est la suivante." });
+    b.push({ k: "ligne", t: "Suggestion ou proposition ; ce qui a été étudié ; suite donnée ; motif" });
+    b.push({ k: "ligne", t: "[suggestion] ; [ce qui a été étudié] ; retenue / non retenue ; [motif]" });
+    b.push({ k: "p", t: "Chaque réponse ci-dessus est motivée : une suggestion écartée sans motif " +
+      "n'a pas reçu de réponse au sens de la loi." });
+    b.push({ k: "sign", t: "\n" + signataire() + "\n" + profil.denomination });
+    return b;
+  }
+
+  /* 6. La demande de validation ou d'homologation. */
+  function docDemande(d) {
+    var b = [];
+    b.push({ k: "t1", t: d.accord ? "Demande de validation de l'accord collectif"
+                                  : "Demande d'homologation du document unilatéral" });
+    enTeteAdmin(b, "demande " + (d.accord
+      ? "de validation de l'accord collectif déterminant le contenu du plan de sauvegarde de l'emploi"
+      : "d'homologation du document fixant le contenu du plan de sauvegarde de l'emploi"), d.depot);
+    b.push({ k: "p", t: d.accord
+      ? "Nous sollicitons la validation de l'accord collectif signé le [date], qui détermine le " +
+        "contenu du plan de sauvegarde de l'emploi ainsi que les modalités de consultation du comité " +
+        "social et économique et de mise en oeuvre des licenciements."
+      : "Nous sollicitons l'homologation du document que nous avons élaboré après la dernière " +
+        "réunion du comité social et économique, tenue le " + dateFr(d.reunion2) + ", et qui fixe le " +
+        "contenu du plan de sauvegarde de l'emploi." });
+    b.push({ k: "p", t: d.accord
+      ? "L'accord a été signé par [organisations syndicales signataires], ayant recueilli [   ] % " +
+        "des suffrages exprimés en faveur d'organisations reconnues représentatives au premier tour " +
+        "des dernières élections des titulaires au comité social et économique, quel que soit le " +
+        "nombre de votants, soit au moins cinquante pour cent."
+      : "Le document précise le contenu du plan et les éléments suivants : les modalités " +
+        "d'information et de consultation du comité, la pondération et le périmètre d'application " +
+        "des critères d'ordre, le calendrier des licenciements, le nombre de suppressions d'emploi " +
+        "et les catégories professionnelles concernées, et les modalités de mise en oeuvre des " +
+        "mesures de formation, d'adaptation et de reclassement." });
+    b.push({ k: "h1", t: "Les pièces jointes" });
+    b.push({ k: "puce", t: "- " + (d.accord ? "L'accord collectif signé." : "Le document unilatéral.") });
+    b.push({ k: "puce", t: "- Le plan de sauvegarde de l'emploi." });
+    b.push({ k: "puce", t: "- Les convocations, ordres du jour et procès-verbaux des réunions du " +
+      "comité des " + dateFr(d.reunion1) + " et " + dateFr(d.reunion2) + "." });
+    b.push({ k: "puce", t: "- La réponse motivée aux suggestions et propositions du comité." });
+    b.push({ k: "puce", t: "- Le cas échéant, le rapport de l'expert désigné par le comité." });
+    b.push({ k: "puce", t: "- La liste des postes de reclassement diffusée le " +
+      dateFr(d.publication) + ", portant les critères de départage et le délai de candidature." });
+    b.push({ k: "p", t: "La décision nous sera notifiée dans un délai de " +
+      (d.accord ? "quinze jours à compter de la réception de l'accord"
+                : "vingt et un jours à compter de la réception du document complet") +
+      ", soit au plus tard le " + dateFr(d.decision) +
+      ". Le silence gardé pendant ce délai vaut décision d'acceptation ; nous transmettrions alors " +
+      "au comité social et économique" + (d.accord ? " et aux organisations syndicales signataires" : "") +
+      " une copie de la présente demande accompagnée de son accusé de réception." });
+    b.push({ k: "p", t: "La décision, ou à défaut ces documents, ainsi que les voies et délais de " +
+      "recours, seront portés à la connaissance des salariés par voie d'affichage sur leurs lieux de " +
+      "travail." });
+    signer(b);
+    return b;
+  }
+
+  /* 7. La lettre de licenciement, qui ne part qu'après la décision. */
+  function docLettre(d) {
+    var b = [], nomS = d.nom || "[nom et prénom du salarié]", civ = civiliteDe(nomS);
+    var poste = d.poste || "[emploi occupé]", cloture = clotureCandidatures(d.publication);
+    b.push({ k: "t1", t: "Notification d'un licenciement pour motif économique" });
+    b.push({ k: "p", t: profil.denomination });
+    if (profil.adresse) b.push({ k: "p", t: profil.adresse });
+    b.push({ k: "vide", t: "" });
+    b.push({ k: "p", t: nomS });
+    b.push({ k: "p", t: d.adresse || "[adresse du salarié]" });
+    b.push({ k: "vide", t: "" });
+    b.push({ k: "p", t: ville() + ", le [date, après la décision de l'administration]" });
+    b.push({ k: "p", t: "Lettre recommandée avec avis de réception" });
+    b.push({ k: "p", t: "Objet : notification de votre licenciement pour motif économique" });
+    b.push({ k: "vide", t: "" });
+    b.push({ k: "p", t: civ + "," });
+    b.push({ k: "p", t: "Par décision du [date], l'autorité administrative a " +
+      (d.accord ? "validé l'accord collectif" : "homologué le document") + " fixant le contenu du plan " +
+      "de sauvegarde de l'emploi. Cette décision a été portée à votre connaissance par affichage." });
+    b.push({ k: "p", t: "Nous vous notifions par la présente votre licenciement pour motif " +
+      "économique, pour les motifs suivants." });
+    b.push({ k: "h2", t: "La cause économique" });
+    b.push({ k: "p", t: "L'entreprise connaît " + d.cause.t + "." });
+    (d.faits ? d.faits.split(/\n+/) : ["[Éléments chiffrés et datés qui l'établissent. Ce sont eux, " +
+      "et eux seuls, qui la démontreront : la lettre fixe les limites du litige.]"])
+      .forEach(function (l) { if (l.trim()) b.push({ k: "p", t: l.trim() }); });
+    b.push({ k: "h2", t: "L'incidence sur votre emploi" });
+    b.push({ k: "p", t: "Votre poste de " + poste + " est supprimé. L'application des critères " +
+      "d'ordre des licenciements au sein de votre catégorie professionnelle, dans le périmètre " +
+      "défini par le plan, vous a désigné." });
+    b.push({ k: "h2", t: "Le reclassement" });
+    b.push({ k: "p", t: "La liste des postes disponibles vous a été diffusée le " +
+      dateFr(d.publication) + ", avec les critères de départage entre candidatures multiples et le " +
+      "délai de candidature, expirant le " + (cloture ? dateFr(cloture) : "[date]") + ". " +
+      "[Indiquez la suite donnée à votre candidature, ou l'absence de candidature, qui vaut refus " +
+      "des offres.]" });
+    b.push({ k: "h2", t: "La priorité de réembauche" });
+    b.push({ k: "p", t: "Vous bénéficiez d'une priorité de réembauche pendant un délai d'un an à " +
+      "compter de la date de rupture de votre contrat, à condition d'en faire la demande au cours de " +
+      "ce même délai. Si vous formez cette demande, nous vous informerons de tout emploi devenu " +
+      "disponible et compatible avec votre qualification. Si vous acquérez une nouvelle " +
+      "qualification, vous bénéficierez également de la priorité au titre de celle-ci, à condition " +
+      "de nous en informer." });
+    b.push({ k: "p", t: mille
+      ? "Le congé de reclassement vous a été proposé ; vous disposez du délai indiqué dans cette " +
+        "proposition pour nous faire connaître votre réponse."
+      : "Le bénéfice du contrat de sécurisation professionnelle vous est proposé par le document " +
+        "joint à la présente." });
+    b.push({ k: "p", t: "Nous vous prions d'agréer, " + civ + ", l'expression de nos salutations " +
+      "distinguées." });
+    b.push({ k: "sign", t: "\n" + signataire() + "\n" + profil.denomination });
+    return b;
+  }
+
+  /* Un onglet : son nom, ses champs, son document, son fichier, et ce qui se
+     lit sous « Voir le texte de loi » : les dates calculées, puis les
+     articles avec leur identifiant de version. */
+  var ONGLETS = [
+    { cle: "notification", nom: "Notification", champs: ["nombre", "reunion1", "voie"],
+      arrets: function () { return ["secteur"]; },
+      doc: docNotification, fichier: "notification-du-projet",
+      dates: function (d) {
+        return ["Notification au plus tôt le " + dateFrJour(d.notifadmin) + " : le lendemain de " +
+          "la première réunion du comité, datée du " + dateFr(d.reunion1) + " (" +
+          ref(["L1233-46"]) + "). La lettre est datée de ce jour.",
+          "Avis du comité au plus tard le " +
+          (d.reunion1 ? dateFrJour(plusMois(d.reunion1, moisAvis(d.nombre))) : "[date]") + " : " +
+          moisAvis(d.nombre) + " mois à compter de la première réunion, pour " + d.nombre +
+          " licenciements (" + ref(["L1233-30"]) + ")."];
+      },
+      textes: function () { return ["L1233-46", "L1233-28", "L1233-61"]; } },
+    { cle: "convocation1", nom: "Première réunion", champs: ["cause", "faits", "categories"],
+      arrets: function () { return ["secteur", "categories", "criteres"]; },
+      doc: docConvocation1, fichier: "convocation-premiere-reunion",
+      dates: function (d) {
+        var avis = d.reunion1 ? plusMois(d.reunion1, moisAvis(d.nombre)) : null;
+        return ["Rapport de l'expert, s'il en est désigné un, au plus tard le " +
+          (avis ? dateFrJour(jour(avis, -15)) : "[date]") + " : quinze jours avant l'expiration " +
+          "du délai d'avis (" + ref(["L1233-34"]) + ")."];
+      },
+      textes: function () { return ["L1233-31", "L1233-32", "L1233-30", "L1233-34", "L1233-35", "L1233-3"]; } },
+    { cle: "convocation2", nom: "Seconde réunion", champs: ["reunion1", "reunion2"],
+      arrets: function () { return ["categories"]; },
+      doc: docConvocation2, fichier: "convocation-seconde-reunion",
+      dates: function (d) {
+        return ["Seconde réunion au plus tôt le " +
+          (d.reunion1 ? dateFrJour(jour(d.reunion1, 15)) : "[date]") + " : quinze jours au moins " +
+          "après la première (" + ref(["L1233-30"]) + ").",
+          "Avis du comité au plus tard le " +
+          (d.reunion1 ? dateFrJour(plusMois(d.reunion1, moisAvis(d.nombre))) : "[date]") + " : " +
+          moisAvis(d.nombre) + " mois à compter de la première réunion, deux mois en dessous de " +
+          "cent licenciements, trois de cent à deux cent quarante-neuf, quatre à partir de deux " +
+          "cent cinquante (" + ref(["L1233-30"]) + ")."];
+      },
+      textes: function () { return ["L1233-30", "L1233-33"]; } },
+    { cle: "plan", nom: "Plan", champs: ["mesures", "publication", "departage"],
+      arrets: function () { return ["departage", "mentions", "postes", "criteres", "categories", "reembauche"]; },
+      doc: docPlan, fichier: "plan-de-sauvegarde-de-l-emploi",
+      dates: function (d) {
+        var c = clotureCandidatures(d.publication);
+        return ["Candidatures au reclassement reçues jusqu'au " + (c ? dateFrJour(c) : "[date]") +
+          " : quinze jours francs à compter de la diffusion de la liste ; le jour de la diffusion " +
+          "ne compte pas et le dernier jour est entier (" + ref(["D1233-2-1"]) + ", III).",
+          ARRET.ref + " : « " + ARRET.dit + " ».",
+          "Aucun montant n'est apprécié ici : aucun texte ne fixe le montant d'un plan, et le " +
+          "caractère suffisant des mesures relève de l'autorité administrative puis du juge (" +
+          ref(["L1233-57-3"]) + ")."];
+      },
+      textes: function () { return ["L1233-61", "L1233-62", "L1233-63", "L1233-4", "D1233-2-1",
+        "L1233-5", "L1233-24-2", "L1233-45"].concat(mille ? ["L1233-71"] : ["L1233-66"]); } },
+    { cle: "reponse", nom: "Réponse motivée", champs: ["reunion1", "reunion2"],
+      doc: docReponse, fichier: "reponse-motivee-au-comite",
+      dates: function () { return []; },
+      textes: function () { return ["L1233-33"]; } },
+    { cle: "demande", nom: "Validation", champs: ["voie", "depot"],
+      arrets: function () { return ["competence", "categories"]; },
+      doc: docDemande, fichier: "demande-de-validation-ou-d-homologation",
+      dates: function (d) {
+        return ["Décision de l'administration au plus tard le " + dateFrJour(d.decision) + " : " +
+          (d.accord ? "quinze jours à compter de la réception de l'accord"
+                    : "vingt et un jours à compter de la réception du document complet") +
+          ", le silence valant acceptation (" + ref(["L1233-57-4"]) + ")."];
+      },
+      textes: function (d) { return ["L1233-24-1", "L1233-24-2", "L1233-24-4",
+        d.accord ? "L1233-57-2" : "L1233-57-3", "L1233-57-4"]; } },
+    { cle: "lettre", nom: "Lettre", champs: ["nom", "adresse", "poste"],
+      arrets: function () { return ["reembauche", "mentions", "ensemble"]; },
+      doc: docLettre, fichier: "lettre-de-licenciement",
+      dates: function (d) {
+        return ["Lettre au plus tôt le " + dateFrJour(d.decision) + " : après la notification de " +
+          "la décision de validation ou d'homologation, ou l'expiration du délai ; une rupture " +
+          "antérieure est nulle (" + ref(["L1233-39"]) + ").",
+          "Priorité de réembauche pendant un an à compter de la rupture, sur demande du salarié " +
+          "(" + ref(["L1233-45"]) + ")."];
+      },
+      textes: function () { return ["L1233-39", "L1233-16", "L1233-3", "L1233-45"]
+        .concat(mille ? ["L1233-71"] : ["L1233-66"]); } }
+  ];
+  var courant = ONGLETS[0];
+
+  /* ═══════════════════════════════════════════════════════════════ rendu */
+  function champHtml(cle) {
+    var c = CHAMPS[cle], v = etat[cle] == null ? "" : String(etat[cle]);
+    var h = '<label class="ch' + (c.pleine ? " pleine" : "") + '"><span class="nom">' + ech(c.nom) + "</span>";
+    if (c.t === "textarea") {
+      h += '<textarea data-c="' + cle + '" placeholder="' + ech(c.ph || "") + '"' +
+        (c.haute ? ' style="min-height:160px"' : "") + ">" + ech(v) + "</textarea>";
+    } else if (c.t === "select") {
+      var opts = c.options ? Object.keys(c.options).map(function (k) { return [k, c.options[k]]; })
+        : Object.keys(CAUSES).map(function (k) {
+          var t = CAUSES[k].t.replace(/^(des|une|la) /, "");
+          return [k, t.charAt(0).toUpperCase() + t.slice(1)];
+        });
+      h += '<select data-c="' + cle + '">' + opts.map(function (o) {
+        return '<option value="' + o[0] + '"' + (o[0] === v ? " selected" : "") + ">" + ech(o[1]) + "</option>";
+      }).join("") + "</select>";
+    } else {
+      h += '<input type="' + c.t + '" data-c="' + cle + '" value="' + ech(v) + '"' +
+        (c.ph ? ' placeholder="' + ech(c.ph) + '"' : "") + (c.t === "number" ? ' min="1" step="1"' : "") + ">";
+    }
+    return h + "</label>";
+  }
+  function rendreOnglets() {
+    $("#onglets").innerHTML = ONGLETS.map(function (o) {
+      return '<button type="button" data-o="' + o.cle + '"' +
+        (o === courant ? ' class="actif"' : "") + ">" + ech(o.nom) + "</button>";
+    }).join("");
+  }
+  function rendreChamps() {
+    $("#champs").innerHTML = courant.champs.map(champHtml).join("");
+  }
+  /* Ce qui, dans les dates saisies, contredit la loi : dit en rouge au-dessus
+     du document, parce que le document ne peut pas partir ainsi. */
+  function renvois(d) {
+    var l = [];
+    if (d.nombre < 10) {
+      l.push(d.nombre + " licenciement" + (d.nombre > 1 ? "s" : "") + " sur trente jours : le plan " +
+        "n'est pas dû en dessous de dix (" + ref(["L1233-61"]) + "). " +
+        '<a href="audit.html">Ouvrir le licenciement économique</a>.');
+    }
+    if (d.reunion1 && d.reunion2 && d.reunion2 < jour(d.reunion1, 15)) {
+      l.push("Les deux réunions sont espacées de moins de quinze jours (" + ref(["L1233-30"]) +
+        "). Seconde réunion au plus tôt le " + dateFrJour(jour(d.reunion1, 15)) + ".");
+    }
+    if (d.reunion2 && d.depot && d.depot < d.reunion2 && !d.accord) {
+      l.push("Le document unilatéral s'élabore après la dernière réunion du comité (" +
+        ref(["L1233-24-4"]) + ") : le dépôt du " + dateFr(d.depot) + " précède la seconde réunion du " +
+        dateFr(d.reunion2) + ".");
+    }
+    return l.map(function (t) { return '<div class="renvoi">' + t + "</div>"; }).join("");
+  }
+  /* Les arrêts de l'onglet courant, chacun avec sa copie intégrale à
+     télécharger. Le bouton ne part ni au Word ni à l'impression. */
+  function arretsHtml(cles) {
+    if (!cles || !cles.length) return "";
+    var h = "<h3>Ce que la Cour de cassation a jugé</h3>";
+    cles.forEach(function (c) {
+      var a = ARRETS[c];
+      if (!a) return;
+      h += '<div class="arret"><div class="ref">' + ech(a.ref) + "</div>" +
+        '<div class="dit">&laquo; ' + ech(a.dit) + ' &raquo;</div>' +
+        '<a class="pdf" href="' + a.pdf + '" download>T\u00e9l\u00e9charger l\'arr\u00eat en PDF</a></div>';
+    });
+    return h;
+  }
+  function rendreDoc() {
+    var d = lire();
+    $("#doc").innerHTML = renvois(d) + feuilleHtml(courant.doc(d));
+    var h = courant.dates(d).map(function (t) { return "<div>" + ech(t) + "</div>"; }).join("");
+    courant.textes(d).forEach(function (k) {
+      h += "<div><b>" + ech(ref([k])) + "</b> · " + TEXTES[k].id + " · " + ech(TEXTES[k].dit) + "</div>";
+    });
+    $("#arrets").innerHTML = arretsHtml(courant.arrets ? courant.arrets(d) : []);
+    h += "<div>Code du travail, lu au relais Légifrance le 7 septembre 2026, deux lectures " +
+      "concordantes par article, même identifiant et même texte aux deux lectures. Jours " +
+      "ouvrables : tous les jours de la semaine sauf le dimanche et les jours fériés.</div>";
+    $("#sources").innerHTML = h;
+  }
+  function rendre() { rendreOnglets(); rendreChamps(); rendreDoc(); }
+
+  $("#onglets").addEventListener("click", function (ev) {
+    var b = ev.target.closest ? ev.target.closest("button[data-o]") : null;
+    if (!b) return;
+    courant = ONGLETS.filter(function (o) { return o.cle === b.getAttribute("data-o"); })[0] || ONGLETS[0];
+    rendre();
+    $("#marque").textContent = courant.nom;
+    window.scrollTo(0, 0);
+  });
+
+  /* Chaque frappe réécrit le document. */
+  $("#champs").addEventListener("input", function (ev) {
+    var el = ev.target, c = el && el.getAttribute ? el.getAttribute("data-c") : null;
+    if (!c) return;
+    etat[c] = el.value;
+    rendreDoc();
+  });
+
+  /* Une correction faite à la main dans le document est retenue sur le texte
+     d'origine du bloc : elle survit à la réécriture des autres. */
+  document.addEventListener("input", function (ev) {
+    var el = ev.target;
+    if (!el || !el.getAttribute || !el.hasAttribute("contenteditable")) return;
+    if (!el.closest(".feuille")) return;
+    corrections[el.getAttribute("data-o")] = texteDe(el);
+    el.classList.add("modifie");
+  });
+
+  $("#btn-word").addEventListener("click", function () {
+    var d = lire(), f = pourFichier();
+    var items = f.blocs.map(function (x) { return { k: VERS_EXPORT[x.k] || "p", t: x.t }; });
+    var suffixe = courant.cle === "lettre" ? "-" + slug(d.nom) : "";
+    window.AuditExport.telecharger(
+      window.AuditExport.docx(items, f.titre || courant.nom),
+      courant.fichier + suffixe + "-" + new Date().toISOString().slice(0, 10) + ".docx",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+  });
+  $("#btn-imprimer").addEventListener("click", function () { window.print(); });
+
+  /* ═══════════════════════════════════════════════════════ la branche oui */
+  /* Le repérage est lexical : il voit qu'un point est traité, il ne dit jamais
+     qu'il est bien traité. Ce qui est trouvé est dit « présent », et ce qui ne
+     l'est pas ouvre le texte à coller. */
+  var POINTS = [
+    { id: "r1", objet: "Rubrique 1° : le reclassement interne sur le territoire national",
+      fond: [ref(["L1233-62"]) + ", 1°"],
+      mots: [/reclassement\s+interne/i, /postes?\s+disponibles?/i],
+      pourquoi: "Le plan prévoit des actions en vue du reclassement interne sur des emplois relevant " +
+        "de la même catégorie ou équivalents, ou, sous réserve de l'accord exprès des salariés " +
+        "concernés, sur des emplois de catégorie inférieure.",
+      texte: "Le reclassement interne\n\nLes postes disponibles situés sur le territoire national " +
+        "dans l'entreprise et dans les autres entreprises du groupe dont elle fait partie et dont " +
+        "l'organisation, les activités ou le lieu d'exploitation assurent la permutation de tout ou " +
+        "partie du personnel sont diffusés à l'ensemble des salariés concernés. Le reclassement " +
+        "s'effectue sur un emploi relevant de la même catégorie que celui occupé ou sur un emploi " +
+        "équivalent assorti d'une rémunération équivalente ; à défaut, et sous réserve de l'accord " +
+        "exprès du salarié, sur un emploi de catégorie inférieure." },
+    { id: "departage", objet: "Les critères de départage entre candidatures multiples",
+      fond: [ref(["D1233-2-1"]) + ", III"], arret: true,
+      mots: [/critères?\s+de\s+départage/i, /départage\s+(?:entre|des)/i],
+      pourquoi: "Les critères doivent figurer dans la liste diffusée aux salariés, et pas seulement " +
+        "dans le plan : leur absence de la liste rend l'offre imprécise, caractérise un manquement à " +
+        "l'obligation de reclassement et prive le licenciement de cause réelle et sérieuse.",
+      texte: "Les critères de départage en cas de candidatures multiples\n\nLorsque plusieurs " +
+        "salariés se portent candidats sur un même poste, le salarié retenu est identifié sur les " +
+        "bases objectives suivantes, appliquées dans cet ordre : [premier critère] ; [deuxième " +
+        "critère] ; [troisième critère]. Ces critères sont repris dans la liste diffusée aux " +
+        "salariés. Le salarié dont la candidature n'est pas retenue en est informé par écrit, avec " +
+        "l'indication du critère qui a départagé les candidatures." },
+    { id: "delai", objet: "Le délai pour présenter sa candidature",
+      fond: [ref(["D1233-2-1"]) + ", III"],
+      mots: [/jours\s+francs/i, /délai[^.]{0,60}candidature/i],
+      pourquoi: "Le délai ne peut être inférieur à quinze jours francs à compter de la publication " +
+        "de la liste, ou à quatre jours francs dans les entreprises en redressement ou en " +
+        "liquidation judiciaire.",
+      texte: "Les candidatures sont présentées par écrit et reçues jusqu'au [date] inclus, soit un " +
+        "délai de quinze jours francs à compter de la publication de la liste. L'absence de " +
+        "candidature écrite à l'issue de ce délai vaut refus des offres." },
+    { id: "mentions", objet: "Les six mentions de chaque offre de reclassement",
+      fond: [ref(["D1233-2-1"]) + ", II", ref(["L1233-4"])],
+      mots: [/classification/i],
+      aussi: [/intitulé/i, /descriptif/i, /localisation/i, /rémunération/i],
+      pourquoi: "Chaque offre est écrite et précise : elle indique l'intitulé du poste et son " +
+        "descriptif, le nom de l'employeur, la nature du contrat de travail, la localisation du " +
+        "poste, le niveau de rémunération et la classification du poste.",
+      texte: "Chaque offre est écrite et précise. Elle indique l'intitulé du poste et son " +
+        "descriptif, le nom de l'employeur, la nature du contrat de travail, la localisation du " +
+        "poste, le niveau de rémunération et la classification du poste." },
+    { id: "formation", objet: "Rubrique 5° : formation, validation des acquis, reconversion",
+      fond: [ref(["L1233-62"]) + ", 5°"],
+      mots: [/actions?\s+de\s+formation/i, /validation\s+des\s+acquis/i, /reconversion/i],
+      pourquoi: "Le plan prévoit des actions de formation, de validation des acquis de l'expérience " +
+        "ou de reconversion de nature à faciliter le reclassement interne ou externe des salariés " +
+        "sur des emplois équivalents.",
+      texte: "Les actions de formation et de reconversion\n\nChaque salarié dont le licenciement est " +
+        "envisagé bénéficie d'un accès aux actions de formation, de validation des acquis de " +
+        "l'expérience et de reconversion de nature à faciliter son reclassement interne ou externe " +
+        "sur un emploi équivalent, dans la limite de [montant] euros par salarié et de [durée]." },
+    { id: "externe", objet: "Rubrique 3° : le reclassement externe",
+      fond: [ref(["L1233-62"]) + ", 3°"],
+      mots: [/reclassement\s+externe/i, /bassin\s+d'emploi/i, /cellule\s+de\s+reclassement/i,
+             /antenne\s+emploi/i],
+      pourquoi: "Le plan prévoit des actions favorisant le reclassement externe à l'entreprise, " +
+        "notamment par le soutien à la réactivation du bassin d'emploi.",
+      texte: "Le reclassement externe\n\nUne cellule d'accompagnement est mise en place pour une " +
+        "durée de [durée] à compter de la notification des licenciements. Elle assure un bilan " +
+        "professionnel, la prospection des offres du bassin d'emploi, la préparation aux entretiens " +
+        "et le suivi individuel de chaque salarié jusqu'à son reclassement. L'entreprise soutient la " +
+        "réactivation du bassin d'emploi par [mesures]." },
+    { id: "creation", objet: "Rubrique 4° : la création ou la reprise d'activités par les salariés",
+      fond: [ref(["L1233-62"]) + ", 4°"],
+      mots: [/création\s+d'(?:une\s+)?(?:activité|entreprise)/i, /reprise\s+d'activités?/i,
+             /créateurs?\s+d'entreprise/i],
+      pourquoi: "Le plan prévoit des actions de soutien à la création d'activités nouvelles ou à la " +
+        "reprise d'activités existantes par les salariés.",
+      texte: "Le soutien à la création ou à la reprise d'activités\n\nLe salarié qui crée ou reprend " +
+        "une activité bénéficie d'une aide financière de [montant] euros, versée selon [modalités], " +
+        "ainsi que d'un accompagnement à l'élaboration de son projet et à la recherche de " +
+        "financements, assuré par [organisme] pendant [durée]." },
+    { id: "temps", objet: "Rubrique 6° : la réduction ou l'aménagement du temps de travail",
+      fond: [ref(["L1233-62"]) + ", 6°"],
+      mots: [/temps\s+de\s+travail/i, /heures\s+supplémentaires/i],
+      pourquoi: "Le plan prévoit des mesures de réduction ou d'aménagement du temps de travail et de " +
+        "réduction du volume des heures supplémentaires réalisées de manière régulière lorsque ce " +
+        "volume montre une durée collective manifestement supérieure à trente-cinq heures " +
+        "hebdomadaires ou 1 600 heures par an et que sa réduction pourrait préserver des emplois.",
+      texte: "La réduction du volume des heures supplémentaires\n\nLe volume des heures " +
+        "supplémentaires réalisées de manière régulière s'établit à [nombre] heures par an. " +
+        "L'entreprise le réduit à [nombre] heures, ce qui permet de préserver [nombre] des emplois " +
+        "dont la suppression était envisagée. À défaut, le plan expose pourquoi cette réduction ne " +
+        "permettrait de préserver aucun emploi." },
+    { id: "suivi", objet: "Les modalités de suivi de la mise en oeuvre effective",
+      fond: [ref(["L1233-63"])],
+      mots: [/commission\s+de\s+suivi/i, /modalités\s+de\s+suivi/i,
+             /suivi\s+de\s+la\s+mise\s+en\s+(?:oe|œ)uvre/i],
+      pourquoi: "Le plan détermine les modalités de suivi de la mise en oeuvre effective des mesures " +
+        "du plan de reclassement ; ce suivi fait l'objet d'une consultation régulière et détaillée " +
+        "du comité, dont l'avis est transmis à l'autorité administrative, laquelle reçoit aussi un " +
+        "bilan établi par l'employeur.",
+      texte: "Le suivi de la mise en oeuvre\n\nUne commission de suivi est constituée. Elle comprend " +
+        "[nombre] représentants de la direction et [nombre] membres désignés par le comité social et " +
+        "économique. Elle se réunit tous les [périodicité] jusqu'à l'épuisement des mesures du plan " +
+        "de reclassement et examine, mesure par mesure, le nombre de bénéficiaires, les sommes " +
+        "engagées et les reclassements obtenus. Le comité social et économique est consulté de façon " +
+        "régulière et détaillée sur ce suivi, et son avis est transmis à l'autorité administrative. " +
+        "Celle-ci est associée au suivi et reçoit un bilan, établi par l'entreprise, de la mise en " +
+        "oeuvre effective du plan." },
+    { id: "ordre", objet: "La pondération et le périmètre des critères d'ordre",
+      fond: [ref(["L1233-5"]), ref(["L1233-24-2"]) + ", 2°"],
+      mots: [/ordre\s+des\s+licenciements/i, /critères\s+d'ordre/i],
+      aussi: [/ancienneté/i, /charges\s+de\s+famille/i, /qualités\s+professionnelles/i],
+      pourquoi: "Les quatre critères sont pris en compte, aucun n'étant écarté, et le périmètre " +
+        "d'application ne peut être inférieur à la zone d'emplois dans laquelle est situé " +
+        "l'établissement concerné, à défaut d'accord le fixant.",
+      texte: "Les critères d'ordre des licenciements\n\nLes critères retenus sont les charges de " +
+        "famille, en particulier celles des parents isolés, l'ancienneté de service dans " +
+        "l'établissement ou l'entreprise, la situation des salariés dont les caractéristiques " +
+        "sociales rendent la réinsertion professionnelle particulièrement difficile, notamment les " +
+        "personnes handicapées et les salariés âgés, et les qualités professionnelles appréciées par " +
+        "catégorie. Leur pondération est la suivante : [pondération]. Aucun critère n'est écarté. Le " +
+        "périmètre d'application est [périmètre], qui ne peut être inférieur à la zone d'emplois " +
+        "dans laquelle est situé l'établissement concerné." },
+    { id: "reembauche", objet: "La priorité de réembauche",
+      fond: [ref(["L1233-45"])],
+      mots: [/priorité\s+de\s+réembauche/i, /priorité\s+de\s+réembauchage/i],
+      pourquoi: "Le salarié licencié bénéficie d'une priorité de réembauche pendant un an à compter " +
+        "de la rupture, s'il en fait la demande au cours de ce délai ; les représentants du " +
+        "personnel sont informés des postes disponibles.",
+      texte: "La priorité de réembauche\n\nChaque salarié licencié bénéficie d'une priorité de " +
+        "réembauche pendant un délai d'un an à compter de la date de rupture de son contrat, s'il en " +
+        "fait la demande au cours de ce même délai. L'entreprise l'informe alors de tout emploi " +
+        "devenu disponible et compatible avec sa qualification, et informe les représentants du " +
+        "personnel des postes disponibles." }
+  ];
+
+  function rendreOui() {
+    var t = $("#depot").value.trim();
+    if (!t.length) { $("#o-resultat").innerHTML = ""; return; }
+    if (t.length < 200) {
+      $("#o-resultat").innerHTML = '<div class="alerte">Le texte déposé compte ' + t.length +
+        " caractères. Déposez le plan entier : sur un extrait, tout ce que l'extrait ne contient " +
+        "pas serait dit absent.</div>";
+      return;
+    }
+    var r = POINTS.map(function (p) {
+      var trouve = p.mots.some(function (x) { return x.test(t); });
+      if (trouve && p.aussi) trouve = p.aussi.every(function (x) { return x.test(t); });
+      return { p: p, trouve: trouve };
+    });
+    var abs = r.filter(function (x) { return !x.trouve; }).length;
+    var h = '<div class="chiffre">' +
+      (abs === 0
+        ? "Les " + POINTS.length + " points cherchés figurent dans le plan déposé. Les trouver ne " +
+          "prouve pas qu'ils sont bien traités : c'est un repérage de mots, il conduit la lecture, " +
+          "il ne la remplace pas."
+        : abs + " point" + (abs > 1 ? "s" : "") + " ne se trouve" + (abs > 1 ? "nt" : "") +
+          " pas dans le plan déposé. Le texte à insérer est donné pour chacun, prêt à coller. Aucun " +
+          "montant n'est apprécié : le caractère suffisant des mesures relève de l'administration " +
+          "puis du juge (" + ref(["L1233-57-3"]) + ").") + "</div>";
+    r.forEach(function (x) {
+      h += '<div class="manque"><div class="tt"><span class="etat ' +
+        (x.trouve ? "present" : "absent") + '">' + (x.trouve ? "présent" : "absent") + "</span>" +
+        '<span><span class="obj">' + ech(x.p.objet) + '</span><span class="fond">' +
+        ech(x.p.fond.join(" · ")) + (x.p.arret ? " · " + ech(ARRET.ref) : "") + "</span></span></div>";
+      if (!x.trouve) {
+        h += '<div class="texte"><p>' + ech(x.p.pourquoi) + "</p>" +
+          (x.p.arret ? "<p>« " + ech(ARRET.dit) + " » (" + ech(ARRET.ref) + ").</p>" : "") +
+          '<div class="pret">' + ech(x.p.texte) + "</div></div>";
+      }
+      h += "</div>";
+    });
+    $("#o-resultat").innerHTML = h;
+  }
+
+  /* La lecture d'un .docx, sans bibliothèque : un .docx est une archive zip, et
+     le texte vit dans word/document.xml. Aucun octet ne sort de la page. */
+  function u16(v, i) { return v.getUint16(i, true); }
+  function u32(v, i) { return v.getUint32(i, true); }
+  function entreeZip(buf, nomVoulu) {
+    var v = new DataView(buf), n = buf.byteLength, fin = -1;
+    for (var i = n - 22; i >= 0 && i > n - 65558; i--) if (u32(v, i) === 0x06054b50) { fin = i; break; }
+    if (fin < 0) throw new Error("Ce fichier n'est pas une archive lisible.");
+    var nb = u16(v, fin + 10), pos = u32(v, fin + 16), dec = new TextDecoder("utf-8");
+    for (var k = 0; k < nb; k++) {
+      if (u32(v, pos) !== 0x02014b50) throw new Error("Répertoire de l'archive illisible.");
+      var methode = u16(v, pos + 10), taille = u32(v, pos + 20);
+      var lnom = u16(v, pos + 28), lextra = u16(v, pos + 30), lcom = u16(v, pos + 32);
+      var debut = u32(v, pos + 42);
+      var nom = dec.decode(new Uint8Array(buf, pos + 46, lnom));
+      if (nom === nomVoulu) {
+        var ln = u16(v, debut + 26), lx = u16(v, debut + 28);
+        return { methode: methode, data: new Uint8Array(buf, debut + 30 + ln + lx, taille) };
+      }
+      pos += 46 + lnom + lextra + lcom;
+    }
+    throw new Error("Le fichier ne contient pas de document Word.");
+  }
+  function inflater(u8) {
+    if (typeof DecompressionStream !== "function")
+      return Promise.reject(new Error("Ce navigateur ne sait pas décomprimer le fichier."));
+    return new Response(new Blob([u8]).stream()
+      .pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer();
+  }
+  function texteDeXml(xml) {
+    return xml.replace(/<w:tab[^>]*\/>/g, "\t").replace(/<w:br[^>]*\/>/g, "\n")
+      .replace(/<\/w:p>/g, "\n").replace(/<[^>]+>/g, "")
+      .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'").replace(/&amp;/g, "&").replace(/\n{3,}/g, "\n\n").trim();
+  }
+  function lireDocx(f) {
+    return f.arrayBuffer().then(function (buf) {
+      var e = entreeZip(buf, "word/document.xml");
+      if (e.methode === 0) return new TextDecoder("utf-8").decode(e.data);
+      if (e.methode !== 8) throw new Error("Compression inconnue dans ce .docx.");
+      return inflater(e.data).then(function (b) {
+        return new TextDecoder("utf-8").decode(new Uint8Array(b));
+      });
+    }).then(texteDeXml);
+  }
+  $("#depot").addEventListener("input", rendreOui);
+  $("#fichier").addEventListener("change", function (ev) {
+    var f = ev.target.files && ev.target.files[0];
+    if (!f) return;
+    $("#lecture").innerHTML = '<div class="chiffre">Lecture de ' + ech(f.name) + "...</div>";
+    var suite = (window.LirePdf && window.LirePdf.estPdf(f)) ? window.LirePdf.texte(f)
+      : (/\.docx$/i.test(f.name) ? lireDocx(f) : f.text());
+    suite.then(function (t) {
+      $("#depot").value = t;
+      $("#lecture").innerHTML = '<div class="chiffre">' + ech(f.name) + " lu : " +
+        t.length.toLocaleString("fr-FR") + " caractères.</div>";
+      rendreOui();
+    }).catch(function (e) {
+      $("#lecture").innerHTML = '<div class="alerte">Ce fichier n\'a pas pu être lu : ' +
+        ech(e.message) + " Ouvrez le document, copiez son texte et collez-le ci-dessous.</div>";
+    });
+  });
+
+  /* ═══════════════════════════════════ la question, et ce qu'elle commande */
+  function ecran(nom) {
+    $("#ecran-question").hidden = nom !== "question";
+    $("#ecran-doc").hidden = nom !== "doc";
+    $("#ecran-oui").hidden = nom !== "oui";
+    $("#marque").textContent = nom === "question" ? "Plan de sauvegarde"
+      : (nom === "doc" ? courant.nom : "Contrôle du plan");
+    window.scrollTo(0, 0);
+  }
+  $("#rep-non").addEventListener("click", function () { ecran("doc"); rendre(); });
+  $("#rep-oui").addEventListener("click", function () { ecran("oui"); });
+  /* Le bouton Retour du bandeau, posé par droits.js : depuis le document ou le
+     contrôle, il revient à la question ; depuis la question, il quitte la page. */
+  document.addEventListener("click", function (ev) {
+    var a = ev.target.closest ? ev.target.closest("header.site a.retour") : null;
+    if (!a || !$("#ecran-question").hidden) return;
+    ev.preventDefault(); ev.stopPropagation();
+    ecran("question");
+  }, true);
+
+  /* Le seuil, avant la question. Le plan n'est dû que dans les entreprises
+     d'au moins cinquante salariés (L. 1233-61) : sous cet effectif, la
+     question ne se pose pas, la page dit « pas dû avant 50 » et renvoie à
+     l'écran du licenciement économique. */
+  (function fiche() {
+    var t = ech(profil.denomination) + " · " + effectif + " salarié" + (effectif > 1 ? "s" : "");
+    if (effectif < 50) {
+      $("#q-titre").textContent = "Plan de sauvegarde de l'emploi";
+      $("#q-deux").hidden = true;
+      $("#q-renvoi").hidden = false;
+      t += " · pas dû avant 50 salariés (" + ref(["L1233-61"]) + ")";
+    } else {
+      t += " · dû à partir de 50 salariés et de dix licenciements sur trente jours (" +
+        ref(["L1233-61"]) + ")";
+    }
+    $("#fiche-rappel").innerHTML = t;
+  })();
+
+  try {
+    fetch("manifest-audit-pse.json", { cache: "no-store" }).then(function (r) { return r.json(); })
+      .then(function (m) { if (m && m.version) $("#etat-version").textContent = m.version; })
+      .catch(function () {});
+  } catch (e) {}
+
+  if ("serviceWorker" in navigator) {
+    var dejaControlee = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener("controllerchange", function () {
+      if (dejaControlee) $("#maj-dispo").classList.add("visible");
+      dejaControlee = true;
+    });
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("sw.js").then(function (reg) { reg.update().catch(function () {}); });
+    });
+  }
+  $("#btn-maj").addEventListener("click", function () { location.reload(); });
+})();
+</script>
+</body>
+</html>

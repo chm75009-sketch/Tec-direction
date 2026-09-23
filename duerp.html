@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Document unique</title>
+<link rel="manifest" href="manifest-audit-sst.json">
+<meta name="theme-color" content="#16181d">
+<script src="liste-choix.js"></script>
+<script src="listes-valeurs.js"></script>
+<script src="listes-auto.js"></script>
+<script src="apercu.js"></script>
+<script src="droits.js"></script>
+
+<!--
+  L'ÉCRAN DU « NON » : le document unique, seul, déjà écrit.
+
+  Pas de question, pas d'onglet, pas d'exposé. La fiche d'entreprise donne la
+  dénomination, l'effectif, le secteur et la convention ; le métier en est
+  déduit et le document sort écrit, une unité de travail par poste réel, les
+  risques, la cotation, les mesures, le responsable et l'échéance datée.
+
+  Trois champs en tête, qui se glissent dans le texte à mesure qu'on tape :
+  la date de la version, le responsable, l'établissement. Puis le document,
+  Télécharger en Word, Imprimer, et le texte de loi replié. Le bouton Retour
+  est posé dans le bandeau par droits.js.
+
+  La logique est dans controler-duerp.js, partagé avec l'écran du « oui ».
+  Tout reste sur ce poste : rien n'est envoyé.
+-->
+
+<link rel="stylesheet" href="style.css">
+<style>
+  .feuille h3{font:700 16px/1.3 Georgia,"Times New Roman",serif;color:#1a1d22;margin:22px 0 6px}
+  .feuille ul,.feuille ol{margin:0 0 10px;padding-left:22px}
+  .feuille li{margin:0 0 4px}
+  .feuille .qui{color:var(--texte-2);font-size:14px;margin:0 0 12px}
+  .feuille .cot{color:var(--texte-2)}
+  .feuille p.ent{font-size:18px;margin:0 0 6px}
+  @media print{.champs,.barre,details{display:none !important}.feuille .qui,.feuille .cot{color:#000}}
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <p class="marque">Document unique</p>
+    <div class="outils">
+      <a href="index.html">Accueil</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="champs" style="margin:16px 0">
+    <label class="ch"><span class="nom">Date de la version</span>
+      <input type="date" id="d-dateVersion"></label>
+    <label class="ch"><span class="nom">Responsable</span>
+      <input id="d-responsable" placeholder="nom et qualité"></label>
+    <label class="ch large"><span class="nom">Établissement</span>
+      <input id="d-etablissement" placeholder="adresse du site"></label>
+  </div>
+
+  <div id="conv"></div>
+
+  <div class="feuille" id="feuille"></div>
+
+  <div class="barre pile">
+    <button type="button" id="dl-docx">Télécharger en Word</button>
+    <button type="button" class="second" id="imprimer">Imprimer</button>
+  </div>
+
+  <details><summary>Voir le texte de loi</summary><div class="corps" id="textes"></div></details>
+
+</main>
+
+<script src="profil.js"></script>
+<script src="convention.js"></script>
+<script src="audit-export.js"></script>
+<script src="base-documents.js"></script>
+<script src="duerp-metiers.js"></script>
+<script src="duerp-transport.js"></script>
+<script src="controler-duerp.js"></script>
+<script>
+  /* La convention commande la classification et les minima, et le document
+     unique se lit à côté d'elle : elle se rappelle ici, avec la date de sa
+     dernière vérification. Demande du 15 septembre 2026. */
+  if (window.Convention) window.Convention.poser(document.getElementById("conv"));
+  if ("serviceWorker" in navigator)
+    window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js"); });
+</script>
+</body>
+</html>
