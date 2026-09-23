@@ -1,0 +1,12 @@
+# Le site de la SARL TEC : statique, rien à construire.
+#
+# Aucune commande de construction, pour la même raison que sur le site
+# principal : le plan gratuit compte les minutes, et il n'y a rien à compiler.
+[build]
+  publish = "."
+
+# Le dossier chiffré n'a pas à être indexé, ni la porte qui l'ouvre.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
