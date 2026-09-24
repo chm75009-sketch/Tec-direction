@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="sans-cache.js"></script>
 <script src="verrou.js"></script>
 <title>Registre du personnel</title>
 <meta name="theme-color" content="#1c2126">
@@ -46,6 +47,7 @@
 -->
 
 <link rel="stylesheet" href="style.css">
+<script src="barre.js"></script>
 <style>
   main.wrap{max-width:560px;padding-bottom:var(--e7)}
   main.wrap.large{max-width:760px}
@@ -119,7 +121,6 @@
     .sal{break-inside:avoid}
   }
 </style>
-<script src="sans-cache.js"></script>
 </head>
 <body>
 
@@ -555,6 +556,12 @@ DURAND&#9;Sophie&#9;05/02/2026&#9;Comptable&#9;Niveau 4&#9;CDD"></textarea>
      Un seul visible. Le bouton Retour du bandeau (droits.js) revient au
      registre depuis les autres, et quitte la page depuis le registre. */
   var ECRANS = ["question", "registre", "accueillis", "import", "tenue", "doc", "archives"];
+  /* LE RETOUR, ÉTAPE PAR ÉTAPE. Demande du 24 septembre 2026 :
+     « retour en arrière à chaque étape ». La barre suit les écrans et
+     rappelle la fonction d'affichage de la page pour revenir au précédent. */
+  if (window.Barre) window.Barre.ecrans(function (id) { ouvrir(id.replace(/^e-/, "")); },
+    "#e-question, #e-registre, #e-accueillis, #e-import, #e-tenue, #e-archives, #e-doc");
+
   function ouvrir(nom) {
     ECRANS.forEach(function (o) { $("e-" + o).hidden = o !== nom; });
     $("main").classList.toggle("large", nom === "doc" || nom === "import");
@@ -1751,7 +1758,20 @@ DURAND&#9;Sophie&#9;05/02/2026&#9;Comptable&#9;Niveau 4&#9;CDD"></textarea>
   })();
   if (REP) E.reponse = REP;
   garder();
-  if (E.reponse === "oui") ouvrir("import");
+
+  /* UN REGISTRE PLEIN NE SE REDEMANDE PAS.
+
+     La réponse « oui » ouvrait le dépôt, et elle restait gardée : à chaque
+     visite on redemandait le registre à quelqu'un qui l'avait déjà déposé, et
+     ses quatre-vingt-cinq salariés attendaient derrière cet écran. Signalé le
+     23 septembre 2026. Le dépôt ne s'ouvre donc plus de lui-même quand le
+     registre porte de vrais salariés ; il reste accessible d'un bouton, et
+     l'adresse avec « rep=oui » y mène toujours, pour en déposer un nouveau. */
+  var PLEIN = E.salaries.some(function (x) {
+    return !x.ex && (!vide(x.nom) || !vide(x.pre));
+  });
+  if (PLEIN && !REP) ouvrir("registre");
+  else if (E.reponse === "oui") ouvrir("import");
   else if (E.reponse === "non") {
     if (!E.salaries.length || E.salaries.every(function (x) {
       return vide(x.nom) && vide(x.pre) && vide(x.emp) && vide(x.ent); })) {

@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="sans-cache.js"></script>
 <script src="verrou.js"></script>
 <title>Contrôle du comité</title>
 <link rel="manifest" href="manifest-audit-cse.json">
@@ -86,6 +87,7 @@
 -->
 
 <link rel="stylesheet" href="style.css">
+<script src="barre.js"></script>
 <style>
   body{font-size:18px;line-height:1.45}
   main.wrap{max-width:760px;padding:0 16px var(--e7)}
@@ -149,7 +151,6 @@
   [hidden]{display:none !important}
   @media print{.onglets,.barre,.haut,#champs,#lecture{display:none !important}.cache{display:block !important}#sortie{border:0;padding:0}}
 </style>
-<script src="sans-cache.js"></script>
 </head>
 <body>
 
@@ -264,6 +265,12 @@
 
   /* ---------------------------------------------------------------- */
   /* Les onglets. */
+  /* LE RETOUR, ÉTAPE PAR ÉTAPE. Demande du 24 septembre 2026 :
+     « retour en arrière à chaque étape ». La barre suit les écrans et
+     rappelle la fonction d'affichage de la page pour revenir au précédent. */
+  if (window.Barre) window.Barre.ecrans(function (id) { onglet(id.replace(/^o-/, "")); },
+    "#o-depot, #o-clauses, #o-sortie");
+
   function onglet(nom) {
     ["depot", "clauses", "sortie"].forEach(function (o) {
       $("#o-" + o).classList.toggle("cache", o !== nom);

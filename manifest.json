@@ -1,24 +1,16 @@
 {
-  "name": "TEC - gestion du personnel",
-  "short_name": "TEC",
-  "description": "L'espace de la SARL TEC : registre du personnel, flotte et conducteurs, décompte des heures, forfait en jours.",
+  "name": "Jurisprudence — recherche Judilibre",
+  "short_name": "Jurisprudence",
+  "description": "Recherche jurisprudentielle en texte intégral dans la base ouverte Judilibre (Cour de cassation, cours d'appel, tribunaux judiciaires).",
   "lang": "fr",
-  "version": "TEC 1.0",
+  "version": "12.44",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",
   "background_color": "#f4f6f9",
-  "theme_color": "#1F3864",
+  "theme_color": "#8b1e2d",
   "icons": [
-    {
-      "src": "icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
   ]
 }

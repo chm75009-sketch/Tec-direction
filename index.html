@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="sans-cache.js"></script>
 <script src="verrou.js"></script>
 <title>Jurisprudence</title>
 <meta name="description" content="Votre fiche d'entreprise, puis deux boutons : Audit et Gérer.">
@@ -23,6 +24,7 @@
 -->
 
 <link rel="stylesheet" href="style.css">
+<script src="barre.js"></script>
 <style>
   body{font-size:18px;line-height:1.45}
   main.wrap{max-width:560px;padding:0 16px}
@@ -79,28 +81,11 @@
     font-size:15px;color:var(--texte-2);text-align:center}
   [hidden]{display:none !important}
   footer #adresse-app{color:var(--accent);word-break:break-all}
-  footer .tel{display:block;margin:10px auto 0;max-width:34em;color:var(--texte-3)}
   footer .boutons{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:10px 0 64px}
-  footer a.lien-copie{text-decoration:none;display:inline-flex;align-items:center}
   footer .lien-copie{border:1px solid var(--filet);background:var(--surface);
     color:var(--encre);border-radius:var(--r2);font:600 14px/1 system-ui;padding:12px 16px;min-height:44px;width:auto}
   footer .lien-copie.efface{color:var(--texte-3)}
 </style>
-<script>
-/* LA PORTE AVANT L'ACCUEIL.
-
-   Tant que le dossier n'a pas été ouvert sur cet appareil, l'application
-   n'aurait rien à montrer : on renvoie vers entrer.html, qui demande le mot
-   de passe et installe les données. */
-(function () {
-  "use strict";
-  try {
-    var r = JSON.parse(localStorage.getItem("registre-personnel") || "null");
-    if (!(r && r.salaries && r.salaries.length)) location.replace("entrer.html");
-  } catch (e) { location.replace("entrer.html"); }
-})();
-</script>
-<script src="sans-cache.js"></script>
 </head>
 <body>
 
@@ -146,11 +131,7 @@
     envoie votre question à son fournisseur.<br>
     <span id="version-app"></span><br>
     <a id="adresse-app" href="#"></a><br>
-    <span class="tel">Sur un téléphone, cette adresse s'installe comme une application :
-      ouvrez-la, puis dans le menu du navigateur choisissez « Ajouter à l'écran d'accueil »
-      sur Android, ou « Sur l'écran d'accueil » depuis le bouton Partager sur iPhone.</span><br>
     <span class="boutons">
-      <a class="lien-copie" href="entrer.html">Mon dossier</a>
       <button type="button" id="copier-adresse" class="lien-copie">Copier le lien</button>
       <button type="button" id="effacer-poste" class="lien-copie efface">Effacer mes données de ce poste</button>
     </span>

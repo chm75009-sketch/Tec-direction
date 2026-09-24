@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="sans-cache.js"></script>
 <script src="verrou.js"></script>
 <title>Décompte des heures</title>
 <meta name="description" content="Le relevé mensuel des heures de chaque salarié, clos, scellé, prêt à signer.">
@@ -37,6 +38,7 @@
 -->
 
 <link rel="stylesheet" href="style.css">
+<script src="barre.js"></script>
 <style>
   .haut b{font-size:var(--t4)}
   .bloc{background:var(--surface);border:1px solid var(--filet);border-radius:var(--r2);
@@ -82,6 +84,11 @@
     background:var(--surface);color:var(--texte)}
   .jsem input{text-align:center}
   .jsem select{padding-left:6px;padding-right:0}
+  /* Ce qui manque pour qu'une plage compte. Muet tant qu'il n'y a rien a
+     dire : une ligne d'aide permanente ne se lit plus au bout de deux jours. */
+  .jsem .manque{grid-column:1/-1;display:none;margin:4px 0 0;font:600 var(--t1)/1.35 system-ui;
+    color:var(--ambre)}
+  .jsem .manque.vu{display:block}
 
   .jours{display:grid;gap:6px;margin:var(--e2) 0 0}
   .jour{display:grid;grid-template-columns:auto 1fr;gap:8px 10px;align-items:center;
@@ -199,7 +206,6 @@
     main.wrap{max-width:none;padding:0}
   }
 </style>
-<script src="sans-cache.js"></script>
 </head>
 <body>
 

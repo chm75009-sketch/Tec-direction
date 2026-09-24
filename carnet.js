@@ -138,12 +138,42 @@
     };
   }
 
+  /* LES SALARIÉS DU REGISTRE, ET CEUX QUI N'Y SONT PAS.
+  
+     Le registre donne les salariés en poste ou sortis. Mais on écrit aussi à
+     un ancien salarié que le registre ne porte plus, à un candidat, à
+     quelqu'un qui n'y est pas encore : ceux-là se saisissent à la main et
+     viennent à la suite. Sans ce rattrapage, on pouvait les saisir et ils
+     disparaissaient. Mesuré le 23 septembre 2026. */
   function pour(famille) {
-    if (famille === "salarie") return salaries();
+    if (famille === "salarie") {
+      var mains = lireTout()
+        .filter(function (o) { return o.famille === "salarie"; })
+        .map(fiche)
+        .sort(function (a, b) { return a.nom.localeCompare(b.nom, "fr"); });
+      return salaries().concat(mains);
+    }
     return lireTout()
       .filter(function (o) { return o.famille === famille; })
       .map(fiche)
       .sort(function (a, b) { return a.nom.localeCompare(b.nom, "fr"); });
+  }
+
+  /* UN DESTINATAIRE QUI N'EST PAS ENCORE AU CARNET.
+
+     Demande du 23 septembre 2026 : « une fois le contact mis sur le document
+     on doit nous demander si ensuite il faut le rajouter à la liste ». La
+     fiche se construit donc sans être gardée, la lettre s'écrit avec, et la
+     question vient après. Elle n'a pas d'identifiant, ce qui la distingue
+     d'une fiche du carnet : c'est à cela que la lettre voit qu'il reste une
+     question à poser. */
+  function provisoire(famille, o) {
+    var n = {
+      id: "", famille: String(famille || ""),
+      nom: net(o.nom), contact: net(o.contact), adresse: net(o.adresse),
+      courriel: net(o.courriel), telephone: net(o.telephone), reference: net(o.reference),
+    };
+    return fiche(n);
   }
 
   function ajouter(famille, o) {
@@ -188,7 +218,7 @@
   }
 
   window.Carnet = {
-    pour: pour, ajouter: ajouter, modifier: modifier, supprimer: supprimer,
-    lire: lire, salaries: salaries,
+    pour: pour, ajouter: ajouter, provisoire: provisoire, modifier: modifier,
+    supprimer: supprimer, lire: lire, salaries: salaries,
   };
 })(window);
