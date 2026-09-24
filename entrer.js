@@ -110,60 +110,53 @@
     return !!(r && r.salaries && r.salaries.length);
   }
 
+  /* LA SÉANCE.
+
+     Tant qu'elle n'est pas ouverte, verrou.js renvoie ici chaque page de
+     l'application. Elle vit dans sessionStorage : elle se referme avec
+     l'onglet, donc le mot de passe revient à chaque ouverture, une fois, et
+     non à chaque page. Mesuré le 24 septembre 2026 : l'application s'ouvrait
+     directement sur la fiche de l'entreprise, sans rien demander. */
+  function ouvrirSeance() {
+    try { window.sessionStorage.setItem("seance-ouverte", "oui"); } catch (e) {}
+  }
+
+  /* Où l'on voulait aller. Le verrou le dit dans l'adresse ; on n'accepte
+     qu'un nom de page de ce site, jamais une adresse entière, qui ferait de
+     cette porte un tremplin vers ailleurs. */
+  function destination() {
+    var m = /[?&]vers=([^&]*)/.exec(window.location.search);
+    var v = m ? decodeURIComponent(m[1]) : "";
+    return /^[a-z0-9-]+\.html(\?[^\/:]*)?(#[^\/:]*)?$/i.test(v) ? v : "index.html";
+  }
+
+  var DOSSIER = null;
+
   function demarrer() {
-    if (dejaLa()) {
-      $("e-ouvrir").hidden = true;
-      $("e-deja").hidden = false;
-      compter("compte-deja");
-    }
+    var vers = destination();
+    Array.prototype.forEach.call(document.querySelectorAll("a.entrer"), function (a) {
+      a.setAttribute("href", vers);
+    });
 
     $("recharger").addEventListener("click", function () {
       if (!window.confirm("Recharger le dossier d'origine ? Ce qui a été modifié sur cet " +
         "appareil sera remplacé.")) return;
-      $("e-deja").hidden = true;
-      $("e-ouvrir").hidden = false;
-      $("mot").focus();
+      if (!DOSSIER) return;
+      Promise.resolve(poser(DOSSIER)).then(function (n) {
+        $("e-deja").hidden = true;
+        $("e-ouvert").hidden = false;
+        compter("compte", n);
+        window.scrollTo(0, 0);
+      });
     });
 
-    /* LES PIÈCES QUI MANQUENT, SANS TOUT RECHARGER.
+    /* LE MOT DE PASSE N'INSTALLE PAS DEUX FOIS.
 
-       Un appareil qui avait ouvert le dossier avant que les pièces existent ne
-       les recevait jamais : la porte passait directement par « déjà ouvert ».
-       Ce bouton redemande le mot de passe, parce que les pièces sont dans le
-       bloc chiffré comme le reste, et n'installe que ce qui n'est pas là. Rien
-       de ce qui a été saisi sur l'appareil n'est touché. Mesuré le
-       23 septembre 2026, au premier client. */
-    $("completer").addEventListener("click", function () {
-      var mot = $("mot-deja").value;
-      if (!mot) { $("mot-deja").focus(); return; }
-      $("dit-deja").hidden = true;
-      $("completer").disabled = true;
-      $("completer").textContent = "Récupération...";
-      window.setTimeout(function () {
-        ouvrir(mot).then(function (dossier) {
-          return poserPieces(dossier.documents);
-        }).then(function (n) {
-          $("completer").disabled = false;
-          $("completer").textContent = "Récupérer mes pièces";
-          $("mot-deja").value = "";
-          $("dit-deja").hidden = false;
-          $("dit-deja").className = "dit bien";
-          $("dit-deja").textContent = n
-            ? n + " pièce" + (n > 1 ? "s" : "") + " récupérée" + (n > 1 ? "s" : "") +
-              ". Vous les retrouvez dans « Mes documents »."
-            : "Vos pièces étaient déjà là, rien à récupérer.";
-          compter("compte-deja");
-        }).catch(function () {
-          $("completer").disabled = false;
-          $("completer").textContent = "Récupérer mes pièces";
-          $("dit-deja").hidden = false;
-          $("dit-deja").className = "dit mal";
-          $("dit-deja").textContent = "Ce mot de passe n'ouvre pas le dossier.";
-          $("mot-deja").select();
-        });
-      }, 40);
-    });
-
+       À la première ouverture, il déchiffre le dossier et l'écrit sur
+       l'appareil. Aux suivantes, il ouvre seulement la séance : ce qui a été
+       saisi ici ne bouge pas, et seules les pièces absentes sont ajoutées.
+       Repartir du dossier d'origine reste possible, mais c'est un bouton, et
+       il prévient. */
     function essayer() {
       var mot = $("mot").value;
       if (!mot) { $("mot").focus(); return; }
@@ -174,12 +167,21 @@
          rien dire pendant la seconde que prend la dérivation. */
       window.setTimeout(function () {
         ouvrir(mot).then(function (dossier) {
-          return Promise.resolve(poser(dossier)).then(function (n) {
+          DOSSIER = dossier;
+          ouvrirSeance();
+          var suite = dejaLa()
+            ? Promise.resolve(poserPieces(dossier.documents)).then(function () { return null; })
+            : Promise.resolve(poser(dossier));
+          return suite.then(function (n) {
             $("patiente").hidden = true;
             $("e-ouvrir").hidden = true;
-            $("e-deja").hidden = true;
-            $("e-ouvert").hidden = false;
-            compter("compte", n);
+            if (n === null) {
+              $("e-deja").hidden = false;
+              compter("compte-deja");
+            } else {
+              $("e-ouvert").hidden = false;
+              compter("compte", n);
+            }
             window.scrollTo(0, 0);
           });
         }).catch(function () {

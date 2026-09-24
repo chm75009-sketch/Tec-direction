@@ -146,7 +146,8 @@
                aria-label="Mot de passe">
       </label>
       <button type="button" id="ouvrir">Ouvrir mon dossier</button>
-      <p class="aide">La première ouverture demande une seconde : la clé se fabrique sur votre
+      <p class="aide">Il est demandé à chaque ouverture de l'application, une seule fois, et
+        non à chaque page. L'ouverture demande une seconde : la clé se fabrique sur votre
         appareil, elle n'est conservée nulle part.</p>
       <div class="dit mal" id="erreur" hidden></div>
       <div class="dit attend" id="patiente" hidden>Ouverture en cours...</div>
@@ -166,25 +167,11 @@
 
   <section id="e-deja" hidden>
     <div class="carte">
-      <h2>Déjà ouvert sur cet appareil</h2>
+      <h2>Votre dossier est là</h2>
       <div class="coord" id="compte-deja"></div>
-    </div>
-
-    <!-- RÉCUPÉRER LES PIÈCES SANS TOUT RECHARGER. Un appareil ouvert avant
-         que les pièces existent ne les avait jamais reçues. Le mot de passe
-         est redemandé parce qu'elles sont dans le bloc chiffré, mais rien de
-         ce qui a été saisi ici n'est touché. -->
-    <div class="cle">
-      <h2>Récupérer mes pièces</h2>
-      <p class="aide" style="margin:0 0 14px">Le registre du personnel, l'état de parc et le
-        classeur de contrôle des chauffeurs. Seul ce qui manque est ajouté, ce que vous avez
-        saisi ici ne bouge pas.</p>
-      <label>
-        <input type="password" id="mot-deja" autocomplete="current-password"
-               placeholder="votre mot de passe" aria-label="Mot de passe">
-      </label>
-      <button type="button" id="completer">Récupérer mes pièces</button>
-      <div class="dit" id="dit-deja" hidden></div>
+      <div class="dit bien" style="margin-top:18px">Ce que vous avez saisi sur cet appareil est
+        intact. Les pièces qui manquaient, s'il y en avait, viennent d'être ajoutées à
+        « Mes documents ».</div>
     </div>
 
     <a class="entrer" href="index.html">Entrer dans l'application</a>
