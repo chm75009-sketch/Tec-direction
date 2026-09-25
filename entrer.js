@@ -127,7 +127,8 @@
   function destination() {
     var m = /[?&]vers=([^&]*)/.exec(window.location.search);
     var v = m ? decodeURIComponent(m[1]) : "";
-    return /^[a-z0-9-]+\.html(\?[^\/:]*)?(#[^\/:]*)?$/i.test(v) ? v : "index.html";
+    /* Avec ou sans « .html » : l'hébergeur sert les deux. */
+    return /^[a-z0-9-]+(\.html)?(\?[^\/:]*)?(#[^\/:]*)?$/i.test(v) ? v : "index.html";
   }
 
   var DOSSIER = null;

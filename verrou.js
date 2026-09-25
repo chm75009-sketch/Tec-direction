@@ -32,8 +32,14 @@
   var PORTE = "entrer.html";
   var CLE = "seance-ouverte";
 
+  /* L'hébergeur sert « /entrer.html » par une redirection vers « /entrer » :
+     la page de la porte s'appelle donc tantôt avec son extension, tantôt sans.
+     Comparer les deux formes, sinon le verrou se pose sur la porte elle-même
+     et le site tourne en rond. Mesuré en ligne le 25 septembre 2026, le site
+     ne s'ouvrait plus du tout. */
   var page = window.location.pathname.split("/").pop() || "index.html";
-  if (page === PORTE) return;
+  var nom = page.replace(/\.html$/, "");
+  if (nom === PORTE.replace(/\.html$/, "")) return;
 
   var ouverte;
   try { ouverte = window.sessionStorage.getItem(CLE) === "oui"; }
