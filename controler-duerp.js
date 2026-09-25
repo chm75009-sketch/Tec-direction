@@ -63,7 +63,15 @@
       t: "Tout travailleur de nuit mentionné à l'article L. 3122-5 et tout travailleur âgé de moins de dix-huit ans bénéficie d'une visite d'information et de prévention réalisée par un professionnel de santé mentionné au premier alinéa de l'article L. 4624-1 préalablement à son affectation sur le poste." },
     { n: "R. 4624-23, III", id: "LEGIARTI000053786012",
       t: "S'il le juge nécessaire, l'employeur complète la liste des postes entrant dans les catégories mentionnées au I. par des postes présentant des risques particuliers [...], après avis du ou des médecins concernés et du comité social et économique s'il existe, en cohérence avec l'évaluation des risques prévue à l'article L. 4121-3 [...]." },
-    { n: "R. 4741-1", id: "LEGIARTI000018527390",
+    /* CE QUI EST CITÉ DANS LE DOCUMENT, ET CE QUI NE L'EST PAS.
+
+       R. 4741-1 sert au contrôle, à l'écran, pour dire ce que coûte un
+       document non mis à jour. Le document unique lui-même, celui que
+       l'employeur signe et dépose, n'a aucune raison de porter la peine qu'il
+       encourt : il le citait pourtant dans sa liste de textes, sans que rien
+       dans son corps y renvoie. Relevé deux fois, le 25 septembre 2026. La
+       marque `ecran` le garde où il sert et le retire d'où il ne dit rien. */
+    { n: "R. 4741-1", id: "LEGIARTI000018527390", ecran: true,
       t: "Le fait de ne pas transcrire ou de ne pas mettre à jour les résultats de l'évaluation des risques, dans les conditions prévues aux articles R. 4121-1 et R. 4121-2, est puni de l'amende prévue pour les contraventions de cinquième classe. La récidive est réprimée conformément aux articles 132-11 et 132-15 du code pénal." },
   ];
 
@@ -399,11 +407,20 @@
       "<p>Le comité social et économique est consulté sur le présent document et sur ses mises à jour (L. 4121-3). Avis rendu le " +
       marque("dateAvisCse", "date de l'avis") + ".</p>" +
       "<p><mark>" + ech(CARENCE) + "</mark></p>" +
-      /* Le dépôt dématérialisé de L. 4121-3-1, V, B suppose un portail que les
-         organisations patronales n'ont pas ouvert : vérifié le 25 septembre
-         2026. On l'écrit, parce qu'un lecteur qui connaît le texte se demande
-         pourquoi le document n'en parle pas. */
-      "<p>Un dépôt dématérialisé du document sur un portail numérique est prévu par l'article L. 4121-3-1, V, B. Jusqu'à l'entrée en vigueur de cette obligation, l'employeur conserve les versions successives du document au sein de l'entreprise, sur papier ou sous forme dématérialisée : c'est l'article R. 4121-4 lui-même qui le dit, et c'est ce que fait la présente version.</p>" +
+      /* CE QUI EST EN VIGUEUR, ET CE QUI N'EXISTE PAS ENCORE : DEUX CHOSES.
+
+         La phrase disait « jusqu'à l'entrée en vigueur de cette obligation ».
+         Or L. 4121-3-1, V, B (LEGIARTI000043893919, relu le 25 septembre 2026)
+         fixe lui-même ses dates : « à compter du 1er juillet 2023 » au-dessus
+         de cent cinquante salariés, et « à compter de dates fixées par décret
+         […] et au plus tard à compter du 1er juillet 2024 » en dessous.
+         L'obligation est donc entrée en vigueur ; ce qui manque est le
+         portail qui doit la recevoir. Le document ne dit pas que ce portail
+         n'existe pas — ce serait un fait, et le document n'en rapporte aucun
+         qu'il n'ait vérifié : il écrit la condition, « tant que l'entreprise
+         n'est pas en mesure d'y déposer le document ». Relecture du
+         25 septembre 2026. */
+      "<p>Le dépôt dématérialisé du document sur un portail numérique est prévu par l'article L. 4121-3-1, V, B, qui le rend applicable au plus tard à compter du 1er juillet 2024 aux entreprises de moins de cent cinquante salariés. Tant que l'entreprise n'est pas en mesure d'y déposer le document, elle en conserve les versions successives sur place, sur papier ou sous forme dématérialisée, comme le prévoit l'article R. 4121-4, et c'est ce que fait la présente version.</p>" +
       "<p>La cotation par gravité et fréquence est une aide au classement des actions : aucun des textes cités ne l'impose.</p>";
   }
 
@@ -411,7 +428,7 @@
     return "<p>Fait à " + marque("ville", "lieu") + ", le " +
       (v("dateVersion") ? "<mark>" + ech(dateFr(v("dateVersion"))) + "</mark>" : marque("dateVersion", "date")) +
       ".<br>" + marque("responsable", "responsable") + ", signature :</p>" +
-      '<p class="qui">Textes : ' + TEXTES.map(function (t) { return ech(t.n) + " (" + ech(t.id) + ")"; }).join(", ") +
+      '<p class="qui">Textes : ' + TEXTES.filter(function (t) { return !t.ecran; }).map(function (t) { return ech(t.n) + " (" + ech(t.id) + ")"; }).join(", ") +
       " du code du travail, " + LU + ".</p>";
   }
 
@@ -567,7 +584,7 @@
     tenueItems(groupes.length + 4, items);
     items.push({ k: "p", t: "Fait à " + ou("ville", "lieu") + ", le " + (dateFr(v("dateVersion")) || "[ date ]") + "." });
     items.push({ k: "p", t: ou("responsable", "responsable") + ", signature :" });
-    items.push({ k: "note", t: "Textes : " + TEXTES.map(function (t) { return t.n + " (" + t.id + ")"; }).join(", ") + " du code du travail, " + LU + "." });
+    items.push({ k: "note", t: "Textes : " + TEXTES.filter(function (t) { return !t.ecran; }).map(function (t) { return t.n + " (" + t.id + ")"; }).join(", ") + " du code du travail, " + LU + "." });
     return items;
   }
 
@@ -995,7 +1012,7 @@
       ", consulter le comité social et économique s'il existe (L. 4121-3), transmettre la nouvelle version " +
       "au service de prévention et de santé au travail (L. 4121-3-1, VI), et afficher l'avis d'accès au " +
       "même emplacement que le règlement intérieur (R. 4121-4)." });
-    items.push({ k: "note", t: "Textes : " + TEXTES.map(function (t) { return t.n + " (" + t.id + ")"; }).join(", ") + " du code du travail, " + LU + "." });
+    items.push({ k: "note", t: "Textes : " + TEXTES.filter(function (t) { return !t.ecran; }).map(function (t) { return t.n + " (" + t.id + ")"; }).join(", ") + " du code du travail, " + LU + "." });
     return items;
   }
 
