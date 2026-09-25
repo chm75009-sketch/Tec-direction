@@ -1,56 +1,58 @@
-/* PAS DE CACHE HORS LIGNE SUR CE SITE.
+/* PAS DE CACHE HORS LIGNE SUR CE SITE, MAIS UN WORKER QUAND MÊME.
 
-   Pourquoi. L'hébergeur renvoie « mes-documents.html » vers « mes-documents »,
-   par une redirection 307. Le service worker, lui, a mis « mes-documents.html »
-   en cache et rend cette redirection telle quelle à une navigation : le
-   navigateur refuse, et la page s'ouvre sur ERR_FAILED. Mesuré le 23 septembre
-   2026, chez le premier client.
+   L'histoire. L'hébergeur renvoie « mes-documents.html » vers
+   « mes-documents », par une redirection 307. L'ancien service worker avait
+   mis « mes-documents.html » en cache et rendait cette redirection telle
+   quelle à une navigation : le navigateur refusait, et la page s'ouvrait sur
+   ERR_FAILED. Mesuré le 23 septembre 2026, chez le premier client. Le worker a
+   donc été retiré, et ce fichier défaisait celui qui traînait encore sur un
+   appareil.
 
-   Ce qu'on fait. On retire le service worker de ce site, et ce fichier défait
-   celui qui serait déjà installé sur l'appareil : il le désinscrit, vide ses
-   caches, et recharge une fois. Sans cela, un navigateur qui a déjà visité le
-   site resterait piloté par l'ancien worker, indéfiniment.
+   Ce qui change le 25 septembre 2026. Sans aucun service worker, le navigateur
+   ne propose plus d'installer l'application : le bouton demandé ce jour-là
+   n'aurait rien eu à déclencher. On remet donc un worker, mais minimal :
+   sw-min.js n'intercepte rien et ne garde rien. Ce fichier fait le ménage,
+   puis l'enregistre.
 
-   Ce qu'on perd. La consultation hors réseau. Elle reviendra le jour où le
-   worker saura suivre une redirection ; en attendant, mieux vaut une page qui
-   s'ouvre qu'une page disponible hors ligne et qui ne s'ouvre pas. */
+   Ce qu'on perd toujours : la consultation hors réseau.                     */
 
 (function (window) {
   "use strict";
   if (!window.navigator || !navigator.serviceWorker) return;
 
-  /* Vingt-huit pages demandent encore l'enregistrement du worker. Plutot que
-     de les retoucher une par une, on ferme la porte ici, avant qu'elles ne
-     s'executent.
+  var MINIMAL = "sw-min.js";
 
-     On rend un faux enregistrement plutot qu'un echec : les pages qui
-     enchainent sur reg.update() n'ont alors rien a rattraper, et la console
-     du client reste propre. */
+  /* Les pages du dépôt demandent encore « sw.js », celui qui mettait en cache.
+     On intercepte l'enregistrement : quel que soit le fichier demandé, c'est
+     le worker minimal qui est posé. */
+  var vrai = navigator.serviceWorker.register.bind(navigator.serviceWorker);
   try {
-    var faux = {
-      update: function () { return Promise.resolve(); },
-      unregister: function () { return Promise.resolve(true); },
-      addEventListener: function () {},
-      installing: null, waiting: null, active: null,
+    navigator.serviceWorker.register = function (script, options) {
+      var s = String(script || "");
+      if (s.indexOf(MINIMAL) >= 0) return vrai(script, options);
+      return vrai(MINIMAL, options);
     };
-    navigator.serviceWorker.register = function () { return Promise.resolve(faux); };
   } catch (e) {}
 
+  function ancien(r) {
+    var s = (r.active && r.active.scriptURL) || (r.installing && r.installing.scriptURL) ||
+      (r.waiting && r.waiting.scriptURL) || "";
+    return s.indexOf(MINIMAL) < 0;
+  }
+
   navigator.serviceWorker.getRegistrations().then(function (L) {
-    if (!L || !L.length) return;
-    return Promise.all(L.map(function (r) { return r.unregister(); })).then(function () {
-      if (!window.caches || !caches.keys) return null;
-      return caches.keys().then(function (noms) {
-        return Promise.all(noms.map(function (n) { return caches.delete(n); }));
-      });
-    }).then(function () {
-      /* Une seule fois : sans ce témoin, la page se rechargerait en boucle
-         chez quelqu'un dont la désinscription échoue silencieusement. */
-      try {
-        if (window.sessionStorage.getItem("worker-retire")) return;
-        window.sessionStorage.setItem("worker-retire", "1");
-      } catch (e) {}
-      window.location.reload();
+    var vieux = (L || []).filter(ancien);
+    var fini = vieux.length
+      ? Promise.all(vieux.map(function (r) { return r.unregister(); })).then(function () {
+          if (!window.caches || !caches.keys) return null;
+          return caches.keys().then(function (noms) {
+            return Promise.all(noms.map(function (n) { return caches.delete(n); }));
+          });
+        })
+      : Promise.resolve();
+
+    return fini.then(function () {
+      return vrai(MINIMAL).catch(function () { return null; });
     });
   }).catch(function () {});
 })(window);

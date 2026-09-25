@@ -28,7 +28,8 @@ import sys
 PORTE = "entrer.html"
 JAMAIS = {"sw.js"}
 PROPRES = {"entrer.html", "entrer.js", "dossier-tec.js", "verrou.js",
-           "sans-cache.js", "synchroniser.py", "README.md", "netlify.toml"}
+           "sans-cache.js", "sw-min.js", "synchroniser.py", "README.md",
+           "netlify.toml", "wrangler.toml", ".assetsignore"}
 
 LIGNES = [
     # (ligne à poser, repère après lequel l'insérer, pages à épargner)
