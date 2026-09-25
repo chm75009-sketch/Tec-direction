@@ -1,0 +1,22 @@
+# Le site de la SARL TEC, publié par Cloudflare depuis ce dépôt.
+#
+# Ce fichier existe pour que « npx wrangler deploy », la commande que le
+# tableau de bord lance à chaque envoi sur main, sache quoi publier. Sans lui,
+# la construction échoue et rien ne part.
+#
+# Le site n'est que des fichiers : pas de code serveur, pas de variable, pas
+# de secret. Tout ce qu'il y a à dire tient dans le dossier des actifs.
+#
+# html_handling = "none" : les adresses sont servies telles qu'elles sont
+# écrites. C'est voulu. Le réglage par défaut renvoie « mes-documents.html »
+# vers « mes-documents » par une redirection 307, que le navigateur refusait
+# lors d'une navigation : la page s'ouvrait sur ERR_FAILED, mesuré le
+# 23 septembre 2026. Ici, un lien vers un fichier .html ouvre ce fichier.
+
+name = "tec-direction"
+compatibility_date = "2026-09-23"
+
+[assets]
+directory = "./"
+html_handling = "none"
+not_found_handling = "none"

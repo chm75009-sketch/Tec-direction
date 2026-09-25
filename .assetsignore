@@ -1,0 +1,8 @@
+# Ce qui reste dans le dépôt mais ne se publie pas : les fichiers de travail
+# n'ont rien à faire sur le site du client.
+README.md
+synchroniser.py
+netlify.toml
+wrangler.toml
+.assetsignore
+.git
