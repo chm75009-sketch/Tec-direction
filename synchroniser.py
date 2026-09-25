@@ -8,20 +8,23 @@ depuis le dépôt de l'application, ces trois-là ne doivent pas disparaître, e
 les lignes qui appellent le verrou et sans-cache.js sautent : une page
 recopiée s'ouvre alors sans mot de passe.
 
-Ce script fait la copie et remet les lignes. À lancer après chaque mise à
-jour de l'application :
+Ce script fait la copie, remet les lignes, puis repose le nom et le logo du
+client sur les manifestes et les pages. À lancer après chaque mise à jour de
+l'application :
 
     python3 synchroniser.py ../JURISPRUDENCE/docs
 
-Sans argument, il ne copie rien et se contente de remettre les lignes sur les
-pages déjà là.
+Sans argument, il ne copie rien et se contente de remettre les lignes et la
+marque sur les pages déjà là.
 
 Ce qui n'est jamais copié : sw.js. Le service worker rendait à une navigation
 la redirection 307 de l'hébergeur et la page s'ouvrait sur ERR_FAILED ; c'est
 sans-cache.js qui désinscrit celui qui traîne encore sur un appareil.
 """
 
+import json
 import pathlib
+import re
 import shutil
 import sys
 
@@ -29,7 +32,38 @@ PORTE = "entrer.html"
 JAMAIS = {"sw.js"}
 PROPRES = {"entrer.html", "entrer.js", "dossier-tec.js", "verrou.js",
            "sans-cache.js", "sw-min.js", "synchroniser.py", "README.md",
-           "netlify.toml", "wrangler.toml", ".assetsignore"}
+           "netlify.toml", "wrangler.toml", ".assetsignore", "favicon.ico"}
+
+# L'IDENTITÉ DU CLIENT, ET NON CELLE DE L'APPLICATION.
+#
+# Installée, l'application posait sur le bureau et sur le téléphone le nom et
+# le logo de « Jurisprudence » : c'est le site de T.E.C, pas le nôtre. Relevé
+# par l'utilisatrice le 25 septembre 2026. Le logo vient de son papier à
+# en-tête ; l'icône n'en garde que les rubans rouges, le mot TRANSPORTS ne se
+# lisant plus à cette taille.
+#
+# Les manifestes et les liens d'icônes sont recopiés depuis l'application à
+# chaque synchronisation : ils sont donc réécrits ici, après la copie, plutôt
+# que tenus à la main.
+MARQUE = {
+    "name": "T.E.C Transports",
+    "short_name": "T.E.C",
+    "description": "Les documents, les contrôles et les échéances de T.E.C Transports.",
+    "theme_color": "#e4324a",
+    "background_color": "#ffffff",
+    "icons": [
+        {"src": "icons-tec/icon-192.png", "sizes": "192x192", "type": "image/png",
+         "purpose": "any"},
+        {"src": "icons-tec/icon-512.png", "sizes": "512x512", "type": "image/png",
+         "purpose": "any"},
+        {"src": "icons-tec/icon-512-masque.png", "sizes": "512x512", "type": "image/png",
+         "purpose": "maskable"},
+    ],
+}
+# Les pages n'écrivent pas toutes leur lien d'icône de la même façon : l'une
+# glisse un type entre le rel et le href. On vise donc le chemin, dans
+# n'importe quelle balise « link » qui porte un rel d'icône.
+LIEN_ICONE = re.compile(r'(<link [^>]*rel="(?:apple-touch-)?icon"[^>]*href=")icons/[^"]+(")')
 
 LIGNES = [
     # (ligne à poser, repère après lequel l'insérer, pages à épargner)
@@ -88,6 +122,26 @@ def poser():
         sys.exit(1)
 
 
+def marquer():
+    """Le nom et le logo du client, sur les manifestes et dans les pages."""
+    m = 0
+    for f in sorted(ici.glob("manifest*.json")):
+        d = json.loads(f.read_text(encoding="utf-8"))
+        for c, v in MARQUE.items():
+            d[c] = v
+        f.write_text(json.dumps(d, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        m += 1
+    liens = 0
+    for f in sorted(ici.glob("*.html")):
+        t = f.read_text(encoding="utf-8")
+        neuf, n = LIEN_ICONE.subn(r"\1icons-tec/icon-180.png\2", t)
+        if n:
+            f.write_text(neuf, encoding="utf-8")
+            liens += n
+    print("manifestes au nom de", MARQUE["short_name"], ":", m, "| liens d'icône :", liens)
+
+
 if len(sys.argv) > 1:
     copier(sys.argv[1])
 poser()
+marquer()

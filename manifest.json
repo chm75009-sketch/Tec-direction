@@ -1,16 +1,32 @@
 {
-  "name": "Jurisprudence, recherche Judilibre",
-  "short_name": "Jurisprudence",
-  "description": "Recherche jurisprudentielle en texte intégral dans la base ouverte Judilibre (Cour de cassation, cours d'appel, tribunaux judiciaires).",
+  "name": "T.E.C Transports",
+  "short_name": "T.E.C",
+  "description": "Les documents, les contrôles et les échéances de T.E.C Transports.",
   "lang": "fr",
   "version": "12.44",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",
-  "background_color": "#f4f6f9",
-  "theme_color": "#8b1e2d",
+  "background_color": "#ffffff",
+  "theme_color": "#e4324a",
   "icons": [
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+    {
+      "src": "icons-tec/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons-tec/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons-tec/icon-512-masque.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }
