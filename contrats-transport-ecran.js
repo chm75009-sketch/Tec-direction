@@ -95,13 +95,42 @@
     if (s.emp) V.emploi = s.emp;
     if (s.ent) V.entree = s.ent;
     if (s.qua) V.groupe = s.qua;
+    /* Le sexe ne s'affiche pas dans le contrat, mais il l'accorde : sans lui,
+       une conductrice sortait « né le » et « désigné le salarié ». */
+    if (s.sexe) V.sexe = s.sexe;
     rendreChamps();
+    direSiLeProfilNeVaPas(s);
   });
+
+  /* L'EMPLOI DU REGISTRE CONTRE LE PROFIL CHOISI.
+
+     Le profil commande le permis, la FIMO, la FCO, la carte de conducteur et
+     le temps de service : posé sur une assistante de direction, il écrit un
+     contrat faux de bout en bout. On ne change rien à la place de
+     l'utilisateur, on le dit et on propose le bon profil. */
+  var CONDUIT = /conducteur|conductrice|chauffeur|routier|livreur|coursier/i;
+  function direSiLeProfilNeVaPas(s) {
+    var z = $("alerte-profil");
+    if (!z) return;
+    var emploi = String(s && s.emp || "").trim();
+    if (!emploi || !PROFIL) { z.classList.add("cache"); return; }
+    var conduit = CONDUIT.test(emploi);
+    if (conduit === !!PROFIL.conduite) { z.classList.add("cache"); return; }
+    z.textContent = conduit
+      ? "Le registre porte « " + emploi + " », qui est un emploi de conduite, alors que le profil "
+        + "choisi est « " + PROFIL.nom + " » : le contrat n'écrira ni le temps de service du "
+        + "transport, ni les titres de conduite. Changez d'emploi si c'est une erreur."
+      : "Le registre porte « " + emploi + " », qui n'est pas un emploi de conduite, alors que le "
+        + "profil choisi est « " + PROFIL.nom + " » : le contrat exigera le permis, la FIMO, la FCO "
+        + "et la carte de conducteur. Changez d'emploi avec le bouton ci-dessous.";
+    z.classList.remove("cache");
+  }
 
   function ouvrirProfil(cle) {
     PROFIL = CT.profil(cle);
     $("titre-haut").textContent = PROFIL.nom;
     V = {};
+    if ($("alerte-profil")) $("alerte-profil").classList.add("cache");
     rendreRegistre();
     $("aide-champs").textContent = "Ce qu'il faut savoir pour écrire le contrat. Ce qui reste " +
       "entre crochets sera à compléter à la main.";
@@ -202,6 +231,17 @@
       lieu: g.lieu || ent.adresse || "",
       lieuSignature: g.lieuSignature || "",
       zone: "national et européen",
+      /* LES ORGANISMES VIENNENT DE LA FICHE, PAS DU CONTRAT.
+
+         Ils ne changent ni d'un salarié à l'autre ni d'un contrat à l'autre :
+         ils se saisissent une fois sur la fiche d'entreprise et se reposent
+         ici tout seuls. Ce qui a déjà été tapé sur cet appareil l'emporte,
+         et ce qui est modifié dans le contrat ne remonte pas à la fiche.
+         Demande du 26 septembre 2026. */
+      retraite: ent.orgRetraite || "",
+      prevoyance: ent.orgPrevoyance || "",
+      sante: ent.orgSante || "",
+      urssaf: ent.orgUrssaf || "",
     };
     /* Ce qui a déjà été tapé ne se perd pas quand on coche « temps partiel »
        ou qu'on passe du CDI au CDD : les champs sont refaits, les valeurs
@@ -478,7 +518,14 @@
       " - " + (V.nom || "");
     var corps = blocsDeLEcran("contrat");
     if (ANNEXE.length) corps = corps.concat([{ k: "saut" }], blocsDeLEcran("annexe"));
-    var octets = window.AuditExport.docx(corps, titre);
+    /* Le fichier porte l'entreprise en pied de page et son dirigeant comme
+       auteur : la case Auteur restait vide, et rien ne disait de qui venait
+       le document. Relevé le 26 septembre 2026. */
+    var ent = profilEntreprise();
+    var octets = window.AuditExport.docx(corps, titre, {
+      auteur: String(ent.responsable || ent.denomination || "").trim(),
+      pied: String(ent.denomination || ent.entreprise || "").trim() + "  ·  " + titre,
+    });
     window.AuditExport.telecharger(octets, nomFichier());
     $("etat").textContent = ANNEXE.length
       ? "Contrat et annexe téléchargés. La note hors contrat est dans le second bouton."
@@ -490,15 +537,94 @@
      24 septembre 2026. */
   $("word-note").addEventListener("click", function () {
     if (!window.AuditExport || !HORS.length) return;
+    var entN = profilEntreprise();
     var octets = window.AuditExport.docx(
       HORS.filter(function (b) { return b.k !== "saut"; }),
-      "Réserve d'usage et observation - " + (PROFIL ? PROFIL.nom : ""));
+      "Réserve d'usage et observation - " + (PROFIL ? PROFIL.nom : ""),
+      { auteur: String(entN.responsable || entN.denomination || "").trim(),
+        pied: String(entN.denomination || entN.entreprise || "").trim() + "  ·  note hors contrat" });
     window.AuditExport.telecharger(octets, "Note-hors-contrat-" +
       (NATURE === "cdd" ? "CDD" : "CDI") + ".docx");
     $("etat").textContent = "Note téléchargée, séparément du contrat.";
   });
 
   $("imprimer").addEventListener("click", function () { window.print(); });
+
+  /* L'EMBAUCHE ÉCRITE UNE FOIS, REPRISE PARTOUT.
+
+     Le contrat produit ici ne remontait nulle part : le registre du
+     personnel, la fiche conducteur et l'agenda ignoraient le nouvel
+     embauché, et la déclaration préalable, la visite d'information et la fin
+     de la période d'essai n'étaient rappelées nulle part. Relevé le
+     26 septembre 2026.
+
+     Le bouton fait les trois, et il dit ce qu'il a fait : une ligne ajoutée
+     ou complétée, une fiche ouverte, des échéances posées. Il n'écrase jamais
+     une donnée déjà écrite ailleurs. */
+  /* Un salarié déjà en poste n'a pas de fin d'essai à poser dans l'agenda :
+     le contrat qu'on écrit pour lui est un contrat de régularisation. */
+  function dejaEnPoste() {
+    if (!V.entree) return false;
+    var e = new Date(String(V.entree) + "T12:00:00"), a = new Date();
+    a.setHours(0, 0, 0, 0);
+    return !isNaN(e) && e < a;
+  }
+  function finEssai() {
+    if (!V.entree || !window.EcheancesSalaries || dejaEnPoste()) return "";
+    var d = String(V.essai || "").trim();
+    if (!d) d = (PROFIL && PROFIL.annexe === "II") ? CT.CCN.annexeII.essai
+      : ((PROFIL && PROFIL.conduite) ? CT.CCN.annexeI.essaiConduite : CT.CCN.annexeI.essaiAutres);
+    var m = String(d).match(/(\d+)\s*(mois|semaines?|jours?)/i);
+    if (!m) return "";
+    var n = parseInt(m[1], 10);
+    if (/mois/i.test(m[2])) return window.EcheancesSalaries.plusMois(V.entree, n);
+    if (/semaine/i.test(m[2])) return window.EcheancesSalaries.plusJours(V.entree, n * 7);
+    return window.EcheancesSalaries.plusJours(V.entree, n);
+  }
+
+  $("inscrire").addEventListener("click", function () {
+    if (!window.EcheancesSalaries) return;
+    var nom = String(V.nom || "").trim();
+    if (!nom) { $("etat").textContent = "Le nom du salarié manque : rien n'a été inscrit."; return; }
+    var parts = window.EcheancesSalaries.couper(nom);
+    var r = window.EcheancesSalaries.inscrire({
+      nom: parts.nom, pre: parts.pre,
+      nat: V.nationalite, nais: V.naissance, emp: V.emploi,
+      qua: V.coef ? "Coefficient " + V.coef : "", ent: V.entree,
+      nature: NATURE === "cdd" ? "cdd" : "cdi", part: PARTIEL ? "partiel" : "complet",
+      essai: finEssai(), terme: NATURE === "cdd" ? V.terme : "",
+    });
+    /* La durée de service du poste part avec l'embauche : c'est elle que le
+       décompte des heures compare au mois compté, et sans elle il retombait
+       sur une semaine de bureau. */
+    if (r && PROFIL) window.EcheancesSalaries.poser(r.id, {
+      heuresSemaine: String(PROFIL.hebdo || ""),
+      heuresMois: String(PROFIL.mensuel || ""),
+      dureeQuoi: "temps de service du poste " + String(PROFIL.nom || "") +
+        ", convention collective des transports routiers",
+      /* La catégorie de R. 3312-50 part avec l'embauche : c'est elle qui donne
+         au décompte des heures le plafond hebdomadaire du poste, cinquante-six
+         heures pour le grand routier, cinquante-deux pour les autres roulants.
+         Sans elle, le décompte appliquait les quarante-huit heures du code du
+         travail à un conducteur. Relevé le 26 septembre 2026. */
+      categorieTransport: PROFIL.roulant ? (PROFIL.grandRoutier ? "grand" : "courte") : "",
+    });
+    if (!r) { $("etat").textContent = "Rien n'a été inscrit."; return; }
+    var dits = [];
+    dits.push(r.nouveau ? "inscrit au registre du personnel"
+      : (r.complets.length ? "complété au registre (" + r.complets.length + " renseignement" +
+          (r.complets.length > 1 ? "s" : "") + ")" : "déjà au registre, rien à compléter"));
+    if (r.fiche) dits.push("fiche conducteur ouverte dans Flotte");
+    dits.push(dejaEnPoste()
+      ? "échéances posées dans l'agenda : entretien de parcours professionnel" +
+        (NATURE === "cdd" && V.terme ? ", terme du contrat" : "") +
+        ". La déclaration préalable et la visite d'embauche ne sont pas reposées : " +
+        "le salarié est en poste depuis le " + CT.dateFr(V.entree)
+      : "échéances posées dans l'agenda : déclaration préalable, visite d'information et de prévention, entretien de parcours" +
+        (finEssai() ? ", fin de période d'essai" : "") +
+        (NATURE === "cdd" && V.terme ? ", terme du contrat" : ""));
+    $("etat").textContent = nom + " : " + dits.join(" ; ") + ".";
+  });
 
   $("garder").addEventListener("click", function () {
     if (!window.Documents || !window.AuditExport) return;

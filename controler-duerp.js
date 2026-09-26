@@ -89,6 +89,7 @@
   E.v = E.v || {};
   E.ins = E.ins || {};
   E.trouve = E.trouve || {};
+  E.indice = E.indice || {};
   if (typeof E.depot !== "string") E.depot = "";
   function garder() { try { localStorage.setItem(CLE, JSON.stringify(E)); } catch (_) {} }
   function v(c) { return String(E.v[c] == null ? "" : E.v[c]).trim(); }
@@ -136,17 +137,44 @@
 
   function idRisque(u, i) { return M.cle + "." + u.cle + "." + i; }
 
+  /* LES EMPLOIS DU REGISTRE QUE LE MÉTIER NE COUVRE PAS.
+
+     Le registre porte soixante-treize conducteurs, cinq mécaniciens et
+     quatre assistantes ; le document sortait avec les unités du métier et
+     rien de ce que le registre sait. Un emploi qu'aucune unité ne reconnaît
+     devient donc une unité de travail à son nom, avec son effectif, et ses
+     risques restent à décrire : rien n'y est supposé, l'évaluation est celle
+     de l'employeur. R. 4121-1 fait l'inventaire par unité de travail.
+     Relevé le 26 septembre 2026. */
+  function unitesDuRegistre() {
+    var r = emploisNonCouverts(M.unites.map(function (u) { return { u: u }; }));
+    if (!r || !r.manquants.length) return [];
+    return r.manquants.map(function (x) {
+      return {
+        cle: "reg-" + slug(x.emp),
+        nom: x.emp,
+        qui: x.n + " salarié" + (x.n > 1 ? "s" : "") + " à ce poste au registre du personnel. " +
+          "Unité ajoutée d'après le registre : ses risques sont à décrire, aucun n'est supposé ici.",
+        risques: [],
+        duRegistre: true,
+      };
+    });
+  }
+  var UNITES = M.unites.concat(unitesDuRegistre());
+
   /* Tous les risques du métier, avec leur cotation et leur échéance. */
   function inventaire(filtre) {
     var out = [];
-    M.unites.forEach(function (u) {
+    UNITES.forEach(function (u) {
       var l = [];
       u.risques.forEach(function (r, i) {
         var id = idRisque(u, i);
         if (filtre && !filtre(id)) return;
         l.push({ id: id, r: r, pr: DM.priorite(r.g, r.f), ech: plusMois(v("dateVersion"), r.mois) });
       });
-      if (l.length) out.push({ u: u, liste: l });
+      /* Une unité venue du registre n'a pas de risque écrit : elle figure
+         quand même, avec la ligne qui dit ce qui reste à faire. */
+      if (l.length || u.duRegistre) out.push({ u: u, liste: l });
     });
     return out;
   }
@@ -241,6 +269,10 @@
     groupes.forEach(function (g, ig) {
       var n = depart + ig;
       h += "<h3>" + n + ". " + ech(g.u.nom) + "</h3>" + '<p class="qui">' + ech(g.u.qui) + "</p>";
+      if (!g.liste.length)
+        h += '<p class="qui">[À COMPLÉTER pour cette unité : situation de travail, mesures ' +
+          "existantes, mesures à prendre, responsable et échéance. Aucun risque n'est écrit ici " +
+          "à votre place.]</p>";
       g.liste.forEach(function (x, ix) { h += risqueHtml(x, n + "." + (ix + 1)); });
     });
     return h;
@@ -394,7 +426,12 @@
     return "<h3>" + num + ". Tenue du document</h3>" +
       "<p>Mise à jour au moins chaque année à partir de onze salariés, lors de toute décision d'aménagement important modifiant les conditions de santé et de sécurité ou les conditions de travail, et lorsqu'une information supplémentaire intéressant l'évaluation d'un risque est portée à la connaissance de l'employeur (R. 4121-2).</p>" +
       "<p>Le document et ses versions antérieures sont conservés quarante ans à compter de leur élaboration et tenus à la disposition des personnes que désigne l'article R. 4121-4. Un avis indiquant les modalités d'accès des travailleurs au document est affiché à une place convenable et aisément accessible, et au même emplacement que le règlement intérieur là où il en existe un (R. 4121-4).</p>" +
-      "<p>Le document est transmis à chaque mise à jour au service de prévention et de santé au travail (L. 4121-3-1, VI).</p>" +
+      /* Le service est nommé quand la fiche d'entreprise le porte : il ne
+         change pas d'une version à l'autre, il se saisit une fois sous
+         « Organismes et interlocuteurs ». 26 septembre 2026. */
+      "<p>Le document est transmis à chaque mise à jour au service de prévention et de santé au travail" +
+      (String(P.orgSanteTravail || "").trim() ? ", " + ech(String(P.orgSanteTravail).trim()) : "") +
+      " (L. 4121-3-1, VI).</p>" +
       /* LE COMITÉ : DEUX BRANCHES, UNE SEULE À GARDER.
 
          L. 4121-3 dit « Le comité social et économique est consulté sur le
@@ -519,6 +556,10 @@
       var n = depart + ig;
       items.push({ k: "h2", t: n + ". " + g.u.nom });
       items.push({ k: "note", t: g.u.qui });
+      if (!g.liste.length)
+        items.push({ k: "p", t: "[À COMPLÉTER pour cette unité : situation de travail, mesures " +
+          "existantes, mesures à prendre, responsable et échéance. Aucun risque n'est écrit ici " +
+          "à votre place.]" });
       g.liste.forEach(function (x, ix) { risqueItems(x, n + "." + (ix + 1), items); });
     });
   }
@@ -677,22 +718,44 @@
       .replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ");
   }
 
+  /* UN MOT N'EST PAS UNE PREUVE.
+
+     « pneumatique » se trouvait dans « suspension pneumatique », et le risque
+     passait pour traité : trente-trois risques sur trente-trois, sur un
+     document qui n'en traitait pas la moitié. Deux corrections. Le mot est
+     cherché entier, bornes comprises, et non comme un morceau d'un autre
+     mot. Et un seul mot isolé ne suffit plus : il faut l'expression entière,
+     ou deux mots différents du même risque. Un mot seul devient un indice,
+     dit comme tel, qui ne compte pas le risque pour traité. Relevé le
+     26 septembre 2026. */
+  function trouverMot(n, mot) {
+    var m = mot.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    var re = new RegExp("(^|[^a-z0-9])(" + m + ")(e?s?)([^a-z0-9]|$)");
+    var x = re.exec(n);
+    return x ? x.index + (x[1] ? x[1].length : 0) : -1;
+  }
+
   function comparer(t) {
     var n = normaliser(t);
     E.trouve = {};
-    M.unites.forEach(function (u) {
+    E.indice = {};
+    UNITES.forEach(function (u) {
       u.risques.forEach(function (r, i) {
         var id = idRisque(u, i);
-        var mots = (r.m || "").split("|").concat((r.n || "").toLowerCase());
-        var vu = null;
-        mots.forEach(function (mot) {
-          if (vu) return;
-          mot = normaliser(mot);
-          if (mot.length < 4) return;
-          var k = n.indexOf(mot);
-          if (k >= 0) vu = t.substr(Math.max(0, k - 60), 190).replace(/\s+/g, " ").trim();
+        var cles = (r.m || "").split("|").concat([r.n || ""]);
+        var forts = [], faibles = [];
+        cles.forEach(function (mot) {
+          var m = normaliser(mot);
+          if (m.length < 4) return;
+          var k = trouverMot(n, m);
+          if (k < 0) return;
+          var extrait = t.substr(Math.max(0, k - 60), 190).replace(/\s+/g, " ").trim();
+          if (m.indexOf(" ") >= 0) forts.push(extrait);
+          else if (!faibles.some(function (x) { return x.m === m; })) faibles.push({ m: m, e: extrait });
         });
+        var vu = forts.length ? forts[0] : (faibles.length >= 2 ? faibles[0].e : null);
         if (vu) E.trouve[id] = vu;
+        else if (faibles.length === 1) E.indice[id] = faibles[0].e;
         if (E.ins[id] === undefined) E.ins[id] = !vu;
       });
     });
@@ -741,6 +804,16 @@
     { cle: "acces", nom: "Mise à disposition et avis d'affichage",
       fond: "R. 4121-4", m: "tenu a la disposition|mise a disposition|avis indiquant les modalites|affiche|consultation du document",
       quoi: "Le document est tenu à la disposition des travailleurs et des personnes désignées ; un avis affiché dit comment y accéder." },
+    /* L. 4121-2, 7° (LEGIARTI000033019913, lu à la source le 26 septembre
+       2026, deux lectures concordantes) : la prévention se planifie « en y
+       intégrant [...] notamment les risques liés au harcèlement moral et au
+       harcèlement sexuel, tels qu'ils sont définis aux articles L. 1152-1 et
+       L. 1153-1 ». Un document unique qui n'en dit rien a un trou que
+       l'écran passait sous silence. */
+    { cle: "harcelement", nom: "Risques liés au harcèlement moral et au harcèlement sexuel",
+      fond: "L. 4121-2, 7°", bloquant: true,
+      m: "harcelement moral|harcelement sexuel|harcelement|agissement sexiste|agissements sexistes",
+      quoi: "La planification de la prévention intègre les risques liés au harcèlement moral et au harcèlement sexuel, définis aux articles L. 1152-1 et L. 1153-1." },
     { cle: "spst", nom: "Transmission au service de prévention et de santé au travail",
       fond: "L. 4121-3-1, VI", m: "service de prevention et de sante au travail|medecine du travail|spst|sist|transmis au service",
       quoi: "Le document est transmis au service de prévention et de santé au travail à chaque mise à jour." },
@@ -752,12 +825,25 @@
      mois, année, et la plus récente fait foi ; les millésimes isolés ne
      servent qu'à défaut, et sont donnés comme tels. Mesuré le 14 septembre
      2026. */
+  var MOIS_LUS = ["janvier", "fevrier", "mars", "avril", "mai", "juin", "juillet",
+    "aout", "septembre", "octobre", "novembre", "decembre"];
   function datesDocument(t) {
     var jours = [], m;
     var re = /\b(0?[1-9]|[12]\d|3[01])[\/.\-](0?[1-9]|1[0-2])[\/.\-](19[89]\d|20[0-4]\d)\b/g;
     while ((m = re.exec(t)) !== null) {
       var iso = m[3] + "-" + ("0" + m[2]).slice(-2) + "-" + ("0" + m[1]).slice(-2);
       if (jours.indexOf(iso) < 0) jours.push(iso);
+    }
+    /* UNE DATE ÉCRITE EN TOUTES LETTRES EST UNE DATE. « Version du
+       25 septembre 2026 » était lue comme un millésime isolé, et l'écran
+       répondait « Aucune date complète » à un document daté de la veille.
+       Relevé le 26 septembre 2026. */
+    var nt = normaliser(t), ml;
+    var rm = /\b(0?[1-9]|[12]\d|3[01])(?:er)?\s+(janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre)\s+(19[89]\d|20[0-4]\d)\b/g;
+    while ((ml = rm.exec(nt)) !== null) {
+      var mo = MOIS_LUS.indexOf(ml[2]) + 1;
+      var isoL = ml[3] + "-" + ("0" + mo).slice(-2) + "-" + ("0" + ml[1]).slice(-2);
+      if (jours.indexOf(isoL) < 0) jours.push(isoL);
     }
     jours.sort();
     var annees = [], a;
@@ -777,7 +863,9 @@
         if (vu) return;
         mot = normaliser(mot);
         if (mot.length < 4) return;
-        var k = n.indexOf(mot);
+        /* Le mot entier, comme pour les risques : « affiche » ne doit pas se
+           trouver dans « affichage » d'un autre sujet. */
+        var k = trouverMot(n, mot);
         if (k >= 0) vu = t.substr(Math.max(0, k - 70), 200).replace(/\s+/g, " ").trim();
       });
       return { x: x, vu: vu };
@@ -801,14 +889,27 @@
       return u.risques.some(function (r, i) { return E.trouve[idRisque(u, i)]; });
     });
 
-    var rouge = manques + absentes.length + (vieux ? 1 : 0);
+    /* CE QUI RESTE ENTRE CROCHETS N'EST PAS RENSEIGNÉ.
+
+       Le verdict annonçait « rien à corriger » sur une pièce qui portait neuf
+       crochets, dont « Avis rendu le [ date de l'avis ] ». Un document unique
+       à trous ne se signe pas : ils sont comptés, listés, et ils pèsent dans
+       le verdict. Relevé le 26 septembre 2026. */
+    var crochets = (t.match(/\[[^\]\n]{1,120}\]/g) || []).map(function (x) {
+      return x.replace(/\s+/g, " ").trim();
+    });
+    var avisNonDate = crochets.filter(function (x) { return /avis|comit|cse|consultation/i.test(x); });
+    var bloquantes = absentes.filter(function (m) { return m.x.bloquant; });
+    var rouge = manques + absentes.length + (vieux ? 1 : 0) + (crochets.length ? 1 : 0);
     var h = '<div class="verdict">' +
       '<div class="v ko' + (rouge ? "" : " vide") + '"><span class="n">' + rouge + "</span>" +
       '<span class="q">' + (rouge ? "ce qui ne va pas" : "rien à corriger") + "</span>" +
       '<span class="d">' +
         (absentes.length ? absentes.length + " mention" + (absentes.length > 1 ? "s" : "") + " du code du travail introuvable" + (absentes.length > 1 ? "s" : "") + ". " : "") +
         (manques ? manques + " risque" + (manques > 1 ? "s" : "") + " du métier non traité" + (manques > 1 ? "s" : "") + ". " : "") +
-        (vieux ? "Document daté de " + derniere + "." : "") +
+        (vieux ? "Document daté de " + derniere + ". " : "") +
+        (crochets.length ? crochets.length + " mention" + (crochets.length > 1 ? "s" : "") +
+          " laissée" + (crochets.length > 1 ? "s" : "") + " entre crochets." : "") +
       "</span></div>" +
       '<div class="v ok"><span class="n">' + (total - manques + (MENTIONS.length - absentes.length)) + "</span>" +
       '<span class="q">ce qui va</span>' +
@@ -817,6 +918,23 @@
         (total - manques) + " risque" + ((total - manques) > 1 ? "s" : "") + " sur " + total +
         " se retrouvent dans votre document.</span></div></div>";
 
+    if (crochets.length)
+      h += '<div class="avis non"><b>' + crochets.length + " mention" + (crochets.length > 1 ? "s" : "") +
+        " reste" + (crochets.length > 1 ? "nt" : "") + " entre crochets dans votre document</b>" +
+        "Tant qu'elles y sont, la pièce n'est pas signable : un contrôle lira « à compléter » à ces " +
+        "endroits.<ul class=\"manque\"><li>" +
+        crochets.slice(0, 12).map(ech).join("</li><li>") + "</li></ul>" +
+        (crochets.length > 12 ? "Et " + (crochets.length - 12) + " autre" + (crochets.length - 12 > 1 ? "s" : "") + "." : "") +
+        (avisNonDate.length
+          ? " L'une d'elles porte sur l'avis du comité : sans date, la consultation ne se prouve pas."
+          : "") + "</div>";
+    if (bloquantes.length)
+      h += '<div class="avis non"><b>' + bloquantes.length + " mention" + (bloquantes.length > 1 ? "s" : "") +
+        " que le code du travail impose, et que votre document ne porte pas</b><ul class=\"manque\"><li>" +
+        bloquantes.map(function (m) {
+          return ech(m.x.nom) + ' <span class="art">(' + ech(m.x.fond) + ")</span> : " + ech(m.x.quoi);
+        }).join("</li><li>") + "</li></ul>Ce n'est pas un défaut de forme : l'évaluation est " +
+        "incomplète tant que ce point n'y figure pas.</div>";
     h += '<p class="bloc-t r"><span class="pastille"></span>La tenue du document</p>';
     if (derniere !== null) {
       var quoi = dates.precise
@@ -867,8 +985,11 @@
         var id = idRisque(u, i), vu = E.trouve[id];
         total++;
         if (!vu) manques++;
+        var indice = !vu && E.indice ? E.indice[id] : null;
         h += '<div class="ligne' + (vu ? " deja" : "") + '"><span class="nom">' + ech(r.n) +
-          (vu ? '<span class="du">Dans votre document : « ' + ech(vu) + ' »</span>' : "") + "</span>" +
+          (vu ? '<span class="du">Dans votre document : « ' + ech(vu) + ' »</span>'
+              : (indice ? '<span class="du">Un seul mot de ce risque apparaît, ce qui ne prouve rien : « ' +
+                  ech(indice) + ' ». À vérifier vous-même avant de le tenir pour traité.</span>' : "")) + "</span>" +
           (vu
             ? '<label class="ajout"><input type="checkbox" data-ins="' + ech(id) + '"' + (E.ins[id] ? " checked" : "") + "> Ajouter quand même</label>"
             : '<label class="ajout manque"><input type="checkbox" data-ins="' + ech(id) + '"' + (E.ins[id] !== false ? " checked" : "") + "> Ajouter</label>") +
@@ -878,7 +999,10 @@
     return '<div class="avis ' + (manques ? "att" : "ok") + '"><b>' +
       (manques ? manques + " risque" + (manques > 1 ? "s" : "") + " du métier sur " + total + " introuvable" + (manques > 1 ? "s" : "") + " dans votre document"
                : "Les " + total + " risques du métier sont traités dans votre document") + "</b>" +
-      "La recherche est faite sur les mots : un risque rédigé autrement sera dit introuvable, et un risque trouvé n'est pas pour autant bien traité. Ce qui est coché part dans la version corrigée, ci-dessous.</div>" + h;
+      "Un risque est tenu pour traité quand l'expression entière se retrouve dans votre document, ou " +
+      "deux mots différents de ce risque : un seul mot isolé est signalé comme indice et ne compte pas. " +
+      "Un risque rédigé autrement sera dit introuvable, et un risque trouvé n'est pas pour autant bien " +
+      "traité. Ce qui est coché part dans la version corrigée, ci-dessous.</div>" + h;
   }
 
   /* UN DOCUMENT SCANNÉ NE SE RECOPIE PAS. Relevé le 14 septembre 2026 : le

@@ -293,6 +293,23 @@
 
   /* ───────────────────────────── construction ───────────────────────────── */
 
+  /* HORS CONTRAT : AVANT L'ENTRÉE, APRÈS LA SORTIE.
+
+     Une salariée sortie le 1er août portait vingt-deux jours et cent
+     cinquante-quatre heures au mois de septembre, parce que l'horaire de
+     référence se recopiait sur tout le mois sans regarder le registre. Un
+     mois scellé sur ces heures-là devient une pièce opposable. Relevé le
+     26 septembre 2026. Ces jours ne se saisissent plus, ne comptent pas, et
+     le disent. */
+  function horsContrat(j) {
+    var d = new Date(an, mo, j), e = null, so = null;
+    if (qui && net(qui.ent)) e = new Date(net(qui.ent) + "T00:00:00");
+    if (qui && net(qui.sor)) so = new Date(net(qui.sor) + "T00:00:00");
+    if (e && !isNaN(e) && d < e) return "avant l'entrée";
+    if (so && !isNaN(so) && d > so) return "après la sortie";
+    return "";
+  }
+
   function construire() {
     var m = moisDe(), r = refDe(qui.id);
     var dernier = new Date(an, mo + 1, 0).getDate();
@@ -301,9 +318,10 @@
       var sem = new Date(an, mo, j).getDay();
       var base = baseDuJour(r.sem[sem]);
       var saisi = m.jours[String(j)];
+      var hc = horsContrat(j);
       lignes.push({
-        j: j, sem: sem, base: base,
-        n: saisi ? saisi.n : base.n,
+        j: j, sem: sem, base: base, hc: hc,
+        n: hc ? "repos" : (saisi ? saisi.n : base.n),
         d: saisi && saisi.d != null ? saisi.d : base.d,
         f: saisi && saisi.f != null ? saisi.f : base.f,
         p: saisi && saisi.p != null ? String(saisi.p) : base.p,
@@ -345,12 +363,22 @@
 
       var d = document.createElement("div");
       d.className = "jour" + (l.n === "travail" ? "" : " hors") +
-        (modifiee(l) ? " change" : "") + (verrou ? " verrou" : "");
+        (modifiee(l) ? " change" : "") + (verrou || l.hc ? " verrou" : "") +
+        (l.hc ? " hc" : "");
 
       var q = document.createElement("div");
       q.className = "quand";
       q.textContent = l.j + " " + COURT[l.sem];
+      /* Le jour qui n'est pas dans le contrat le dit et ne s'ouvre pas. */
+      if (l.hc) {
+        var mq = document.createElement("small");
+        mq.className = "hcq";
+        mq.textContent = l.hc;
+        q.appendChild(mq);
+      }
       d.appendChild(q);
+
+
 
       var z = document.createElement("div");
       z.className = "saisie";
@@ -374,7 +402,7 @@
         if (o[0] === l.n) op.selected = true;
         nat.appendChild(op);
       });
-      nat.disabled = verrou;
+      nat.disabled = verrou || !!l.hc;
       nat.addEventListener("change", function () {
         l.n = nat.value; enregistrerJour(l); dessinerJours(); calculer();
       });
@@ -387,7 +415,7 @@
         pau.type = "text"; pau.inputMode = "numeric"; pau.maxLength = 3;
         pau.id = "p-" + l.j; pau.value = l.p;
         pau.setAttribute("aria-label", "Pause en minutes du " + l.j);
-        pau.disabled = verrou;
+        pau.disabled = verrou || !!l.hc;
         pau.addEventListener("input", function () {
           l.p = pau.value.replace(/[^0-9]/g, "");
           enregistrerJour(l); majLigne(d, l); calculer();
@@ -402,6 +430,7 @@
       h.className = "h";
       d.appendChild(h);
       hote.appendChild(d);
+      l.noeud = d;            /* pour marquer la journée qui passe le plafond */
       majLigne(d, l);
 
       /* La récapitulation de chaque semaine, dimanche ou fin de mois :
@@ -423,7 +452,7 @@
         e.type = "text"; e.id = id; e.value = val;
         e.inputMode = "numeric"; e.maxLength = max; e.placeholder = "08:00";
         e.setAttribute("aria-label", aria);
-        e.disabled = verrou;
+        e.disabled = verrou || !!l.hc;
         e.addEventListener("input", function () { poser(e.value); enregistrerJour(l); majLigne(d, l); calculer(); });
         e.addEventListener("blur", function () {
           e.value = normaliser(e.value); poser(e.value);
@@ -479,13 +508,480 @@
     lignes.forEach(function (l) { t += duree(l); });
     return t;
   }
+  /* CE QUE LE CONTRAT DIT, QUAND IL A ÉTÉ ÉCRIT ICI.
+
+     Le module des contrats du transport écrit la durée de service du poste,
+     hebdomadaire et mensuelle : 39 heures et 169 heures pour un conducteur
+     de courte distance, 43 et 186 pour un grand routier. Le décompte les
+     ignorait et pré-remplissait une semaine de bureau, 9 heures à 17 heures
+     du lundi au vendredi : le relevé signé annonçait 154 heures là où le
+     contrat en porte 169. Relevé le 26 septembre 2026.
+
+     Rien n'est inventé pour autant : l'horaire de chaque journée reste à
+     saisir, parce que personne ici ne sait à quelle heure le camion est
+     parti. Ce qui est repris du contrat, c'est la durée due, en face de
+     laquelle le mois compté se lit. */
+  function duContrat() {
+    if (!qui || !window.EcheancesSalaries) return null;
+    var su = window.EcheancesSalaries.suite(qui.id) || {};
+    var sem = parseFloat(String(su.heuresSemaine || "").replace(",", "."));
+    var mois = parseFloat(String(su.heuresMois || "").replace(",", "."));
+    if (!isFinite(sem) && !isFinite(mois)) return null;
+    return { sem: isFinite(sem) ? sem : 0, mois: isFinite(mois) ? mois : 0,
+      quoi: String(su.dureeQuoi || "durée du contrat") };
+  }
+
   function hebdoContrat() {
+    var c = duContrat();
+    if (c && c.sem > 0) return c.sem;
     var r = refDe(qui.id), t = 0;
     for (var k = 0; k < 7; k++) {
       var b = baseDuJour(r.sem[k]);
       if (b.n === "travail") t += duree(b);
     }
     return t;
+  }
+
+  /* ─────────── AU-DELÀ DE TRENTE-CINQ HEURES, ET LES PLAFONDS ──────────── */
+  /* Le décompte additionnait les journées et s'arrêtait là. Il ne disait ni
+     combien d'heures dépassaient la durée légale, ni qu'une journée de treize
+     heures ou une semaine de cinquante-quatre heures est interdite. Relevé le
+     26 septembre 2026 : un relevé qui ne dit pas cela laisse signer
+     l'irrégularité.
+
+     LES TEXTES, lus à la source au relais Légifrance le 26 septembre 2026,
+     deux lectures espacées et concordantes chacun :
+
+       - L. 3121-27 (LEGIARTI000033020376) : « La durée légale de travail
+         effectif des salariés à temps complet est fixée à trente-cinq heures
+         par semaine. »
+       - L. 3121-28 (LEGIARTI000033020373) : « Toute heure accomplie au delà
+         de la durée légale hebdomadaire ou de la durée considérée comme
+         équivalente est une heure supplémentaire qui ouvre droit à une
+         majoration salariale ou, le cas échéant, à un repos compensateur
+         équivalent. »
+       - L. 3121-36 (LEGIARTI000033020341) : « A défaut d'accord, les heures
+         supplémentaires accomplies au-delà de la durée légale hebdomadaire
+         fixée à l'article L. 3121-27 ou de la durée considérée comme
+         équivalente donnent lieu à une majoration de salaire de 25 % pour
+         chacune des huit premières heures supplémentaires. Les heures
+         suivantes donnent lieu à une majoration de 50 %. »
+       - L. 3121-18 (LEGIARTI000033020428) : dix heures par jour, sauf
+         dérogation de l'inspecteur du travail, urgence, ou les cas de
+         L. 3121-19.
+       - L. 3121-20 (LEGIARTI000033020414) : « Au cours d'une même semaine, la
+         durée maximale hebdomadaire de travail est de quarante-huit heures. »
+       - L. 3121-22 (LEGIARTI000033020402) : quarante-quatre heures en moyenne
+         sur douze semaines consécutives. Douze semaines ne tiennent pas dans
+         un mois : cette moyenne-là n'est donc pas calculée ici, elle est
+         nommée.
+       - R. 3312-51 du code des transports (LEGIARTI000033450339) : « La durée
+         quotidienne du temps de service ne peut excéder douze heures pour le
+         personnel roulant. »
+       - R. 3312-50 du code des transports (LEGIARTI000033450337) : cinquante-
+         six heures sur une semaine isolée pour le grand routier, cinquante-
+         deux pour les autres roulants marchandises, quarante-huit pour la
+         messagerie et les convoyeurs de fonds.
+
+     CE QUI N'EST PAS ÉCRIT ICI, ET POURQUOI. Le taux de majoration de
+     L. 3121-36 ne vaut qu'« à défaut d'accord » : l'accord d'entreprise ou la
+     convention collective peuvent en fixer un autre, et celle des transports
+     routiers n'est pas lue ici. Les heures au-delà de trente-cinq heures sont
+     donc comptées, jamais valorisées en euros. De même, le régime
+     d'équivalence de L. 3121-13 et le temps de service du transport ne se
+     déduisent pas d'un horaire : ce qui est comparé, c'est ce qui est saisi. */
+
+  var LEGALE = 35;
+  /* LE SEUIL AU-DELÀ DUQUEL L'HEURE EST SUPPLÉMENTAIRE N'EST PAS LE MÊME.
+
+     Pour un roulant, ce n'est pas trente-cinq heures : « Est considérée comme
+     heure supplémentaire, pour les personnels roulants, toute heure de temps
+     de service assurée au-delà des durées mentionnées à l'article
+     D. 3312-45 » (R. 3312-47, LEGIARTI000033450331). Et D. 3312-45
+     (LEGIARTI000033450327) fixe ce temps de service à quarante-trois heures
+     par semaine pour le grand routier, trente-neuf pour les autres roulants
+     marchandises, trente-cinq pour la messagerie et les convoyeurs de fonds.
+     Compter les heures d'un grand routier à partir de trente-cinq heures,
+     c'était lui en compter huit de trop chaque semaine.
+
+     La catégorie vient du contrat écrit ici, pas d'une supposition sur
+     l'emploi : sans elle, ce sont le seuil et les plafonds du code du travail.
+     Lectures faites au relais Légifrance le 26 septembre 2026, deux fois
+     chacune. */
+  var PLAFONDS_TRANSPORT = {
+    grand: { sem: 56, jour: 12, seuil: 43, trimestre: 559,
+      dit: "personnel roulant grand routier ou longue distance" },
+    courte: { sem: 52, jour: 12, seuil: 39, trimestre: 507,
+      dit: "autre personnel roulant marchandises" },
+    messagerie: { sem: 48, jour: 12, seuil: 35, trimestre: 455,
+      dit: "conducteur de messagerie ou convoyeur de fonds" },
+  };
+  function plafonds() {
+    var su = (qui && window.EcheancesSalaries) ? (window.EcheancesSalaries.suite(qui.id) || {}) : {};
+    var p = PLAFONDS_TRANSPORT[net(su.categorieTransport)];
+    if (p) return { jour: p.jour, sem: p.sem, seuil: p.seuil, trimestre: p.trimestre,
+      roulant: true, dit: p.dit,
+      source: "R. 3312-51 et R. 3312-50 du code des transports",
+      sourceSeuil: "D. 3312-45 et R. 3312-47 du code des transports" };
+    return { jour: 10, sem: 48, seuil: LEGALE, trimestre: null, roulant: false, dit: "",
+      source: "L. 3121-18 et L. 3121-20 du code du travail",
+      sourceSeuil: "L. 3121-27 et L. 3121-28 du code du travail" };
+  }
+
+  /* Une semaine du mois n'est complète que si ses sept jours y sont : celles
+     du premier et du dernier jour débordent sur le mois voisin, et un total
+     de quatre jours ne se compare à aucun plafond hebdomadaire. */
+  function analyse() {
+    var pl = plafonds(), out = { pl: pl, jours: [], semaines: [], hs: 0, a25: 0, a50: 0, partielles: 0 };
+    lignes.forEach(function (l) {
+      var v = duree(l);
+      if (v > pl.jour + 0.001) out.jours.push({ j: l.j, h: v });
+    });
+    semaines.forEach(function (s) {
+      var t = 0;
+      s.jours.forEach(function (l) { t += duree(l); });
+      var complete = s.jours.length === 7;
+      if (!complete) { out.partielles++; }
+      out.semaines.push({ du: s.du, au: s.au, h: t, complete: complete,
+        depasse: complete && t > pl.sem + 0.001 });
+      if (complete && t > pl.seuil + 0.001) {
+        var sup = t - pl.seuil;
+        out.hs += sup;
+        out.a25 += Math.min(sup, 8);
+        out.a50 += Math.max(0, sup - 8);
+      }
+    });
+    /* Le mois garde ce qu'il a compté : c'est ce qui permet au trimestre et à
+       l'année de s'additionner sans recalculer des mois qu'on n'a pas
+       ouverts. Seuls les mois tenus ici comptent, et l'écran le dit. */
+    var m = moisDe();
+    var avant = JSON.stringify([m.calcul, m.hs, m.seuil]);
+    m.calcul = Math.round(totalMois() * 100) / 100;
+    m.hs = Math.round(out.hs * 100) / 100;
+    m.seuil = pl.seuil;
+    if (JSON.stringify([m.calcul, m.hs, m.seuil]) !== avant) garderMois(m);
+    return out;
+  }
+
+  /* CE QUE LE TRIMESTRE ET L'ANNÉE DOIVENT AU MOIS.
+
+     Le repos compensateur du transport se compte par trimestre (R. 3312-48,
+     LEGIARTI000033450333) : une journée de la quarante-et-unième à la
+     soixante-dix-neuvième heure supplémentaire, une journée et demie de la
+     quatre-vingtième à la cent-huitième, deux journées et demie au-delà. Le
+     contingent du code du travail se compte par année civile : deux cent
+     vingt heures à défaut d'accord (D. 3121-24, LEGIARTI000033509251), et
+     au-delà s'ouvre la contrepartie obligatoire en repos (L. 3121-30,
+     LEGIARTI000033020367), fixée à défaut d'accord à 100 % des heures pour
+     les entreprises de plus de vingt salariés, 50 % au plus vingt
+     (L. 3121-38, LEGIARTI000038610163). */
+  function cumul(depuisMois, jusquaMois) {
+    var t = lireCle(CLE_DEC, {}), total = 0, tenus = [], manquants = [];
+    for (var k = depuisMois; k <= jusquaMois; k++) {
+      var cle = qui.id + "|" + an + "-" + ("0" + (k + 1)).slice(-2);
+      var m = t[cle];
+      if (m && typeof m.hs === "number") { total += m.hs; tenus.push(k); }
+      else manquants.push(k);
+    }
+    return { hs: Math.round(total * 100) / 100, tenus: tenus, manquants: manquants };
+  }
+  function reposTrimestre(hs) {
+    if (hs <= 40) return 0;
+    if (hs <= 79) return 1;
+    if (hs <= 108) return 1.5;
+    return 2.5;
+  }
+  function contingent() {
+    var c = cumul(0, 11), p = entreprise();
+    var eff = parseInt(String(p.effectif || "").replace(/[^0-9]/g, ""), 10);
+    var taux = isFinite(eff) && eff <= 20 ? 50 : 100;
+    return { hs: c.hs, manquants: c.manquants, taux: taux,
+      audela: Math.max(0, Math.round((c.hs - 220) * 100) / 100) };
+  }
+
+  /* Ce que l'écran en dit : des phrases, pas un tableau de bord. Ce qui est
+     franchi est dit en premier, avec le jour et le chiffre. */
+  function leJourDit(j) { return j === 1 ? "le 1er" : "le " + j; }
+
+  function rendreControles() {
+    var z = $("controles");
+    if (!z) return;
+    var a = analyse(), L = [];
+    /* Les journées franchies sont marquées dans la grille : la phrase n'en
+       nomme que quatre au plus, sinon elle fait un mur de texte sur un
+       téléphone. Le papier et le classeur, eux, les portent toutes. */
+    lignes.forEach(function (l) {
+      if (l.noeud) l.noeud.classList.toggle("trop", duree(l) > a.pl.jour + 0.001);
+    });
+    if (a.jours.length) {
+      var dits = a.jours.slice(0, 4).map(function (x) { return leJourDit(x.j) + " (" + nbh(x.h) + ")"; });
+      L.push('<p class="al rouge">' + (a.jours.length === 1
+        ? "Une journée dépasse " + a.pl.jour + " heures : " + dits[0]
+        : a.jours.length + " journées dépassent " + a.pl.jour + " heures, dont " + dits.join(", ") +
+          (a.jours.length > 4 ? ", et " + (a.jours.length - 4) + " autres marquées dans la grille" : "")) +
+        ". Plafond de " + ech(a.pl.source.split(" et ")[0]) + ".</p>");
+    }
+    var dep = a.semaines.filter(function (x) { return x.depasse; });
+    if (dep.length) {
+      L.push('<p class="al rouge">' + (dep.length === 1 ? "Une semaine dépasse " : dep.length +
+        " semaines dépassent ") + a.pl.sem + " heures : " +
+        dep.map(function (x) { return "du " + (x.du === 1 ? "1er" : x.du) + " au " + x.au +
+          " (" + nbh(x.h) + ")"; }).join(", ") + ".</p>");
+    }
+    if (a.hs > 0.005) {
+      L.push('<p class="al">Heures supplémentaires des semaines entières du mois, au-delà de ' +
+        a.pl.seuil + " heures : " + nbh(a.hs) + ", dont " + nbh(a.a25) +
+        " dans les huit premières heures de chaque semaine et " + nbh(a.a50) + " au-delà.</p>");
+    } else if (!a.jours.length && !dep.length) {
+      L.push('<p class="doux">Aucun dépassement des plafonds sur ce mois, et aucune semaine ' +
+        "entière au-delà de trente-cinq heures.</p>");
+    }
+    if (a.partielles) {
+      L.push('<p class="doux">' + (a.partielles > 1
+        ? a.partielles + " semaines chevauchent le mois voisin : leurs totaux ne sont pas comparés"
+        : "Une semaine chevauche le mois voisin : son total n'est pas comparé") +
+        " aux plafonds hebdomadaires, il se vérifie avec l'autre mois.</p>");
+    }
+    /* LE REPOS QUI S'OUVRE, ET CE QUI MANQUE POUR LE DIRE.
+
+       Le repos compensateur ne se lit ni au jour ni à la semaine : au
+       trimestre pour un roulant, à l'année pour le contingent. Les mois qui
+       n'ont pas été tenus ici ne sont pas devinés, ils sont nommés. */
+    var tri = Math.floor(mo / 3);
+    var c = cumul(tri * 3, tri * 3 + 2);
+    if (a.pl.roulant) {
+      var jRepos = reposTrimestre(c.hs);
+      L.push('<p class="al">Trimestre ' + (tri + 1) + " (" + MOIS[tri * 3] + " à " +
+        MOIS[tri * 3 + 2] + ") : " + nbh(c.hs) + " d'heures supplémentaires" +
+        (jRepos ? ", soit " + String(jRepos).replace(".", ",") + " jour" + (jRepos > 1 ? "s" : "") +
+          " de repos compensateur trimestriel (R. 3312-48)." : ", pas encore de repos compensateur " +
+          "trimestriel : il s'ouvre à la quarante et unième heure (R. 3312-48).") + "</p>");
+    } else {
+      var ct = contingent();
+      L.push('<p class="al">Année ' + an + " : " + nbh(ct.hs) + " d'heures supplémentaires sur " +
+        "les mois tenus ici" + (ct.audela > 0
+          ? ", soit " + nbh(ct.audela) + " au-delà du contingent de 220 heures : ces heures ouvrent " +
+            "une contrepartie obligatoire en repos de " + ct.taux + " % (L. 3121-30, L. 3121-38, " +
+            "D. 3121-24, à défaut d'accord)."
+          : ", sur un contingent de 220 heures à défaut d'accord (D. 3121-24).") + "</p>");
+    }
+    if (c.manquants.length) {
+      L.push('<p class="doux">Mois du trimestre qui ne sont pas tenus ici : ' +
+        c.manquants.map(function (k) { return MOIS[k]; }).join(", ") +
+        ". Ils ne sont pas comptés, et rien n'est supposé à leur place.</p>");
+    }
+
+    /* CE QUI FONDE CES CHIFFRES SE REPLIE.
+
+       Les quatre paragraphes de droit faisaient huit cents pixels de texte sur
+       un téléphone, au-dessus de la ligne qui compte. Ils restent, derrière un
+       repli : ce qui est franchi se lit d'abord, le fondement se touche.
+       Relevé le 26 septembre 2026. */
+    L.push('<details class="loi"><summary>Ce qui fonde ces plafonds</summary><div>' +
+      "<p>L'heure supplémentaire commence au-delà de " + a.pl.seuil + " heures par semaine, " +
+      ech(a.pl.sourceSeuil) + ". À défaut d'accord, les huit premières de chaque semaine sont " +
+      "majorées de 25 % et les suivantes de 50 % (L. 3121-36) ; votre convention ou votre accord " +
+      "peut fixer d'autres taux, et celle des transports routiers n'est pas lue ici. Aucun " +
+      "montant n'est calculé ici.</p>" +
+      (a.pl.roulant
+        ? "<p>Le repos compensateur du transport se compte par trimestre : une journée de la " +
+          "quarante et unième à la soixante-dix-neuvième heure supplémentaire, une journée et " +
+          "demie de la quatre-vingtième à la cent-huitième, deux journées et demie au-delà " +
+          "(R. 3312-48). Il se prend dans les trois mois qui suivent, six au plus si un accord " +
+          "le prévoit.</p>"
+        : "<p>Au-delà du contingent annuel, fixé à 220 heures à défaut d'accord (D. 3121-24), " +
+          "les heures supplémentaires ouvrent une contrepartie obligatoire en repos " +
+          "(L. 3121-30), fixée à défaut d'accord à 100 % pour les entreprises de plus de vingt " +
+          "salariés et à 50 % au plus vingt (L. 3121-38).</p>") +
+      "<p>Plafonds appliqués sur ce relevé : " + a.pl.jour + " heures par jour et " + a.pl.sem +
+      " heures par semaine, " + ech(a.pl.source) +
+      (a.pl.dit ? ", catégorie « " + ech(a.pl.dit) + " »" : "") + ".</p>" +
+      "<p>La moyenne de quarante-quatre heures sur douze semaines consécutives (L. 3121-22) ne se " +
+      "calcule pas sur un mois : elle se vérifie sur trois mois de relevés.</p>" +
+      "</div></details>");
+    z.innerHTML = L.join("");
+    /* La case du motif n'apparaît que s'il y a quelque chose à expliquer. */
+    var lm = $("l-motif-dep"), im = $("t-motif-dep");
+    if (lm && im) {
+      var besoin = !!(a.jours.length || dep.length);
+      lm.hidden = !besoin;
+      if (besoin) { var mm = moisDe(); if (im.value !== (mm.motifDep || "")) im.value = mm.motifDep || ""; }
+      im.disabled = VERROU;
+    }
+  }
+
+  /* ══════════ L'AMPLITUDE, LA NUIT, LES REPAS ET LES DÉCOUCHERS ═══════
+
+     Le relevé comptait des heures et rien d'autre. Or ce qui se paie en plus
+     des heures, dans le transport, ce sont l'amplitude, les heures de nuit,
+     les repas pris hors du domicile et les nuits passées dehors. L'audit du
+     26 septembre 2026 l'a relevé.
+
+     Ce qui se calcule est calculé depuis les horaires déjà saisis :
+     l'amplitude d'une journée est l'écart entre le début et la fin, pause
+     comprise, et les heures de nuit sont celles qui tombent dans la période
+     de nuit de la convention. Ce que seul l'employeur sait, combien de repas
+     ont été pris hors du domicile et combien de nuits dehors, se compte à la
+     main : aucune règle ne permet de le déduire d'une heure de départ.
+
+     Les montants viennent de contrats-transport.js, qui les porte avec leur
+     source et leur date : protocole du 30 avril 1974 et son avenant, accord
+     du 14 novembre 2001 pour la nuit, accord du 12 novembre 1998 pour
+     l'amplitude. Ils sont affichés avec cette source, et l'écran dit de les
+     vérifier au texte. */
+  function ccnTransport() {
+    return (window.ContratsTransport && window.ContratsTransport.CCN) || null;
+  }
+  function estTransport() {
+    var p = entreprise() || {};
+    var sec = sansAccent(String(p.secteur || ""));
+    if (sec.indexOf("transport") >= 0 || sec.indexOf("logistique") >= 0) return true;
+    var c = String(p.conventionCollective || "");
+    var m = c.match(/\d{3,4}/);
+    return !!(m && Number(m[0]) === 16);
+  }
+  /* Les heures d'une journée qui tombent entre deux bornes horaires, la
+     journée pouvant déborder sur le lendemain. */
+  function heuresEntre(debut, fin, borneA, borneB) {
+    var d = enMinutes(debut), f = enMinutes(fin);
+    if (d === null || f === null) return 0;
+    if (f <= d) f += 1440;
+    var total = 0;
+    for (var tour = 0; tour <= 1; tour++) {
+      var a = borneA + tour * 1440, b = borneB + tour * 1440;
+      if (b <= a) b += 1440;
+      var deb = Math.max(d, a), fi = Math.min(f, b);
+      if (fi > deb) total += fi - deb;
+    }
+    return total / 60;
+  }
+  function sujetionsDuMois() {
+    var C = ccnTransport();
+    var perNuit = (C && C.nuit && C.nuit.periode) || "de 21 heures à 6 heures";
+    var bornes = /(\d{1,2})\s*heures?\s*à\s*(\d{1,2})\s*heures?/.exec(perNuit);
+    var a = bornes ? Number(bornes[1]) * 60 : 21 * 60;
+    var b = bornes ? Number(bornes[2]) * 60 : 6 * 60;
+    var out = { jours: 0, amplitude: 0, amplitudeMax: 0, jourMax: null, nuit: 0,
+      nuits: 0, periode: perNuit, plafond: (C && C.amplitude && C.amplitude.plafondHeures) || null,
+      audelaPlafond: 0 };
+    lignes.forEach(function (l) {
+      if (l.n !== "travail") return;
+      var d = enMinutes(l.d), f = enMinutes(l.f);
+      if (d === null || f === null) return;
+      var fin = f <= d ? f + 1440 : f;
+      var amp = (fin - d) / 60;
+      if (amp <= 0) return;
+      out.jours++;
+      out.amplitude += amp;
+      if (amp > out.amplitudeMax) { out.amplitudeMax = amp; out.jourMax = l.j; }
+      var n = heuresEntre(l.d, l.f, a, b);
+      if (n > 0) { out.nuit += n; out.nuits++; }
+    });
+    out.amplitude = Math.round(out.amplitude * 100) / 100;
+    out.amplitudeMax = Math.round(out.amplitudeMax * 100) / 100;
+    out.nuit = Math.round(out.nuit * 100) / 100;
+    if (out.plafond && out.amplitude > out.plafond)
+      out.audelaPlafond = Math.round((out.amplitude - out.plafond) * 100) / 100;
+    return out;
+  }
+
+  /* Les indemnités qui se comptent, et le montant de chacune. */
+  function lignesFrais() {
+    var C = ccnTransport();
+    var f = (C && C.frais) || {};
+    return [
+      { c: "repas", nom: "Repas", montant: f.repas, sous: "repas pris hors du domicile" },
+      { c: "repasUnique", nom: "Repas unique", montant: f.repasUnique, sous: "un seul repas hors du domicile" },
+      { c: "repasUniqueNuit", nom: "Repas unique de nuit", montant: f.repasUniqueNuit, sous: "pris pendant la période de nuit" },
+      { c: "casseCroute", nom: "Casse-croûte", montant: f.casseCroute, sous: "prise de service avant 5 heures" },
+      { c: "speciale", nom: "Indemnité spéciale", montant: f.speciale, sous: "sujétion particulière" },
+      { c: "grandDeplacement1", nom: "Découcher, un repas", montant: f.grandDeplacement1, sous: "nuit dehors et un repas" },
+      { c: "grandDeplacement2", nom: "Découcher, deux repas", montant: f.grandDeplacement2, sous: "nuit dehors et deux repas" }
+    ].filter(function (x) { return typeof x.montant === "number"; });
+  }
+  function nombreFrais(m, c) {
+    var v = parseInt(String((m.frais && m.frais[c]) || "").replace(/[^0-9]/g, ""), 10);
+    return isFinite(v) ? v : 0;
+  }
+  function eur(n) {
+    return (Math.round(n * 100) / 100).toFixed(2).replace(".", ",") + " €";
+  }
+  function rendreSujetions() {
+    var bloc = $("bloc-sujetions");
+    if (!bloc) return;
+    if (!estTransport() || !ccnTransport()) { bloc.hidden = true; return; }
+    bloc.hidden = false;
+    var s = sujetionsDuMois(), C = ccnTransport(), m = moisDe(), verrou = !!(m.clos && m.clos.le);
+    var L = lignesFrais();
+    var total = 0;
+    L.forEach(function (x) { total += nombreFrais(m, x.c) * x.montant; });
+
+    $("sujetions").innerHTML =
+      '<div class="tuile"><span class="et">Amplitude du mois</span><div class="n">' +
+      ech(nbh(s.amplitude)) + "</div><small>" +
+      ech(s.jours + " journée" + (s.jours > 1 ? "s" : "") + " comptée" + (s.jours > 1 ? "s" : "") +
+        (s.jourMax ? ", la plus longue le " + s.jourMax + " avec " + nbh(s.amplitudeMax) : "")) +
+      "</small></div>" +
+      '<div class="tuile"><span class="et">Heures de nuit</span><div class="n">' +
+      ech(nbh(s.nuit)) + "</div><small>" +
+      ech(s.nuits + " journée" + (s.nuits > 1 ? "s" : "") + " touchée" + (s.nuits > 1 ? "s" : "") +
+        " · période " + s.periode + " (" + C.nuit.source + ")") + "</small></div>" +
+      '<div class="tuile"><span class="et">Frais et indemnités</span><div class="n">' +
+      ech(eur(total)) + "</div><small>" +
+      ech("somme des nombres saisis ci-dessous") + "</small></div>";
+
+    $("frais").innerHTML = L.map(function (x) {
+      return '<label class="champ"><span>' + ech(x.nom) +
+        "<small>" + ech(x.sous + " · " + eur(x.montant)) + "</small></span>" +
+        '<input type="number" min="0" step="1" inputmode="numeric" data-frais="' + ech(x.c) +
+        '" value="' + ech(nombreFrais(m, x.c) || "") + '" placeholder="0"' +
+        (verrou ? " disabled" : "") + "></label>";
+    }).join("");
+
+    $("frais-dit").textContent = "Les montants sont ceux de " + C.frais.source +
+      ", en vigueur au " + C.frais.depuis.split("-").reverse().join("/") +
+      ", et la période de nuit celle de " + C.nuit.source +
+      ". Vérifiez-les au texte : la convention n'est pas lue par l'application, ces valeurs y ont été " +
+      "recopiées avec leur date. Le nombre de repas et de découchers ne se déduit d'aucun horaire : " +
+      "c'est vous qui le comptez.";
+
+    Array.prototype.forEach.call($("frais").querySelectorAll("[data-frais]"), function (el) {
+      el.addEventListener("input", function () {
+        var mm = moisDe();
+        mm.frais = mm.frais || {};
+        var v = el.value.replace(/[^0-9]/g, "");
+        if (v) mm.frais[el.getAttribute("data-frais")] = v;
+        else delete mm.frais[el.getAttribute("data-frais")];
+        garderMois(mm);
+        rendreSujetions();
+      });
+    });
+  }
+
+  /* Les mêmes chiffres, en phrases, pour le relevé imprimé et pour le Word :
+     un décompte qui ne dit pas l'amplitude ni les frais n'est pas le décompte
+     du mois. */
+  function phrasesSujetions() {
+    if (!estTransport() || !ccnTransport()) return [];
+    var s = sujetionsDuMois(), C = ccnTransport(), m = moisDe();
+    var L = [];
+    L.push("Amplitude cumulée des journées travaillées : " + nbh(s.amplitude) +
+      (s.jourMax ? ", la plus longue le " + s.jourMax + " " + MOIS[mo] + " avec " + nbh(s.amplitudeMax) : "") + ".");
+    L.push("Heures comprises dans la période de nuit, " + s.periode + " : " + nbh(s.nuit) +
+      " sur " + s.nuits + " journée" + (s.nuits > 1 ? "s" : "") + " (" + C.nuit.source + ").");
+    var F = lignesFrais(), total = 0, dits = [];
+    F.forEach(function (x) {
+      var n = nombreFrais(m, x.c);
+      if (!n) return;
+      total += n * x.montant;
+      dits.push(n + " " + x.nom.toLowerCase() + " à " + eur(x.montant));
+    });
+    if (dits.length)
+      L.push("Frais et indemnités du mois : " + dits.join(", ") + ", soit " + eur(total) +
+        " (" + C.frais.source + ", en vigueur au " + C.frais.depuis.split("-").reverse().join("/") + ").");
+    else
+      L.push("Aucun repas ni découcher n'a été compté pour ce mois.");
+    return L;
   }
 
   function calculer() {
@@ -502,6 +998,15 @@
     });
     $("t-jours").textContent = jours;
     $("t-calcule").textContent = nbh(total);
+    var ct = duContrat();
+    var tc = $("tuile-contrat");
+    if (tc) {
+      tc.hidden = !(ct && ct.mois > 0);
+      if (ct && ct.mois > 0) {
+        $("t-contrat").textContent = nbh(ct.mois);
+        tc.title = ct.quoi;
+      }
+    }
 
     var m = moisDe();
     var n = nombre(m.retenu);
@@ -520,6 +1025,8 @@
         " par rapport aux jours saisis.";
       $("l-motif").hidden = false;
     }
+    rendreControles();
+    rendreSujetions();
     return total;
   }
 
@@ -731,7 +1238,13 @@
 
   /* ──────────────────────────────── sorties ─────────────────────────────── */
 
-  function tableauMois() {
+  /* Le même relevé pour trois sorties. `chiffres` change une seule chose : les
+     heures et les pauses partent en nombres, pour que le tableur les
+     additionne au lieu de les afficher comme du texte. Relevé le
+     26 septembre 2026, « les heures sortent en texte dans Excel ». */
+  function tableauMois(chiffres) {
+    function h(v) { return chiffres ? Math.round(v * 100) / 100 : v.toFixed(2).replace(".", ","); }
+    function mn(v) { var n = parseInt(v, 10) || 0; return chiffres ? n : String(n); }
     var t = [["Jour", "Nature", "Début", "Fin", "Pause (min)", "Heures"]];
     var sem = null, cumul = 0;
     lignes.forEach(function (l, i) {
@@ -740,18 +1253,65 @@
       cumul += v;
       t.push([
         l.j + " " + COURT[l.sem],
-        LIB[l.n] || "",
+        l.hc ? "Hors contrat, " + l.hc : (LIB[l.n] || ""),
         l.n === "travail" ? l.d : "",
         l.n === "travail" ? l.f : "",
-        l.n === "travail" ? String(l.p) : "",
-        l.n === "travail" ? v.toFixed(2).replace(".", ",") : "",
+        l.n === "travail" ? mn(l.p) : "",
+        l.n === "travail" ? h(v) : "",
       ]);
       if (l.sem === 0 || i === lignes.length - 1) {
-        t.push(["Semaine du " + sem + " au " + l.j, "", "", "", "Total semaine", cumul.toFixed(2).replace(".", ",")]);
+        t.push(["Semaine du " + sem + " au " + l.j, "", "", "", "Total semaine", h(cumul)]);
         sem = null; cumul = 0;
       }
     });
     return t;
+  }
+
+  /* Les mêmes contrôles qu'à l'écran, en phrases, pour les sorties : le papier
+     signé et le classeur doivent dire ce que le relevé montre. */
+  function phrasesControles() {
+    var a = analyse(), L = [];
+    if (a.jours.length) L.push("Journées au-delà de " + a.pl.jour + " heures : " +
+      a.jours.map(function (x) { return leJourDit(x.j) + " (" + nbh(x.h) + ")"; }).join(", ") + ".");
+    var dep = a.semaines.filter(function (x) { return x.depasse; });
+    if (dep.length) L.push("Semaines au-delà de " + a.pl.sem + " heures : " +
+      dep.map(function (x) { return "du " + (x.du === 1 ? "1er" : x.du) + " au " + x.au +
+        " (" + nbh(x.h) + ")"; }).join(", ") + ".");
+    if (a.hs > 0.005) L.push("Heures supplémentaires des semaines entières, au-delà de " +
+      a.pl.seuil + " heures (" + a.pl.sourceSeuil + ") : " + nbh(a.hs) + ", dont " + nbh(a.a25) +
+      " dans les huit premières heures de chaque semaine et " + nbh(a.a50) + " au-delà. À défaut " +
+      "d'accord, 25 % et 50 % par L. 3121-36, sous réserve de votre convention collective, qui " +
+      "n'est pas lue ici. Aucun montant n'est calculé : les taux se reportent en paie.");
+    var tri = Math.floor(mo / 3), c = cumul(tri * 3, tri * 3 + 2);
+    if (a.pl.roulant) {
+      var jr = reposTrimestre(c.hs);
+      L.push("Trimestre " + (tri + 1) + ", " + MOIS[tri * 3] + " à " + MOIS[tri * 3 + 2] + " : " +
+        nbh(c.hs) + " d'heures supplémentaires sur les mois tenus" +
+        (jr ? ", soit " + String(jr).replace(".", ",") + " jour" + (jr > 1 ? "s" : "") +
+          " de compensation obligatoire en repos (R. 3312-48), à prendre dans les trois mois."
+          : " : la compensation obligatoire en repos s'ouvre à la quarante et unième heure du " +
+            "trimestre (R. 3312-48)."));
+    } else {
+      var ct = contingent();
+      L.push("Année " + an + " : " + nbh(ct.hs) + " d'heures supplémentaires sur les mois tenus" +
+        (ct.audela > 0 ? ", dont " + nbh(ct.audela) + " au-delà du contingent de 220 heures " +
+          "(D. 3121-24), qui ouvrent une contrepartie obligatoire en repos de " + ct.taux + " % " +
+          "(L. 3121-30 et L. 3121-38, à défaut d'accord)."
+          : ", contingent de 220 heures à défaut d'accord (D. 3121-24)."));
+    }
+    if (c.manquants.length) L.push("Mois du trimestre non tenus ici : " +
+      c.manquants.map(function (k) { return MOIS[k]; }).join(", ") + ". Ils ne sont pas comptés.");
+    var md = net(moisDe().motifDep);
+    if (md) L.push("Motif du dépassement, porté par l'entreprise : " + md);
+    if (!a.jours.length && !dep.length && a.hs <= 0.005)
+      L.push("Aucun dépassement des plafonds, et aucune semaine entière au-delà de trente-cinq heures.");
+    if (a.partielles) L.push(a.partielles > 1
+      ? a.partielles + " semaines chevauchent le mois voisin : leurs totaux se vérifient avec l'autre mois."
+      : "Une semaine chevauche le mois voisin : son total se vérifie avec l'autre mois.");
+    L.push("Plafonds appliqués : " + a.pl.jour + " heures par jour et " + a.pl.sem +
+      " heures par semaine (" + a.pl.source + ")" + (a.pl.dit ? ", catégorie « " + a.pl.dit + " »" : "") +
+      ". La moyenne de quarante-quatre heures sur douze semaines (L. 3121-22) ne se calcule pas sur un mois.");
+    return L;
   }
 
   /* ───────────────────── la feuille à signer, et l'e-mail ───────────────── */
@@ -798,6 +1358,14 @@
       h += '<p class="tot">Mois rouvert le ' + ech(enFrancais(o.le)) + (o.heure ? " à " + ech(o.heure) : "") +
         ", après une clôture du " + ech(enFrancais(o.closLe)) + " (empreinte " + ech(o.empreinte || "") +
         ") : " + ech(o.motif) + ".</p>";
+    });
+    /* Les plafonds et les heures au-delà de trente-cinq heures se lisent sur
+       le papier que le salarié signe, avant sa signature. */
+    phrasesControles().forEach(function (x) {
+      h += '<p class="tot">' + ech(x) + "</p>";
+    });
+    phrasesSujetions().forEach(function (x) {
+      h += '<p class="tot">' + ech(x) + "</p>";
     });
     h += '<div class="sign">Remis au salarié le ..............................<br>' +
       "Signature du salarié, précédée de la mention « reçu le » :<br><br>" +
@@ -871,6 +1439,132 @@
     setTimeout(function () { lien.remove(); }, 1000);
   }
 
+  /* ══════════ L'ÉTAT DU MOIS, POUR TOUS LES SALARIÉS ═══════════════════
+
+     Le décompte se tenait salarié par salarié : pour savoir où en était la
+     paie du mois, il fallait ouvrir autant de fiches qu'il y a de salariés.
+     L'audit du 26 septembre 2026 l'a relevé.
+
+     Ce tableau ne recalcule rien. Il reprend, pour le mois affiché, ce que
+     chaque mois tenu a enregistré : le total calculé, le total retenu, les
+     heures supplémentaires, l'état de clôture. Un salarié dont le mois n'a
+     jamais été ouvert n'a pas de chiffre, et la ligne le dit : elle ne met
+     pas zéro, qui se lirait comme un mois à zéro heure. */
+  function etatDuMois() {
+    var t = lireCle(CLE_DEC, {});
+    var cleM = an + "-" + ("0" + (mo + 1)).slice(-2);
+    var trimestre = Math.floor(mo / 3);
+    return salaries().map(function (s) {
+      var m = t[s.id + "|" + cleM];
+      var o = { id: s.id, nom: s.nom, emp: s.emp || "", tenu: !!m };
+      if (!m) return o;
+      o.calcul = typeof m.calcul === "number" ? m.calcul : null;
+      o.retenu = nombre(m.retenu);
+      o.hs = typeof m.hs === "number" ? m.hs : null;
+      o.clos = !!(m.clos && m.clos.le);
+      o.closLe = o.clos ? m.clos.le : "";
+      o.motif = m.motif || "";
+      o.motifDep = m.motifDep || "";
+      /* Le repos compensateur se compte par trimestre : on additionne les
+         mois du trimestre qui ont été tenus, et on dit ceux qui manquent. */
+      var hsT = 0, manquants = [];
+      for (var k = trimestre * 3; k < trimestre * 3 + 3; k++) {
+        var mm = t[s.id + "|" + an + "-" + ("0" + (k + 1)).slice(-2)];
+        if (mm && typeof mm.hs === "number") hsT += mm.hs;
+        else manquants.push(MOIS[k]);
+      }
+      o.hsTrimestre = Math.round(hsT * 100) / 100;
+      o.repos = reposTrimestre(o.hsTrimestre);
+      o.trimestreManquants = manquants;
+      /* Les frais du mois, s'il y en a. */
+      var F = lignesFrais(), tot = 0;
+      F.forEach(function (x) {
+        var n = parseInt(String((m.frais && m.frais[x.c]) || "").replace(/[^0-9]/g, ""), 10);
+        if (isFinite(n)) tot += n * x.montant;
+      });
+      o.frais = Math.round(tot * 100) / 100;
+      return o;
+    });
+  }
+
+  function rendreEtatTous() {
+    var L = etatDuMois();
+    var tenus = L.filter(function (x) { return x.tenu; });
+    var clos = tenus.filter(function (x) { return x.clos; });
+    $("etat-tous-dit").textContent = L.length + " salarié" + (L.length > 1 ? "s" : "") +
+      " au registre · " + tenus.length + " mois tenu" + (tenus.length > 1 ? "s" : "") +
+      " pour " + MOIS[mo] + " " + an + " · " + clos.length + " clos";
+    if (!L.length) {
+      $("etat-tous").innerHTML = "";
+      $("b-etat-excel").hidden = true;
+      return;
+    }
+    var h = '<div class="tableau-etat"><table><thead><tr>' +
+      ["Salarié", "Calculé", "Retenu", "Heures sup.", "Repos trimestre", "Frais", "État"]
+        .map(function (c) { return "<th>" + ech(c) + "</th>"; }).join("") +
+      "</tr></thead><tbody>";
+    L.forEach(function (x) {
+      if (!x.tenu) {
+        h += '<tr class="vide"><td>' + ech(x.nom) + "</td>" +
+          '<td colspan="6">mois non tenu</td></tr>';
+        return;
+      }
+      h += "<tr><td>" + ech(x.nom) + "</td>" +
+        "<td>" + ech(x.calcul === null ? "" : nbh(x.calcul)) + "</td>" +
+        "<td>" + ech(x.retenu === null ? "à remplir" : nbh(x.retenu)) + "</td>" +
+        "<td>" + ech(x.hs === null ? "" : nbh(x.hs)) + "</td>" +
+        "<td>" + ech(x.repos ? x.repos + " j" : "aucun") +
+        (x.trimestreManquants.length ? " <small>(" + ech(x.trimestreManquants.join(", ")) +
+          " non tenu" + (x.trimestreManquants.length > 1 ? "s" : "") + ")</small>" : "") + "</td>" +
+        "<td>" + ech(x.frais ? eur(x.frais) : "") + "</td>" +
+        "<td>" + (x.clos ? "clos le " + ech(enFrancais(x.closLe)) : "en cours") + "</td></tr>";
+    });
+    h += "</tbody></table></div>";
+    $("etat-tous").innerHTML = h;
+    $("b-etat-excel").hidden = false;
+  }
+
+  /* L'EXPORT POUR LA PAIE. Une ligne par salarié, les colonnes que la paie
+     reprend, et rien de deviné : un mois non tenu sort vide, non à zéro. */
+  function etatClasseur() {
+    if (!window.TableurExport) return;
+    var p = entreprise(), L = etatDuMois();
+    var lignes = [
+      ["État mensuel des heures, tous les salariés"],
+      ["Entreprise", p.denomination || ""],
+      ["Mois", MOIS[mo] + " " + an],
+      ["Établi le", enFrancais(iso(new Date()))],
+      [],
+      ["Salarié", "Emploi", "Heures calculées", "Heures retenues", "Heures supplémentaires",
+       "Heures sup. du trimestre", "Repos compensateur (jours)", "Frais et indemnités (euros)",
+       "État du mois", "Motif de l'écart", "Motif du dépassement"],
+    ];
+    L.forEach(function (x) {
+      if (!x.tenu) {
+        lignes.push([x.nom, x.emp, "", "", "", "", "", "", "mois non tenu", "", ""]);
+        return;
+      }
+      lignes.push([x.nom, x.emp,
+        x.calcul === null ? "" : x.calcul,
+        x.retenu === null ? "" : x.retenu,
+        x.hs === null ? "" : x.hs,
+        x.hsTrimestre, x.repos, x.frais,
+        x.clos ? "clos le " + enFrancais(x.closLe) : "en cours",
+        x.motif || "", x.motifDep || ""]);
+    });
+    lignes.push([]);
+    lignes.push(["Un mois non tenu sort vide, et non à zéro : personne n'a compté ses heures, " +
+      "ce qui n'est pas la même chose qu'un mois sans heures."]);
+    lignes.push(["Établi en application des articles L. 3171-2 et D. 3171-8 du code du travail."]);
+    var octets = window.TableurExport.xlsx([{
+      titre: "État du mois",
+      lignes: lignes,
+      largeurs: [24, 18, 14, 14, 16, 16, 16, 18, 20, 26, 26],
+    }]);
+    window.TableurExport.telecharger(octets,
+      "etat-heures-" + an + "-" + ("0" + (mo + 1)).slice(-2) + ".xlsx");
+  }
+
   function classeur() {
     if (!window.TableurExport) return;
     var p = entreprise(), m = moisDe();
@@ -879,25 +1573,33 @@
       ["Entreprise", p.denomination || ""],
       ["Salarié", qui.nom + (qui.emp ? ", " + qui.emp : "")],
       ["Mois", MOIS[mo] + " " + an],
-      ["Horaire de référence", refDe(qui.id).d + " - " + refDe(qui.id).f +
-        ", pause " + refDe(qui.id).p + " min"],
+      /* L'ancien modèle à trois champs n'existe plus : cette ligne sortait
+         « undefined - undefined, pause undefined min ». Relevé le
+         26 septembre 2026. */
+      ["Horaire de référence", direSemaine(refDe(qui.id))],
       [],
     ];
+    var retenu = nombre(m.retenu);
     var pied = [
       [],
-      ["Total calculé par les jours", nbh(totalMois())],
-      ["Total retenu par l'entreprise", m.retenu ? nbh(nombre(m.retenu) || 0) : "à remplir"],
+      ["Total calculé par les jours (heures)", Math.round(totalMois() * 100) / 100],
+      ["Total retenu par l'entreprise (heures)", retenu === null ? "à remplir" : retenu],
       ["Motif de l'écart", m.motif || ""],
       ["État du mois", m.clos && m.clos.le
         ? "clos le " + enFrancais(m.clos.le) + ", empreinte " + m.clos.empreinte
         : "en cours"],
       [],
+      ["Heures supplémentaires et plafonds"],
+    ].concat(phrasesControles().map(function (p) { return [p]; }))
+      .concat(phrasesSujetions().length ? [[], ["Amplitude, nuit, repas et découchers"]] : [])
+      .concat(phrasesSujetions().map(function (p) { return [p]; })).concat([
+      [],
       ["Établi en application des articles L. 3171-2 et D. 3171-8 du code du travail. " +
        "À conserver un an au moins à la disposition de l'inspection du travail (D. 3171-16)."],
-    ];
+    ]);
     var feuilles = [{
       titre: "Décompte",
-      lignes: tete.concat(tableauMois()).concat(pied),
+      lignes: tete.concat(tableauMois(true)).concat(pied),
       largeurs: [26, 22, 12, 12, 14, 12],
     }];
 
@@ -957,7 +1659,13 @@
       { k: "p", t: "Total retenu par l'entreprise : " +
         (m.retenu ? nbh(nombre(m.retenu) || 0) : "à compléter") + "." +
         (m.motif ? " Motif de l'écart : " + m.motif + "." : "") },
-    ];
+      { k: "h2", t: "Heures supplémentaires et plafonds" },
+    ].concat(phrasesControles().map(function (x) { return { k: "p", t: x }; }));
+    var suj = phrasesSujetions();
+    if (suj.length) {
+      items.push({ k: "h2", t: "Amplitude, nuit, repas et découchers" });
+      suj.forEach(function (x) { items.push({ k: "p", t: x }); });
+    }
     if (m.clos && m.clos.le) {
       items.push({ k: "note", t: "Mois clos le " + enFrancais(m.clos.le) + " à " + (m.clos.heure || "") +
         ". Empreinte des lignes : " + m.clos.empreinte + "." });
@@ -1132,10 +1840,60 @@
     $("t-motif").addEventListener("input", function () {
       var m = moisDe(); m.motif = $("t-motif").value; garderMois(m);
     });
+    if ($("t-motif-dep")) $("t-motif-dep").addEventListener("input", function () {
+      var m = moisDe(); m.motifDep = $("t-motif-dep").value; garderMois(m);
+    });
+
+    /* CE QUI EMPÊCHE DE CLORE.
+
+       Trois clôtures étaient acceptées qui n'auraient pas dû l'être : un mois
+       à venir, dont les journées ne sont que l'horaire de référence recopié ;
+       un mois sans total retenu, c'est-à-dire scellé sans que personne ait dit
+       combien d'heures sont payées ; un écart entre le calcul et le total
+       retenu sans un mot pour l'expliquer. Relevé le 26 septembre 2026. Le
+       refus dit lequel des trois, et met le curseur dans la case qui manque. */
+    function refusDeClore() {
+      var m = moisDe(), d = new Date();
+      var finDuMois = new Date(an, mo + 1, 0);
+      if (finDuMois > d) {
+        return { dit: "Ce mois n'est pas terminé : il se clôt à partir du " +
+          enFrancais(iso(new Date(an, mo + 1, 1))) + ". Les journées qui restent ne sont que " +
+          "l'horaire de référence recopié, elles n'ont pas été travaillées.", ou: null };
+      }
+      var n = nombre(m.retenu);
+      if (n === null) {
+        return { dit: "Le total retenu par l'entreprise n'est pas saisi : un mois se clôt sur un " +
+          "nombre d'heures, pas sur une case vide.", ou: "t-retenu" };
+      }
+      if (Math.abs(n - totalMois()) >= 0.005 && !net(m.motif)) {
+        return { dit: "Le total retenu diffère du calcul des jours de " +
+          nbh(Math.abs(n - totalMois())) + " : le motif de l'écart est à écrire avant la clôture.",
+          ou: "t-motif" };
+      }
+      var a = analyse();
+      var dep = a.semaines.filter(function (x) { return x.depasse; });
+      if ((a.jours.length || dep.length) && !net(m.motifDep)) {
+        return { dit: "Ce mois porte " + (a.jours.length ? a.jours.length + " journée" +
+          (a.jours.length > 1 ? "s" : "") + " au-delà de " + a.pl.jour + " heures" : "") +
+          (a.jours.length && dep.length ? " et " : "") +
+          (dep.length ? dep.length + " semaine" + (dep.length > 1 ? "s" : "") + " au-delà de " +
+            a.pl.sem + " heures" : "") +
+          " : le motif du dépassement est à écrire avant la clôture.", ou: "t-motif-dep" };
+      }
+      return null;
+    }
 
     $("clore").addEventListener("click", function () {
       var m = moisDe();
       if (m.clos && m.clos.le) return;
+      var refus = refusDeClore();
+      var zr = $("cl-refus");
+      if (refus) {
+        if (zr) { zr.textContent = refus.dit; zr.hidden = false; }
+        if (refus.ou && $(refus.ou)) { $(refus.ou).focus(); $(refus.ou).scrollIntoView({ behavior: "smooth", block: "center" }); }
+        return;
+      }
+      if (zr) { zr.hidden = true; zr.textContent = ""; }
       if (!window.confirm("Clore " + MOIS[mo] + " " + an + " pour " + qui.nom +
         " ? Le mois passe en lecture seule ; ensuite, une correction ne peut plus " +
         "qu'ouvrir un rectificatif daté.")) return;
@@ -1196,6 +1954,91 @@
       rendreListes(m);
     });
 
+    /* ─────────────────────── le relevé de la machine ─────────────────── */
+    /* CE QUE LA MACHINE A ENREGISTRÉ SE REPREND, IL NE SE RETAPE PAS.
+
+       Un tableau, quelle que soit sa provenance : une ligne par jour, avec la
+       date, le début, la fin et la pause. On ne devine pas l'ordre des
+       colonnes au hasard : la date est cherchée en premier, les deux heures
+       ensuite dans l'ordre où elles viennent, la pause est le nombre restant.
+       Seuls les jours du mois affiché sont repris, et l'écran dit combien.
+       Relevé le 26 septembre 2026, « importer le chronotachygraphe ». */
+    function jourDeLaLigne(cellules) {
+      for (var i = 0; i < cellules.length; i++) {
+        var c = String(cellules[i] == null ? "" : cellules[i]).trim();
+        var m = c.match(/^(\d{1,2})[\/\.\-](\d{1,2})(?:[\/\.\-](\d{2,4}))?$/);
+        if (m) {
+          var jj = parseInt(m[1], 10), mm = parseInt(m[2], 10);
+          var aa = m[3] ? parseInt(m[3].length === 2 ? "20" + m[3] : m[3], 10) : an;
+          if (mm === mo + 1 && aa === an && jj >= 1 && jj <= 31) return { j: jj, i: i };
+          return null;
+        }
+        var iso2 = c.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (iso2) {
+          if (parseInt(iso2[1], 10) === an && parseInt(iso2[2], 10) === mo + 1)
+            return { j: parseInt(iso2[3], 10), i: i };
+          return null;
+        }
+        if (/^\d{1,2}$/.test(c) && i === 0) return { j: parseInt(c, 10), i: i };
+      }
+      return null;
+    }
+    function heuresDeLaLigne(cellules, depuis) {
+      var H = [];
+      for (var i = depuis + 1; i < cellules.length; i++) {
+        var c = String(cellules[i] == null ? "" : cellules[i]).trim();
+        if (/^\d{1,2}\s*[:hH.]\s*\d{2}$/.test(c)) H.push(normaliser(c));
+      }
+      return H;
+    }
+    function pauseDeLaLigne(cellules, depuis) {
+      for (var i = cellules.length - 1; i > depuis; i--) {
+        var c = String(cellules[i] == null ? "" : cellules[i]).trim();
+        if (/^\d{1,3}$/.test(c)) return String(parseInt(c, 10));
+      }
+      return null;
+    }
+    function reprendre(table) {
+      var m = moisDe(), n = 0, hors = 0;
+      table.forEach(function (cellules) {
+        if (!cellules || !cellules.length) return;
+        var d = jourDeLaLigne(cellules);
+        if (!d) { hors++; return; }
+        var H = heuresDeLaLigne(cellules, d.i);
+        if (H.length < 2) { hors++; return; }
+        var p = pauseDeLaLigne(cellules, d.i);
+        m.jours[String(d.j)] = { n: "travail", d: H[0], f: H[1], p: p == null ? "0" : p };
+        n++;
+      });
+      if (n) { garderMois(m); construire(); tout(); }
+      $("imp-etat").textContent = n
+        ? n + " jour" + (n > 1 ? "s" : "") + " repris dans le mois affiché" +
+          (hors ? ", " + hors + " ligne" + (hors > 1 ? "s" : "") + " laissée" + (hors > 1 ? "s" : "") +
+            " de côté (autre mois, ou ni début ni fin)" : "") + "."
+        : "Aucun jour du mois affiché n'a été trouvé dans ce relevé.";
+    }
+    $("imp-lire").addEventListener("click", function () {
+      var colle = $("imp-colle").value.trim();
+      var f = $("imp-fichier").files && $("imp-fichier").files[0];
+      if (!window.LireClasseur) { $("imp-etat").textContent = "Le lecteur de tableaux n'a pas pu être chargé."; return; }
+      if (colle) { reprendre(window.LireClasseur.texte(colle)); return; }
+      if (!f) { $("imp-etat").textContent = "Choisissez un fichier, ou collez le tableau."; return; }
+      if (/\.(csv|txt|tsv)$/i.test(f.name)) {
+        f.text().then(function (t) { reprendre(window.LireClasseur.texte(t)); });
+        return;
+      }
+      if (!window.LireClasseur.possible()) {
+        $("imp-etat").textContent = "Ce navigateur ne sait pas ouvrir un .xlsx : enregistrez le relevé en .csv, ou collez le tableau.";
+        return;
+      }
+      $("imp-etat").textContent = "Lecture du fichier…";
+      window.LireClasseur.fichier(f).then(function (lignes) {
+        reprendre(lignes.filter(function (l) { return l.some(function (c) { return String(c || "").trim(); }); }));
+      }, function () {
+        $("imp-etat").textContent = "Ce fichier n'a pas pu être lu.";
+      });
+    });
+
     $("b-imprimer").addEventListener("click", imprimer);
     $("b-mail").addEventListener("click", envoyer);
     $("s-courriel").addEventListener("input", function () {
@@ -1205,6 +2048,8 @@
     });
     $("b-excel").addEventListener("click", classeur);
     $("b-word").addEventListener("click", word);
+    $("b-etat").addEventListener("click", rendreEtatTous);
+    $("b-etat-excel").addEventListener("click", etatClasseur);
     $("b-decl").addEventListener("click", declarationWord);
     $("b-decl-imp").addEventListener("click", declarationImprimer);
 

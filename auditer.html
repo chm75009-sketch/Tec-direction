@@ -52,9 +52,13 @@
   .ligne .oui:hover{background:var(--vert);color:#fff;border-color:var(--vert)}
   .ligne .non{border:2px solid var(--accent);background:var(--accent);color:#fff}
   .ligne .non:hover{background:var(--accent-fonce);border-color:var(--accent-fonce);color:#fff}
-  .ligne.pasdu{opacity:.55}
-  .ligne.pasdu .nom{color:var(--texte-2)}
-  .ligne.pasdu .du{display:inline;white-space:nowrap}
+  /* UNE RAISON N'EST PAS UNE ÉTIQUETTE. « pas dû avant 50 » tenait sur une
+     ligne ; la phrase qui dit pourquoi la fiche ferme un parcours, non. Sans
+     retour à la ligne, la colonne du nom se réduisait à une lettre de large
+     et la page débordait de l'écran. Relevé le 26 septembre 2026. */
+  .ligne.pasdu{opacity:.55;flex-wrap:wrap}
+  .ligne.pasdu .nom{color:var(--texte-2);flex:1 1 100%}
+  .ligne.pasdu .du{display:block;white-space:normal}
   .ligne.fait{background:var(--vert-clair);margin:0 -10px;padding-left:10px;padding-right:10px;border-radius:10px}
   .ligne.fait .nom{color:var(--vert)}
   .ligne .vu{border:2px solid var(--vert);background:var(--vert);color:#fff;cursor:pointer}
@@ -83,7 +87,12 @@
     <span id="ent"></span>
   </div>
 
-  <p class="aide">Non = le document rempli s'ouvre. Oui = vous déposez le vôtre, il est contrôlé.</p>
+  <!-- « Oui = il est contrôlé » était faux pour les lignes qui n'ont pas de
+       page de contrôle : là, « Oui » ne fait qu'inscrire la réponse sur ce
+       poste. Le bandeau le dit, et chaque ligne sans contrôle porte la
+       mention. Relevé le 26 septembre 2026. -->
+  <p class="aide">Non = le document rempli s'ouvre. Oui = vous déposez le vôtre et il est
+    contrôlé, ou, quand aucun contrôle n'existe encore, votre réponse est seulement notée ici.</p>
 
   <div id="liste"></div>
 
@@ -135,12 +144,43 @@
        premier salarié, avec la réserve qui dit quand elle concerne. */
     { cle: "forfait",    nom: "Forfait en jours",               seuil: 1,   cond: "si un salarié est au forfait",
       non: "forfait.html?rep=non", oui: "forfait.html?rep=oui" },
-    { cle: "mutuelle",   nom: "Mutuelle d'entreprise",          seuil: 1,   non: "gerer.html" },
-    { cle: "visites",    nom: "Visites médicales",         seuil: 1,   non: "gerer.html" },
-    { cle: "cse",        nom: "Comité social et économique", seuil: 11, non: "parcours.html?p=installation&faire=1", oui: "controler-cse.html" },
+    /* « Non » ouvre le document, et non la liste entière de Gérer : à la
+       question « avez-vous la complémentaire santé ? », la réponse est la
+       décision unilatérale ; à celle des visites, l'échéancier salarié par
+       salarié, d'où sortent la demande au service de prévention et de santé
+       au travail et la convocation. Relevé le 26 septembre 2026. */
+    { cle: "mutuelle",   nom: "Complémentaire santé obligatoire", seuil: 1,   non: "gerer.html#mutuelle" },
+    { cle: "visites",    nom: "Visites médicales",         seuil: 1,   non: "visites.html",
+      oui: "visites.html" },
+    /* « Non » veut dire : il n'y a pas de comité. Ce qui s'impose alors est
+       le processus électoral (L. 2314-4, L. 2314-5), ou le procès-verbal de
+       carence si personne ne se présente (L. 2314-9) ; pas l'installation
+       d'un comité qui n'existe pas, ni la désignation d'un référent par lui.
+       Le module des élections écrit les deux pièces. Relevé le 26 septembre
+       2026. */
+    { cle: "cse",        nom: "Comité social et économique", seuil: 11, non: "audit-cse.html#elections", oui: "controler-cse.html" },
     { cle: "egalite",    nom: "Égalité femmes-hommes", seuil: 50, non: "parcours.html?p=index&faire=1",        oui: "controler-egalite.html" },
-    { cle: "nao",        nom: "Négociation annuelle (NAO)", seuil: 50, cond: "si délégué syndical", non: "parcours.html?p=nao&faire=1", oui: "controler-nao.html" },
-    { cle: "pse",        nom: "Licenciement économique et PSE", seuil: 50, cond: "si projet de licenciement", non: "audit.html" },
+    /* L. 2242-1 (LEGIARTI000043893962, deux lectures concordantes le
+       26 septembre 2026) : la négociation n'est engagée que « dans les
+       entreprises où sont constituées une ou plusieurs sections syndicales
+       d'organisations représentatives ». La fiche demande s'il existe un
+       délégué syndical : quand elle répond non, la ligne ne s'ouvre pas, et
+       elle dit pourquoi. */
+    { cle: "nao",        nom: "Négociation annuelle (NAO)", seuil: 50, cond: "si délégué syndical",
+      non: "parcours.html?p=nao&faire=1", oui: "controler-nao.html",
+      sans: function (p) {
+        return p.delegueSyndical === "non"
+          ? "aucun délégué syndical déclaré à la fiche : la négociation n'est due que là où sont constituées une ou plusieurs sections syndicales d'organisations représentatives (L. 2242-1)"
+          : ""; } },
+    /* Le licenciement économique commence par le motif : il n'y a pas de
+       document à écrire avant de l'avoir qualifié, et audit.html est l'écran
+       qui le qualifie. Ce que « non » ouvrait donc n'était pas une question
+       de plus, c'était la première étape. La ligne le dit, plutôt que de
+       laisser croire à un document qui viendrait tout seul. Relevé le
+       26 septembre 2026. */
+    { cle: "pse",        nom: "Un licenciement économique est-il envisagé ?", seuil: 50,
+      dit: "la réponse commence par la qualification du motif économique",
+      non: "audit.html", oui: "audit-pse.html" },
     /* La commission santé-sécurité n'obéit pas au seul effectif : L. 2315-36
        (LEGIARTI000035626455, deux lectures concordantes le 15 septembre 2026)
        la crée dans les entreprises d'au moins trois cents salariés, dans les
@@ -152,7 +192,13 @@
        Elle s'ouvre, avec ce que l'effectif ne dit pas. */
     { cle: "cssct",      nom: "Commission santé-sécurité", seuil: 300,
       sousSeuil: "à vérifier : établissement distinct, site classé, ou décision de l'inspection du travail",
-      non: "parcours.html?p=commissions&faire=1" }
+      non: "parcours.html?p=commissions&faire=1",
+      /* La commission est une commission du comité : ses membres sont
+         désignés parmi ses élus. Sans comité, il n'y a personne à désigner. */
+      sans: function (p) {
+        return String(p.cseExiste || "").indexOf("non") === 0
+          ? "la fiche indique qu'il n'y a pas de comité : la commission se constitue en son sein, les élections viennent d'abord"
+          : ""; } }
   ];
 
   var CLE_STOCK = "audit-vu";
@@ -169,8 +215,12 @@
     liste.textContent = "";
     LIGNES.forEach(function (l) {
       /* Une ligne que l'effectif ne rend pas due, mais que d'autres causes
-         peuvent rendre due, n'est pas barrée : elle s'ouvre avec sa réserve. */
-      var du = eff >= l.seuil || !!l.sousSeuil;
+         peuvent rendre due, n'est pas barrée : elle s'ouvre avec sa réserve.
+         À l'inverse, une réponse de la fiche peut fermer une ligne que
+         l'effectif ouvrait : sans délégué syndical, pas de négociation
+         annuelle ; sans comité, pas de commission. */
+      var empeche = typeof l.sans === "function" ? l.sans(profil) : "";
+      var du = (eff >= l.seuil || !!l.sousSeuil) && !empeche;
       var vu = du && !l.oui && !!vus[l.cle];
       var ligne = document.createElement("div");
       ligne.className = "ligne" + (du ? "" : " pasdu") + (vu ? " fait" : "");
@@ -179,7 +229,7 @@
       var nom = document.createElement("span");
       nom.className = "nom";
       nom.textContent = l.nom;
-      var reserve = l.cond || (eff < l.seuil ? l.sousSeuil : "");
+      var reserve = [l.cond, l.dit].filter(Boolean).join(" ; ") || (eff < l.seuil ? l.sousSeuil : "");
       if (du && reserve) {
         var cond = document.createElement("span");
         cond.className = "du";
@@ -191,7 +241,7 @@
       if (!du) {
         var pas = document.createElement("span");
         pas.className = "du";
-        pas.textContent = "pas dû avant " + l.seuil;
+        pas.textContent = empeche || "pas dû avant " + l.seuil;
         ligne.appendChild(pas);
       } else if (vu) {
         var b = document.createElement("button");
@@ -218,6 +268,7 @@
           o.type = "button";
           o.className = "oui";
           o.textContent = "Oui";
+          o.title = "Aucune page ne contrôle encore cette pièce : votre réponse est notée sur ce poste.";
           o.addEventListener("click", function () {
             var v = lireVus();
             v[l.cle] = new Date().toISOString().slice(0, 10);

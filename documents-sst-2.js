@@ -240,13 +240,16 @@
   function pied(articles, notes) {
     var L = ["", TRAIT, ""];
     L.push("Fondement : " + articles + ".");
-    L.push("Ces textes ont été lus à la source et sont conservés avec leur");
-    L.push("identifiant de version dans moteur/sst/textes-sst.json.");
+    /* Le pied nommait le fichier du dépôt où les textes sont conservés :
+       c'est une mention interne, elle n'a rien à faire dans un document
+       remis au client. Relevé le 26 septembre 2026. */
+    L.push("Ces textes ont été lus à la source, dans leur version en vigueur à la");
+    L.push("date ci-dessus.");
     if (notes && notes.length) { L.push(""); notes.forEach(function (n) { L.push(n); }); }
     L.push("");
     L.push("Ce document ne vaut pas consultation. Votre convention collective, vos");
     L.push("accords, votre règlement intérieur et les textes propres à votre activité");
-    L.push("peuvent ajouter des exigences que l'application ne lit pas. Ne laissez");
+    L.push("peuvent ajouter des exigences qui ne sont pas reprises ici. Ne laissez");
     L.push("aucun crochet dans le texte que vous adoptez, affichez ou transmettez.");
     return L;
   }
@@ -257,9 +260,9 @@
      l'application connaît le texte. */
   function blocRenvoi(articles, quoi) {
     return [
-      "[ARTICLE NON LU PAR L'APPLICATION, " + articles + " " +
-        (quoi || "est nommé ici parce qu'un texte lu y renvoie") + ".",
-      " L'application ne l'a pas capté et n'en reproduit donc pas le contenu.",
+      "[ARTICLE NON LU ICI, " + articles + " " +
+      (quoi || "est nommé ici parce qu'un texte lu y renvoie") + ".",
+      " Son contenu n'est donc pas reproduit.",
       " Allez le lire avant de vous en servir.]",
       "",
     ];
@@ -273,14 +276,14 @@
   function blocCodePenal(E, lesquels) {
     if (E) return [
       "Texte de " + lesquels + ", recopié ici en entier dans sa version en vigueur",
-      "au " + jj(E.d0) + ", date notée sur le support. L'application ne lit que le code",
-      "du travail : elle ne le reproduit pas, et l'exemple ne l'invente pas.",
+      "au " + jj(E.d0) + ", date notée sur le support. Seul le code du travail est lu",
+      "ici : ce texte n'est pas reproduit, et l'exemple ne l'invente pas.",
       "",
     ];
     return [
       "[TEXTE À REPORTER, " + lesquels + ".",
-      " L'application ne lit que le CODE DU TRAVAIL : elle n'a pas capté ces",
-      " articles du CODE PÉNAL et ne les reproduit donc pas. Or c'est bien LEUR",
+      " SEUL LE CODE DU TRAVAIL est lu ici : ces articles du CODE PÉNAL n'ont",
+      " pas été lus et ne sont donc pas reproduits. Or c'est bien LEUR",
       " TEXTE que L. 1152-4 et L. 1153-5 obligent à porter à la connaissance des",
       " salariés, non leur numéro, ni un résumé. Recopiez-les intégralement,",
       " dans leur version en vigueur au jour de l'affichage, et notez cette date",
@@ -566,17 +569,27 @@
      les « D28 » des faits signalés deviennent des dates réelles, vingt-huit
      jours avant aujourd'hui. */
   function exempleDe(ctx) {
-    var s = secteurDe(ctx), p = (ctx && ctx.profil) || {}, M = EXEMPLES[s];
-    var e = effectifDe(ctx), d0 = aujourd(ctx);
-    var ville = villeDe(ctx);
+    var s = secteurDe(ctx), M = EXEMPLES[s];
+    var d0 = aujourd(ctx);
     var ex = {
       secteur: s, activite: M.activite,
-      nom: String(p.denomination || p.entreprise || "").trim() || M.nom,
-      adresse: String(p.adresse || "").trim() || M.adresse,
-      siret: String(p.siret || "").trim() || M.siret,
-      ville: ville === "[ville]" ? M.ville : ville,
-      effectif: e.connu ? e.n : M.effectif, femmes: M.femmes,
-      signataire: String(p.responsable || "").trim() || M.signataire,
+      /* L'EXEMPLE RESTE À L'ENTREPRISE FICTIVE, ET N'EMPRUNTE PAS LE NOM DU
+         CLIENT.
+
+         La règle 3 de ce fichier dit que les faits ne s'inventent jamais, et
+         que l'exemple est celui « d'une entreprise fictive du secteur ». Le
+         code, lui, y mettait la dénomination, l'adresse, le SIRET, la ville,
+         l'effectif et le signataire du client : le document sortait au nom de
+         l'entreprise, signé de son dirigeant, avec des personnes et des faits
+         qui n'existent pas : un accident, un effectif, un avis du comité, un
+         chef d'atelier. Montré à l'inspection, c'était un faux. Relevé le
+         26 septembre 2026, et c'est la faute la plus grave du dépôt.
+
+         L'exemple garde donc son entreprise fictive de bout en bout. Le
+         document à compléter, lui, continue de porter les données réelles de
+         la fiche : les deux ne se mélangent plus. */
+      nom: M.nom, adresse: M.adresse, siret: M.siret, ville: M.ville,
+      effectif: M.effectif, femmes: M.femmes, signataire: M.signataire,
       recoit: M.recoit, remplacant: M.remplacant, referent: M.referent,
       cse: CSE_EX, cseAdresse: M.cseAdresse, cseTel: M.cseTel,
       spst: M.spst, inspection: M.inspection, lieux: M.lieux, encadrement: M.encadrement,
@@ -640,8 +653,8 @@
     ];
     if (E) {
       L.push("Texte de l'article L. 1142-2-1 du code du travail, qui définit l'agissement");
-      L.push("sexiste, recopié ici en entier (l'application ne l'a pas lu et ne le");
-      L.push("reproduit pas).");
+      L.push("sexiste, recopié ici en entier (il n'a pas été lu ici et n'est donc pas");
+      L.push("reproduit).");
       L.push("");
       return L;
     }
@@ -681,7 +694,7 @@
       "à la personne protégée"))
      .concat(blocRenvoi("les articles 10-1, 12 à 13-1 de la loi n° 2016-1691 du 9 décembre 2016",
       "sont nommés par L. 1152-2 et L. 1153-2, mais ne sont pas au code du travail : " +
-      "le relais de l'application ne sert que ce code"));
+      "le relais Légifrance ne sert que ce code"));
   }
 
   /* Le rappel court de la protection, tel qu'il se met dans un courrier. */
@@ -752,8 +765,14 @@
       R.push(["5° Référent du comité social et économique (L. 2314-1)", E.cseAdresse, E.cseTel, E.cse.referent + ", " + E.cse.qualite]);
       return tableau(T, R);
     }
-    R.push(["1° Médecin du travail ou service de santé au travail compétent pour l'établissement", "[ADRESSE]", "[NUMÉRO]", "[nom du médecin, utile]"]);
-    R.push(["2° Inspection du travail compétente", "[ADRESSE DE L'UNITÉ DE CONTRÔLE]", "[NUMÉRO]", "[NOM DE L'INSPECTEUR, exigé par le 2°]"]);
+    /* Les deux adresses constantes de l'entreprise viennent de la fiche, où
+       elles se saisissent une fois. 26 septembre 2026. */
+    var pf = (window.Profil && window.Profil.lire()) || {};
+    R.push(["1° Médecin du travail ou service de santé au travail compétent pour l'établissement",
+      String(pf.orgSanteTravail || "").trim() || "[ADRESSE]", "[NUMÉRO]", "[nom du médecin, utile]"]);
+    R.push(["2° Inspection du travail compétente",
+      String(pf.orgInspection || "").trim() || "[ADRESSE DE L'UNITÉ DE CONTRÔLE]", "[NUMÉRO]",
+      "[NOM DE L'INSPECTEUR, exigé par le 2°]"]);
     R.push(["3° Défenseur des droits", "[ADRESSE]", "[NUMÉRO]", "sans objet"]);
     if (au250 === true) {
       R.push(["4° Référent de l'employeur (L. 1153-5-1), DÛ : votre effectif atteint deux cent cinquante salariés", "[ADRESSE]", "[NUMÉRO]", "[NOM, PRÉNOM, FONCTION]"]);
@@ -1027,8 +1046,8 @@
         C = C.concat(tableau(["Rubrique de l'affichage", "Nom et fonction", "Adresse", "Numéro d'appel", "Porté le"], [
           ["Référent harcèlement sexuel et agissements sexistes de l'entreprise (L. 1153-5-1)", refNom + ", " + refFonction, refAdresse, refTel, X(E, E && E.date(7), "date")],
         ]));
-        C.push("Le document SST-CTL-HAR-03 de cette application produit l'affichage");
-        C.push("complet, avec les cinq coordonnées de D. 1151-1.");
+        C.push("Le document SST-CTL-HAR-03 produit l'affichage complet, avec les cinq");
+        C.push("coordonnées de D. 1151-1.");
         C.push("");
         return C;
       }
@@ -1108,7 +1127,7 @@
         L.push("un élément des dispositions de prévention que L. 1152-4 et L. 1153-5");
         L.push("imposent par ailleurs, sans seuil, à tout employeur.");
       } else {
-        L.push("L'effectif n'étant pas renseigné, l'application NE TRANCHE PAS. Portez");
+        L.push("L'effectif n'étant pas renseigné, CE POINT N'EST PAS TRANCHÉ. Portez");
         L.push("votre effectif : au moins deux cent cinquante salariés, la désignation");
         L.push("est due et l'affichage doit porter les coordonnées du référent ; en");
         L.push("deçà, elle reste possible et utile, mais elle n'est pas imposée par");
@@ -1125,8 +1144,8 @@
          "l'obligation de prévention de L. 1153-5 et l'obligation de sécurité de",
          "L. 4121-1, dont le juge du fond appréciera si elles ont été tenues.",
          "",
-         "L. 1121-2 et L. 1142-2-1, nommés ci-dessus, n'ont pas été lus par",
-         "l'application : elle ne les reproduit pas et n'en écrit pas le régime."])).join("\n");
+         "L. 1121-2 et L. 1142-2-1, nommés ci-dessus, n'ont pas été lus ici : ils",
+         "ne sont pas reproduits, et leur régime n'est pas écrit."])).join("\n");
     },
   });
 
@@ -1390,8 +1409,8 @@
         L.push("Le dossier ne déclare AUCUN comité social et économique. L. 2314-1 n'a");
         L.push("donc pas d'objet en l'état, et le 5° de D. 1151-1 non plus : cette ligne");
         L.push("se supprime de l'affichage. La régularité de cette absence de comité");
-        L.push("relève du module « comité social et économique » de l'application, qui");
-        L.push("traite de sa mise en place. Les pièces ci-dessus sont écrites pour le");
+        L.push("relève du module « comité social et économique », qui traite de sa mise");
+        L.push("en place. Les pièces ci-dessus sont écrites pour le");
         L.push("jour où le comité existera.");
       } else if (estOui(cse.existe)) {
         L.push("Un comité social et économique existe.");
@@ -1418,7 +1437,7 @@
          "se joue ici est double et civil : l'absence de référent laisse l'information",
          "de D. 1151-1 incomplète, et la prévention de L. 1153-5 s'apprécie au fond.",
          "",
-         "L. 2315-22-1, nommé par L. 2315-18, n'a pas été lu par l'application."])).join("\n");
+         "L. 2315-22-1, nommé par L. 2315-18, n'a pas été lu ici."])).join("\n");
     },
   });
 
@@ -1480,16 +1499,16 @@
         if (E) {
           C.push("Rubrique rédigée par le conseil de l'entreprise le " + leJour(dans(d0, 3)) + " et relue");
           C.push("avec lui : devant quelle juridiction la personne peut agir, au civil et au");
-          C.push("pénal, dans quels délais, avec quels concours. L'application ne rédige pas");
-          C.push("cette rubrique, elle n'a pas lu les textes de procédure, et l'exemple ne");
+          C.push("pénal, dans quels délais, avec quels concours. Cette rubrique n'est pas");
+          C.push("rédigée ici, les textes de procédure n'ont pas été lus, et l'exemple ne");
           C.push("l'invente pas.");
         } else {
-          C.push("[À COMPLÉTER, l'application ne rédige pas cette rubrique, et il faut");
+          C.push("[À COMPLÉTER, cette rubrique n'est pas rédigée ici, et il faut");
           C.push(" dire pourquoi : L. 1153-5 impose d'informer « des actions contentieuses");
           C.push(" civiles et pénales ouvertes en matière de harcèlement sexuel », mais ni");
           C.push(" lui ni D. 1151-1 n'en dressent la liste. Les décrire suppose de citer");
-          C.push(" des textes de procédure civile et pénale que l'application n'a pas lus :");
-          C.push(" elle ne les reproduira donc pas de mémoire. Portez ici, en termes simples");
+          C.push(" des textes de procédure civile et pénale qui n'ont pas été lus ici :");
+          C.push(" ils ne seront pas reproduits de mémoire. Portez ici, en termes simples");
           C.push(" et exacts, les voies ouvertes à la personne : devant quelle juridiction,");
           C.push(" dans quels délais, avec quels concours. Faites relire cette rubrique par");
           C.push(" un conseil : c'est la seule du support dont le contenu ne soit pas dicté");
@@ -1504,7 +1523,7 @@
         C.push("");
         C.push(X(E,
           "Procédure interne de signalement et de traitement du " + (E && E.lettres(45)) + " : signalement par écrit ou oralement, sans forme imposée, à " + (E && E.recoit) + ", ou au référent, " + (E && E.referent.nom) + ", " + (E && E.referent.tel) + ". Un accusé de réception est remis sous deux jours ouvrés ; la procédure complète est affichée à côté du présent support",
-          "Renvoyer ici à la procédure interne de signalement, si elle existe : à qui s'adresser, sous quelle forme, et ce qui se passe ensuite. Le document SST-CTL-HAR-04 de cette application la rédige. Un affichage qui dit ce qui est interdit sans dire à qui en parler laisse le salarié devant une porte fermée") + ".");
+          "Renvoyer ici à la procédure interne de signalement, si elle existe : à qui s'adresser, sous quelle forme, et ce qui se passe ensuite. Le document SST-CTL-HAR-04 la rédige. Un affichage qui dit ce qui est interdit sans dire à qui en parler laisse le salarié devant une porte fermée") + ".");
         C.push("");
         C.push("Affichage établi le " + datePose + ", à vérifier avant le " + X(E, leJour(dans(d0, 372)), "DATE, un an plus tard") + ".");
         C.push("Responsable de la mise à jour : " + responsable + ".");
@@ -1591,7 +1610,7 @@
       L.push("");
       L.push("Même structure que l'exemple. Les crochets sont des coordonnées à relever,");
       L.push("des textes à recopier et une rubrique à rédiger : rien de tout cela ne se");
-      L.push("devine, et l'application ne l'invente pas.");
+      L.push("devine, et rien n'est inventé ici.");
       L.push("");
       L = L.concat(corps(null));
 
@@ -1650,8 +1669,8 @@
       L = L.concat(blocD1151());
       L.push("CE QU'IL FAUT ALLER CHERCHER, ET OÙ");
       L.push("");
-      L.push("L'application ne lit que le CODE DU TRAVAIL. Trois éléments de cet");
-      L.push("affichage ne s'y trouvent pas, et elle ne les inventera pas :");
+      L.push("SEUL LE CODE DU TRAVAIL est lu ici. Trois éléments de cet affichage ne");
+      L.push("s'y trouvent pas, et ils ne s'inventent pas :");
       L.push("  1. le TEXTE de l'article 222-33 du code pénal (harcèlement sexuel) ;");
       L.push("  2. le TEXTE de l'article 222-33-2 du code pénal (harcèlement moral) ;");
       L.push("  3. la description des actions contentieuses civiles et pénales");
@@ -1662,7 +1681,7 @@
       L.push("demande une rédaction : faites-la relire.");
       L.push("");
       L.push("Deux autres articles du code du travail sont NOMMÉS par l'affichage sans");
-      L.push("que l'application les ait lus :");
+      L.push("qu'ils aient été lus ici :");
       L.push("");
       L = L.concat(blocRenvoi("L. 1121-2",
         "porte les mesures interdites contre la personne protégée, auxquelles " +
@@ -1693,8 +1712,8 @@
          "prévention (L. 1152-4, L. 1153-5) et à l'obligation de sécurité (L. 4121-1).",
          "",
          "Les articles 222-33 et 222-33-2 du CODE PÉNAL, ainsi que L. 1121-2 et",
-         "L. 1142-2-1 du code du travail, sont NOMMÉS ici sans avoir été lus par",
-         "l'application : elle n'en reproduit pas le contenu. Les coordonnées du",
+         "L. 1142-2-1 du code du travail, sont NOMMÉS ici sans avoir été lus : leur",
+         "contenu n'est pas reproduit. Les coordonnées du",
          "Défenseur des droits portées dans l'exemple ont été relevées sur son site",
          "le 9 septembre 2026 ; vérifiez-les avant de les afficher."])).join("\n");
     },
@@ -1964,7 +1983,7 @@
       L.push("");
       L.push("Même structure que l'exemple. Les risques réels de votre entreprise, ses");
       L.push("unités de travail, les noms de ceux qui reçoivent et les délais que vous");
-      L.push("vous donnez : l'application ne les connaît pas et ne les invente pas.");
+      L.push("vous donnez : rien de cela n'est connu ici et rien ne s'invente.");
       L.push("Ne laissez aucun crochet dans les pièces que vous signez et diffusez.");
       L.push("");
       L = L.concat(corps(null));
@@ -2046,7 +2065,7 @@
       L.push("L'assistance de la personne entendue au stade de l'enquête n'est imposée");
       L.push("par aucun texte lu ; le prévoir apaise les auditions. En revanche,");
       L.push("l'assistance lors de l'entretien préalable à une SANCTION est, elle, prévue");
-      L.push("par L. 1332-2, et le module « discipline » de cette application la traite.");
+      L.push("par L. 1332-2, et le module « discipline » la traite.");
       L.push("");
       if (!estNon(cse.existe)) {
         L.push("LE COMITÉ, AVANT D'ADOPTER");
@@ -2060,7 +2079,7 @@
         L.push("générales et permanentes, elle relève du règlement intérieur et de ses");
         L.push("formalités, avis du comité social et économique, publicité, dépôt,");
         L.push("communication à l'inspection. Le module « discipline et règlement");
-        L.push("intérieur » de cette application les traite. Présenter la procédure au");
+        L.push("intérieur » les traite. Présenter la procédure au");
         L.push("comité est en tout état de cause de bonne méthode : une procédure que les");
         L.push("élus découvrent le jour d'un signalement ne sera pas utilisée.");
         L.push("");
@@ -2093,8 +2112,8 @@
         L.push("");
         L.push("ATTENTION, le dossier indique qu'il n'existe pas de document unique. Le");
         L.push("volet de la pièce 1 n'a alors nulle part où s'inscrire : commencez par le");
-        L.push("document unique lui-même, que le générateur SST-CTL-DUE-01 de cette");
-        L.push("application produit. Le volet « harcèlement » viendra s'y insérer.");
+        L.push("document unique lui-même, que le générateur SST-CTL-DUE-01 produit.");
+        L.push("Le volet « harcèlement » viendra s'y insérer.");
       }
       L.push("");
       L.push("CE QUE CE DOCUMENT NE DIT PAS, ET NE DIRA JAMAIS : que ces mesures");
@@ -2117,9 +2136,9 @@
          "harcèlement. Ce qui se joue ici est civil, et il est lourd : l'obligation de",
          "prévention et l'obligation de sécurité, appréciées au fond.",
          "",
-         "L. 1121-2 et L. 1142-2-1, nommés ci-dessus, n'ont pas été lus par",
-         "l'application. L. 1332-2, cité pour l'assistance lors de l'entretien",
-         "préalable à une sanction, appartient au corpus du module « discipline »."])).join("\n");
+         "L. 1121-2 et L. 1142-2-1, nommés ci-dessus, n'ont pas été lus ici.",
+         "L. 1332-2, cité pour l'assistance lors de l'entretien préalable à une",
+         "sanction, appartient aux textes du module « discipline »."])).join("\n");
     },
   });
 
@@ -2162,7 +2181,7 @@
       L.push("À LIRE AVANT TOUT LE RESTE");
       L.push("");
       L.push("Ce document ne dit pas ce qui s'est passé. Il ne le dira à aucun moment.");
-      L.push("L'application ne connaît ni les personnes, ni les faits, ni les pièces :");
+      L.push("Ni les personnes, ni les faits, ni les pièces ne sont connus ici :");
       L.push("tout ce qui les concerne sort ENTRE CROCHETS, et c'est l'employeur qui");
       L.push("écrit, c'est lui qui sait, et c'est lui qui répondra de ce qu'il aura");
       L.push("écrit.");
@@ -2276,7 +2295,7 @@
       L.push("     [ ] mise à pied conservatoire de la personne mise en cause :");
       L.push("         [préciser, c'est une mesure d'attente, non une sanction ; la");
       L.push("         procédure disciplinaire qui doit la suivre relève du module");
-      L.push("         « discipline » de cette application]");
+      L.push("         « discipline »]");
       L.push("     [ ] autre : [préciser]");
       L.push("     [ ] aucune mesure, SI VOUS COCHEZ CETTE CASE, ÉCRIVEZ POURQUOI :");
       L.push("         [motif]. Ne rien faire est une décision, et c'est celle qui se");
@@ -2391,7 +2410,7 @@
       L.push("");
       L.push("[Le cas échéant : vous pouvez être accompagné(e) par [préciser qui -");
       L.push(" un salarié de l'entreprise, un membre du comité social et économique].");
-      L.push(" Aucun texte lu par l'application n'impose cette assistance au stade de");
+      L.push(" Aucun texte lu ici n'impose cette assistance au stade de");
       L.push(" l'enquête ; l'entreprise l'ouvre par sa procédure interne.]");
       L.push("");
       L.push("Ce qui sera dit au cours de cet entretien sera consigné dans un compte");
@@ -2777,7 +2796,7 @@
       L.push("   7.2 SANCTION, si les faits sont établis : [proposition]. Elle se prend");
       L.push("       selon la procédure disciplinaire, convocation, entretien,");
       L.push("       notification écrite et motivée dans les délais, que le module");
-      L.push("       « discipline » de cette application traite. LE DÉLAI DE DEUX MOIS");
+      L.push("       « discipline » traite. LE DÉLAI DE DEUX MOIS");
       L.push("       DE L'ARTICLE L. 1332-4 COURT : vérifiez-le avant toute autre chose.");
       L.push("   7.3 MESURES D'ORGANISATION, quelle que soit la conclusion : [.....].");
       L.push("   7.4 MISE À JOUR DU DOCUMENT UNIQUE : le signalement est une information");
@@ -2892,7 +2911,7 @@
       L.push("DANS LA LOI : « Aucun fait fautif ne peut donner lieu à lui seul à");
       L.push("l'engagement de poursuites disciplinaires au-delà d'un délai de deux mois");
       L.push("à compter du jour où l'employeur en a eu connaissance » (L. 1332-4, article");
-      L.push("du corpus du module « discipline » de cette application). Compté depuis");
+      L.push("lu par le module « discipline »). Compté depuis");
       L.push("aujourd'hui, ce délai conduirait au " + leJour(dans(d0, 61)) + " environ :");
       L.push("il peut donc expirer AVANT la fin d'une enquête menée en huit semaines.");
       L.push("Portez la date de connaissance des faits en tête du dossier, et faites");
@@ -2924,7 +2943,7 @@
       return L.concat(pied("L. 1153-5, L. 1152-4, L. 1152-1, L. 1153-1, L. 1152-2, " +
         "L. 1153-2, L. 4121-1, L. 1155-2, R. 4121-2, D. 1151-1",
         ["Décision citée, lue à la source dans la base Judilibre de la Cour de",
-         "cassation, réponse non relaxée : Soc., 18 juin 2025, n° 23-19.022, publié -",
+         "cassation : Soc., 18 juin 2025, n° 23-19.022, publié -",
          "la valeur probante d'une enquête interne relève de l'appréciation souveraine",
          "des juges du fond, au regard le cas échéant des autres éléments de preuve.",
          "",
@@ -2946,8 +2965,8 @@
          "rapport distingue expressément « faits non établis » de « signalement",
          "mensonger ».",
          "",
-         "L. 1153-3, l'un des trois articles visés par L. 1155-2, n'a pas été lu par",
-         "l'application : elle le nomme sans en reproduire le contenu. L. 1121-2, les",
+         "L. 1153-3, l'un des trois articles visés par L. 1155-2, n'a pas été lu",
+         "ici : il est nommé sans que son contenu soit reproduit. L. 1121-2, les",
          "articles 10-1 et 12 à 13-1 de la loi n° 2016-1691 du 9 décembre 2016 et",
          "l'article 131-35 du code pénal ne l'ont pas été davantage.",
          "",
@@ -3050,7 +3069,7 @@
       f.p("....................  | ..........  | ..........  | ..........  | ..........  | ..........");
       f.note("L. 4711-1 : ces documents comportent des mentions obligatoires déterminées par " +
         "voie réglementaire. Le rythme et le contenu de chaque vérification dépendent de vos " +
-        "installations et de textes techniques que l'application n'a pas lus : la liste " +
+        "installations et de textes techniques qui n'ont pas été lus ici : la liste " +
         "ci-dessus est celle que vous recensez, pas celle qu'un texte imposerait.");
 
       f.h1("Onglet 2 - Observations et mises en demeure de l'inspection du travail");
@@ -3137,7 +3156,7 @@
         dateVal(ctx, "effet", "date d'effet") + ".");
       f.note("L. 5213-6-1, première phrase. Le même article renvoie, pour l'effectif et le " +
         "franchissement du seuil, à l'article L. 130-1 du code de la sécurité sociale : " +
-        "l'application ne l'a pas lu et ne calcule pas votre effectif à sa place.");
+        "il n'a pas été lu ici, et votre effectif n'est pas calculé à sa place.");
 
       f.h1("La mission");
       f.puce("Orienter les personnes en situation de handicap dans l'entreprise et vers les " +
@@ -3150,8 +3169,8 @@
       f.p("Dans les deux cas, il est tenu à une obligation de discrétion à l'égard des " +
         "informations à caractère personnel qu'il est amené à connaître.");
       f.note("Ces deux paragraphes reprennent L. 5213-6-1 dans ses termes. Les articles " +
-        "L. 1226-1-3 et L. 4624-2-2 sont nommés parce que L. 5213-6-1 y renvoie : l'application " +
-        "ne les a pas lus et n'en reproduit pas le contenu.");
+        "L. 1226-1-3 et L. 4624-2-2 sont nommés parce que L. 5213-6-1 y renvoie : ils " +
+        "n'ont pas été lus ici et leur contenu n'est pas reproduit.");
 
       f.h1("Les moyens");
       f.p("Temps consacré à la mission : " + val(ctx, "temps", "temps consacré") + ".");
@@ -3244,9 +3263,9 @@
       f.p(val(ctx, "modalites", "versements, abondement, durée de blocage, cas de déblocage"));
       f.p("Teneur de compte ou gestionnaire : " + val(ctx, "gestionnaire", "établissement et coordonnées") + ".");
       f.p("Dans l'entreprise, vos questions se posent à : " + val(ctx, "contact", "service et coordonnées") + ".");
-      f.note("Les montants, plafonds et cas de déblocage ne sont pas écrits par l'application : " +
-        "ils sortent de vos accords et du code du travail sur chaque dispositif, que le module " +
-        "n'a pas lus. Recopiez-les de vos textes, ne les devinez pas.");
+      f.note("Les montants, plafonds et cas de déblocage ne sont pas écrits ici : " +
+      "ils sortent de vos accords et du code du travail sur chaque dispositif, qui " +
+      "n'ont pas été lus. Recopiez-les de vos textes, ne les devinez pas.");
 
       f.h1("Ce qui se passe si vous quittez l'entreprise");
       f.p("Un état récapitulatif de vos avoirs vous est remis à votre départ. Indiquez au " +
@@ -3355,7 +3374,7 @@
       f.note("Les cinq rubriques ci-dessus sont celles que R. 4121-5 énumère. Décrivez les " +
         "circonstances sans les qualifier : ce courrier est une information, pas une " +
         "reconnaissance de responsabilité, et il ne remplace pas la déclaration d'accident du " +
-        "travail à la caisse, qui obéit à d'autres textes que l'application n'a pas lus.");
+        "travail à la caisse, qui obéit à d'autres textes, non lus ici.");
       return f.L;
     },
     attendus: [
@@ -3423,7 +3442,7 @@
         "sur l'année sont mis en place par un accord collectif d'entreprise ou d'établissement " +
         "ou, à défaut, par une convention ou un accord de branche (L. 3121-63).",
         "Sans cet accord, une convention individuelle de forfait en jours ne peut pas être " +
-        "valablement conclue : l'application ne l'écrit pas. Portez à gauche l'accord " +
+        "valablement conclue : elle n'est pas écrite ici. Portez à gauche l'accord " +
         "applicable, ou négociez-le avant de proposer un forfait."];
     },
     blocs: function (ctx) {

@@ -189,6 +189,10 @@
       </label>
     </div>
     <div class="champs" id="champs"></div>
+    <!-- Une assistante de direction sortait en contrat de conducteur poids
+         lourd, avec permis C ou CE, FIMO et FCO exigés : l'emploi du registre
+         n'était pas confronté au profil choisi. Relevé le 26 septembre 2026. -->
+    <div class="alerte cache" id="alerte-profil"></div>
     <div class="alerte cache" id="alerte-smic"></div>
     <div class="barre">
       <button type="button" class="p" id="produire">Écrire le contrat</button>
@@ -211,6 +215,12 @@
       <button type="button" class="s" id="word-note">Télécharger la note hors contrat</button>
       <button type="button" class="s" id="imprimer">Imprimer</button>
       <button type="button" class="s" id="garder">Garder dans mes documents</button>
+      <!-- L'embauche ne se ressaisit plus trois fois : ce bouton inscrit le
+           salarié au registre du personnel, ouvre sa fiche conducteur et pose
+           ses échéances dans l'agenda. Il agit sur demande, jamais tout seul :
+           l'application n'écrit pas dans le registre sans qu'on le lui dise.
+           Demande du 26 septembre 2026. -->
+      <button type="button" class="s" id="inscrire">Inscrire au registre et poser les échéances</button>
       <button type="button" class="s" id="reprendre">Revenir aux informations</button>
     </div>
     <p class="etat" id="etat"></p>
@@ -234,6 +244,7 @@
 <script src="audit-export.js"></script>
 <script src="base-documents.js"></script>
 <script src="profil.js"></script>
+<script src="echeances-salaries.js"></script>
 <script src="contrats-transport.js"></script>
 <script src="contrats-transport-ecran.js"></script>
 </body>

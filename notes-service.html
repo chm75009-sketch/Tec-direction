@@ -81,6 +81,10 @@
   .note-doc p.date{margin:0 0 16px;text-align:right;font-size:15px}
   .note-doc p.titre{font:700 18px/1.35 system-ui;margin:0 0 14px}
   .note-doc .a-remplir{color:var(--rouge);font-weight:600}
+  /* La mention d'entrée en vigueur : elle fait partie de la note, et se lit
+     d'un coup d'œil avant la signature. */
+  .note-doc p.vigueur{margin:16px 0 12px;padding:10px 12px;border-left:3px solid var(--accent);
+    background:var(--fond-2,#f4f6fa);border-radius:0 8px 8px 0;font-size:15px;line-height:1.55}
 
   .form{margin:12px 0 0;font-size:14.5px;line-height:1.6;color:var(--encre-2);
     background:var(--ambre-clair);border-left:3px solid var(--ambre);border-radius:0 8px 8px 0;padding:12px 14px}
@@ -95,6 +99,16 @@
   .barre button[disabled]{opacity:.5;cursor:default}
   @media (min-width:520px){.barre{grid-template-columns:1fr 1fr}}
   .etat{margin:10px 0 0;font-size:14.5px;color:var(--vert);min-height:20px}
+  .emarge{margin:14px 0 0;padding:12px 14px;border:1px solid var(--filet);
+    border-radius:10px;background:var(--surface)}
+  .emarge label{display:block;font:600 15px/1.3 system-ui;color:var(--encre);margin:0 0 6px}
+  .emarge select{width:100%;min-height:44px;padding:0 10px;border:1px solid var(--filet);
+    border-radius:8px;background:#fff;font:15px system-ui;color:var(--encre)}
+  .emarge button{width:100%;min-height:48px;margin:10px 0 0;border-radius:10px;
+    font:600 16.5px system-ui;cursor:pointer;background:var(--surface);color:var(--accent);
+    border:2px solid var(--accent)}
+  .emarge button[disabled]{opacity:.5;cursor:default}
+  .emarge-dit{margin:8px 0 0;font-size:14px;color:var(--texte-2)}
 
   .registre{margin:var(--e5) 0 0;border-top:1px solid var(--filet);padding-top:12px}
   .registre h2{font:600 16px/1.3 system-ui;margin:0 0 8px;color:var(--encre)}
@@ -154,6 +168,21 @@
       <button type="button" class="s" id="imprimer">Imprimer</button>
       <button type="button" class="s" id="modele">Revenir au modèle</button>
     </div>
+
+    <!-- LA PREUVE DE LA REMISE, TIRÉE DU REGISTRE.
+         Une note affichée n'est pas une note remise : l'audit du 26 septembre
+         2026 demandait la feuille d'émargement par conducteur. Les noms
+         viennent du registre du personnel, personne n'est saisi deux fois, et
+         c'est l'employeur qui dit à qui la note s'adresse. -->
+    <div class="emarge" id="emarge">
+      <label for="qui-emarge">La note est remise à</label>
+      <select id="qui-emarge">
+        <option value="tous">tous les salariés en poste</option>
+        <option value="conducteurs">ses conducteurs seulement</option>
+      </select>
+      <button type="button" class="s" id="emargement">Feuille d'émargement</button>
+      <p class="emarge-dit" id="emarge-dit"></p>
+    </div>
     <p class="etat" id="etat"></p>
   </section>
 
@@ -196,6 +225,18 @@
   function leJour(d) {
     d = d || new Date();
     return (d.getDate() === 1 ? "1er" : d.getDate()) + " " + MOIS[d.getMonth()] + " " + d.getFullYear();
+  }
+  /* Un mois plus tard, au même quantième ; quand il n'existe pas dans le
+     mois d'arrivée, le dernier jour de ce mois. */
+  function dansUnMois(d) {
+    var j = d.getDate();
+    var r = new Date(d.getFullYear(), d.getMonth() + 1, 1, 12, 0, 0);
+    var dernier = new Date(r.getFullYear(), r.getMonth() + 1, 0).getDate();
+    r.setDate(Math.min(j, dernier));
+    return r;
+  }
+  function sansComite() {
+    return String(profil.cseExiste || "").trim().toLowerCase().indexOf("non") === 0;
   }
   function ville() {
     var a = String(profil.adresse || "");
@@ -251,10 +292,17 @@
     var v = (NS.VARIANTES || {})[SECTEUR] || {};
     return v;
   }
+  /* LE MÉTIER D'ABORD. Le thème propre au secteur, « Conduite et
+     exploitation » pour un transporteur, arrivait en dernier, après dix
+     thèmes communs : c'est pourtant celui qu'on vient chercher. Relevé le
+     26 septembre 2026. */
   function themesDus() {
-    return NS.THEMES.filter(function (t) {
+    var L = NS.THEMES.filter(function (t) {
       return !t.secteurs || t.secteurs.indexOf(SECTEUR) >= 0;
     });
+    var propres = L.filter(function (t) { return !!t.secteurs; });
+    var communs = L.filter(function (t) { return !t.secteurs; });
+    return propres.concat(communs);
   }
   function notesDe(cle) {
     var remplace = remplacements();
@@ -349,6 +397,21 @@
     h += '<p class="date">' + ech(ville() + ", le " + leJour()) + "</p>";
     h += '<p class="titre">' + rouge(m.titre) + "</p>";
     h += m.corps.map(function (l) { return l === "" ? "" : "<p>" + rouge(l) + "</p>"; }).join("");
+    /* LA NOTE DIT ELLE-MÊME QUAND ELLE ENTRE EN VIGUEUR.
+
+       « Le règlement intérieur indique la date de son entrée en vigueur.
+       Cette date doit être postérieure d'un mois à l'accomplissement des
+       formalités de publicité » (L. 1321-4, LEGIARTI000054140230, lu à la
+       source le 26 septembre 2026, deux lectures concordantes), et
+       L. 1321-5 soumet l'adjonction aux mêmes formalités. La note sortait
+       sans cette date. Relevé le 26 septembre 2026. */
+    if (m.adjonction) {
+      var f = new Date();
+      h += '<p class="vigueur">' + ech("Formalités de publicité accomplies le " + leJour(f) +
+        " : affichage à la place prévue pour le règlement intérieur, et communication à " +
+        "l'inspection du travail" + (sansComite() ? "" : ", accompagnée de l'avis du comité social et économique") +
+        ". La présente note entre en vigueur le " + leJour(dansUnMois(f)) + " (L. 1321-4).") + "</p>";
+    }
     h += signature().map(function (l) { return "<p>" + ech(l) + "</p>"; }).join("");
     return h;
   }
@@ -364,7 +427,11 @@
       "Elle porte des obligations générales et permanentes en matière de santé, de sécurité " +
       "ou de discipline. L'article L. 1321-5 du code du travail en fait une adjonction au " +
       "règlement intérieur, soumise aux mêmes formalités que lui (L. 1321-4) :<ul>" +
-      "<li>avis du comité social et économique avant l'introduction de la note ;</li>" +
+      (sansComite()
+        ? "<li>votre fiche indique qu'aucun comité social et économique n'est en place : " +
+          "il n'y a pas d'avis à recueillir, et la communication à l'inspection du travail " +
+          "se fait sans lui ;</li>"
+        : "<li>avis du comité social et économique avant l'introduction de la note ;</li>") +
       "<li>mesures de publicité, affichage à la place prévue pour le règlement intérieur ;</li>" +
       "<li>communication à l'inspection du travail, avec l'avis du comité, en même temps ;</li>" +
       "<li>entrée en vigueur à une date postérieure d'un mois à ces formalités ;</li>" +
@@ -389,7 +456,17 @@
     $("formalites").innerHTML = formalitesHtml(MOD);
     $("valider").disabled = false;
     $("valider").textContent = "Valider et numéroter";
+    /* LE WORD APRÈS LA VALIDATION. Le fichier se téléchargeait avant que la
+       note ait son numéro : deux versions du même texte circulaient, l'une
+       numérotée, l'autre non. Relevé le 26 septembre 2026. */
+    $("word").disabled = true;
+    $("word").title = "La note se télécharge une fois validée et numérotée.";
+    /* La feuille porte la référence de la note : elle attend le numéro, comme
+       le Word, pour qu'une seule version circule. */
+    $("emargement").disabled = true;
+    $("emargement").title = "La feuille se télécharge une fois la note validée et numérotée.";
     $("etat").textContent = "";
+    direEmargement();
     ecran("e-texte");
   }
 
@@ -405,8 +482,26 @@
      Demande du 15 septembre 2026. Numéroter à l'ouverture d'un modèle
      consommerait un numéro à chaque fois qu'on regarde une note sans
      l'émettre, et le registre porterait des trous. */
+  /* UN CROCHET EST UNE MENTION QUI MANQUE.
+
+     La note était numérotée et inscrite au registre avec « [NOM OU
+     FONCTION] » en toutes lettres : un numéro d'ordre donné à un texte
+     incomplet. Relevé le 26 septembre 2026. */
+  function crochets() {
+    var t = ($("objet").textContent || "") + " " + ($("doc").textContent || "");
+    return t.match(/\[[^\]\n]{1,120}\]/g) || [];
+  }
+
   $("valider").addEventListener("click", function () {
     if (!MOD || EMISE) return;
+    var manque = crochets();
+    if (manque.length) {
+      $("etat").textContent = "Il reste " + manque.length + " mention" +
+        (manque.length > 1 ? "s" : "") + " à compléter : " +
+        manque.slice(0, 4).join(" ") + (manque.length > 4 ? " …" : "") +
+        ". Une note ne se numérote pas tant qu'elle est incomplète.";
+      return;
+    }
     var d = new Date(), annee = d.getFullYear();
     var numero = prochainNumero(annee);
     EMISE = {
@@ -424,6 +519,10 @@
     if (ligne) ligne.textContent = "Note de service n° " + EMISE.numero + " · " + EMISE.reference;
     $("valider").disabled = true;
     $("valider").textContent = "Numérotée : " + EMISE.reference;
+    $("word").disabled = false;
+    $("word").title = "";
+    $("emargement").disabled = false;
+    $("emargement").title = "";
     $("etat").textContent = "Note inscrite au registre sous la référence " + EMISE.reference + ".";
     rendreRegistre();
   });
@@ -452,6 +551,85 @@
       (nom || "note-de-service") + ".docx",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
     $("etat").textContent = "Téléchargée en Word.";
+  });
+
+  /* ─────────────────────── LA FEUILLE D'ÉMARGEMENT ──────────────────────
+     Une note affichée n'est pas une note remise. Pour l'adjonction au
+     règlement intérieur, l'affichage à la place prévue est la formalité
+     (L. 1321-4, L. 1321-5) ; l'émargement ne la remplace pas, il prouve la
+     remise en main propre, ce qui est autre chose et se demande devant le
+     conseil de prud'hommes. La feuille ne porte donc aucun article : elle
+     porte des noms, une date, et une colonne vide à signer.
+
+     Les noms viennent du registre du personnel. Ceux qui sont sortis n'y
+     figurent pas. Qui conduit se lit au poste écrit au registre, comme dans
+     la flotte : c'est l'employeur qui choisit à qui la note est remise, la
+     feuille ne le décide pas. */
+  var CONDUIT = /conducteur|conductrice|chauffeur|routier|livreur|coursier|cariste|grutier|ambulancier|convoyeur/i;
+  function salariesDuRegistre(conducteursSeuls) {
+    var R = null;
+    try { R = JSON.parse(localStorage.getItem("registre-personnel") || "null"); } catch (e) { R = null; }
+    var L = ((R && R.salaries) || []).filter(function (s) {
+      var nom = String(s && s.nom || "").trim(), pre = String(s && s.pre || "").trim();
+      return (nom || pre) && !s.ex && !String(s && s.sor || "").trim();
+    }).map(function (s) {
+      return { nom: (String(s.nom || "").trim() + " " + String(s.pre || "").trim()).trim(),
+        emp: String(s.emp || "").trim() };
+    });
+    if (conducteursSeuls) L = L.filter(function (s) { return CONDUIT.test(s.emp); });
+    L.sort(function (a, b) { return a.nom.localeCompare(b.nom, "fr"); });
+    return L;
+  }
+
+  function direEmargement() {
+    var seuls = $("qui-emarge").value === "conducteurs";
+    var L = salariesDuRegistre(seuls);
+    var tous = salariesDuRegistre(false);
+    var z = $("emarge-dit");
+    if (!tous.length) {
+      z.textContent = "Le registre du personnel ne porte aucun salarié en poste : " +
+        "la feuille sortirait vide. Ouvrez le registre et inscrivez-les.";
+      return;
+    }
+    if (seuls && !L.length) {
+      z.textContent = "Aucun poste du registre ne porte un intitulé de conduite : " +
+        "la feuille sortirait vide.";
+      return;
+    }
+    z.textContent = L.length + " ligne" + (L.length > 1 ? "s" : "") + ", " +
+      (seuls ? "les conducteurs du registre" : "les salariés en poste au registre") + ".";
+  }
+  $("qui-emarge").addEventListener("change", direEmargement);
+
+  $("emargement").addEventListener("click", function () {
+    if (!window.AuditExport) { $("etat").textContent = "Le module d'export ne s'est pas chargé."; return; }
+    var seuls = $("qui-emarge").value === "conducteurs";
+    var L = salariesDuRegistre(seuls);
+    if (!EMISE) { $("etat").textContent = "Validez et numérotez la note : la feuille porte sa référence."; return; }
+    if (!L.length) { direEmargement(); return; }
+    var titre = $("objet").textContent.trim() || (MOD ? MOD.titre : "Note de service");
+    var items = entete().map(function (l) { return { k: "sur", t: l }; });
+    items.push({ k: "t1", t: "Feuille d'émargement" });
+    items.push({ k: "h2", t: "Note de service n° " + EMISE.numero + " · " + EMISE.reference });
+    items.push({ k: "p", t: "Objet : " + titre + "." });
+    items.push({ k: "p", t: "Les salariés désignés ci-dessous reconnaissent avoir reçu un " +
+      "exemplaire de cette note de service et en avoir pris connaissance." });
+    items.push({ k: "table",
+      head: ["Nom et prénom", "Emploi", "Date de remise", "Signature"],
+      proportions: [34, 26, 18, 22],
+      rows: L.map(function (s) { return [s.nom, s.emp || "", "", ""]; }) });
+    items.push({ k: "p", t: " " });
+    items.push({ k: "p", t: "Fait à " + ville() + ", le " + leJour() + "." });
+    signature().forEach(function (l) { items.push({ k: "p", t: l }); });
+    var base = ((EMISE ? EMISE.reference + "-" : "") + "emargement-" + titre)
+      .normalize("NFD").replace(/[̀-ͯ]/g, "")
+      .replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "").toLowerCase().slice(0, 70);
+    window.AuditExport.telecharger(
+      window.AuditExport.docx(items, "Feuille d'émargement"),
+      (base || "feuille-emargement") + ".docx",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+    $("etat").textContent = "Feuille d'émargement téléchargée, " + L.length + " ligne" +
+      (L.length > 1 ? "s" : "") + ".";
   });
 
   $("imprimer").addEventListener("click", function () { window.print(); });

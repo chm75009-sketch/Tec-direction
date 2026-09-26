@@ -171,8 +171,150 @@
     return out.sort(function (a, b) { return a.localeCompare(b, "fr"); });
   }
 
+  /* ═══════════════════════════════════════════════════════════════════════
+     UN PAYS N'EST PAS UNE NATIONALITÉ.
+
+     Un contrat sortait « de nationalité Serbie », parce que le registre
+     importé portait le nom du pays et que le document le recopiait tel quel.
+     Relevé le 26 septembre 2026. Deux réponses, dans cet ordre : la table des
+     pays les plus fréquents donne l'adjectif ; à défaut, la phrase change de
+     tournure et devient « ressortissant de Serbie », qui est juste sans rien
+     inventer. Ce qui est déjà un adjectif n'est pas touché.
+     ══════════════════════════════════════════════════════════════════════ */
+  var ADJECTIF = {
+    "france": "française", "algérie": "algérienne", "maroc": "marocaine",
+    "tunisie": "tunisienne", "mali": "malienne", "sénégal": "sénégalaise",
+    "côte d'ivoire": "ivoirienne", "cameroun": "camerounaise", "congo": "congolaise",
+    "république démocratique du congo": "congolaise", "guinée": "guinéenne",
+    "mauritanie": "mauritanienne", "niger": "nigérienne", "burkina faso": "burkinabée",
+    "tchad": "tchadienne", "togo": "togolaise", "bénin": "béninoise",
+    "gabon": "gabonaise", "madagascar": "malgache", "comores": "comorienne",
+    "portugal": "portugaise", "espagne": "espagnole", "italie": "italienne",
+    "allemagne": "allemande", "belgique": "belge", "pays-bas": "néerlandaise",
+    "luxembourg": "luxembourgeoise", "suisse": "suisse", "royaume-uni": "britannique",
+    "irlande": "irlandaise", "pologne": "polonaise", "roumanie": "roumaine",
+    "bulgarie": "bulgare", "hongrie": "hongroise", "croatie": "croate",
+    "serbie": "serbe", "bosnie-herzégovine": "bosnienne", "kosovo": "kosovare",
+    "macédoine du nord": "macédonienne", "albanie": "albanaise", "grèce": "grecque",
+    "turquie": "turque", "ukraine": "ukrainienne", "russie": "russe",
+    "moldavie": "moldave", "géorgie": "géorgienne", "arménie": "arménienne",
+    "lituanie": "lituanienne", "lettonie": "lettone", "estonie": "estonienne",
+    "slovaquie": "slovaque", "tchéquie": "tchèque", "république tchèque": "tchèque",
+    "slovénie": "slovène", "chine": "chinoise", "inde": "indienne",
+    "pakistan": "pakistanaise", "bangladesh": "bangladaise", "sri lanka": "srilankaise",
+    "viêt nam": "vietnamienne", "vietnam": "vietnamienne", "cambodge": "cambodgienne",
+    "philippines": "philippine", "brésil": "brésilienne", "argentine": "argentine",
+    "colombie": "colombienne", "pérou": "péruvienne", "haïti": "haïtienne",
+    "états-unis": "américaine", "canada": "canadienne", "égypte": "égyptienne",
+    "syrie": "syrienne", "liban": "libanaise", "irak": "irakienne", "iran": "iranienne",
+    "afghanistan": "afghane", "soudan": "soudanaise", "érythrée": "érythréenne",
+    "éthiopie": "éthiopienne", "somalie": "somalienne", "nigéria": "nigériane",
+    "ghana": "ghanéenne", "angola": "angolaise", "cap-vert": "cap-verdienne",
+  };
+  var MASCULIN = {
+    "française": "français", "algérienne": "algérien", "marocaine": "marocain",
+    "tunisienne": "tunisien", "malienne": "malien", "sénégalaise": "sénégalais",
+    "ivoirienne": "ivoirien", "camerounaise": "camerounais", "congolaise": "congolais",
+    "guinéenne": "guinéen", "mauritanienne": "mauritanien", "nigérienne": "nigérien",
+    "burkinabée": "burkinabé", "tchadienne": "tchadien", "togolaise": "togolais",
+    "béninoise": "béninois", "gabonaise": "gabonais", "comorienne": "comorien",
+    "portugaise": "portugais", "espagnole": "espagnol", "italienne": "italien",
+    "allemande": "allemand", "néerlandaise": "néerlandais",
+    "luxembourgeoise": "luxembourgeois", "irlandaise": "irlandais",
+    "polonaise": "polonais", "roumaine": "roumain", "hongroise": "hongrois",
+    "bosnienne": "bosnien", "macédonienne": "macédonien", "albanaise": "albanais",
+    "grecque": "grec", "ukrainienne": "ukrainien", "géorgienne": "géorgien",
+    "arménienne": "arménien", "lituanienne": "lituanien", "lettone": "letton",
+    "estonienne": "estonien", "chinoise": "chinois", "indienne": "indien",
+    "pakistanaise": "pakistanais", "bangladaise": "bangladais",
+    "srilankaise": "srilankais", "vietnamienne": "vietnamien",
+    "cambodgienne": "cambodgien", "brésilienne": "brésilien",
+    "colombienne": "colombien", "péruvienne": "péruvien", "haïtienne": "haïtien",
+    "américaine": "américain", "canadienne": "canadien", "égyptienne": "égyptien",
+    "syrienne": "syrien", "libanaise": "libanais", "irakienne": "irakien",
+    "iranienne": "iranien", "soudanaise": "soudanais", "érythréenne": "érythréen",
+    "éthiopienne": "éthiopien", "somalienne": "somalien", "nigériane": "nigérian",
+    "ghanéenne": "ghanéen", "angolaise": "angolais", "cap-verdienne": "cap-verdien",
+  };
+  function plat(x) {
+    return String(x == null ? "" : x).trim().toLowerCase();
+  }
+  /* Rend la phrase entière, accordée : « de nationalité française »,
+     « de nationalité serbe », ou « ressortissante de Serbie » quand
+     l'adjectif n'est pas connu ici. Rien n'est inventé. */
+  function nationalitePhrase(valeur, feminin) {
+    var v = String(valeur == null ? "" : valeur).trim();
+    if (!v) return "";
+    var bas = plat(v);
+    var adj = null;
+    if (NATIONALITES.indexOf(bas) >= 0) adj = bas;
+    else if (ADJECTIF[bas]) adj = ADJECTIF[bas];
+    /* Après « de nationalité », l'adjectif s'accorde avec le mot
+       « nationalité », qui est féminin, et non avec la personne : un homme
+       est « de nationalité portugaise ». La forme masculine ne sert qu'à la
+       tournure « il est portugais ». */
+    if (adj) return "de nationalité " + adj;
+    /* Un pays sans adjectif connu : on ne le décline pas, on tourne
+       autrement, avec l'élision quand elle s'impose. */
+    var de = /^[aeiouyâàéèêîïôöûüh]/i.test(v) ? "d'" : "de ";
+    return (feminin ? "ressortissante " : "ressortissant ") + de + v;
+  }
+  /* « Il est portugais », « elle est portugaise » : l'adjectif seul, accordé
+     à la personne. */
+  function nationaliteAdjectif(valeur, feminin) {
+    var bas = plat(valeur);
+    var adj = NATIONALITES.indexOf(bas) >= 0 ? bas : (ADJECTIF[bas] || "");
+    if (!adj) return "";
+    return (!feminin && MASCULIN[adj]) ? MASCULIN[adj] : adj;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     QUI A BESOIN D'UN TITRE POUR TRAVAILLER, ET QUI N'EN A PAS BESOIN.
+
+     « L'employeur s'assure auprès des administrations territorialement
+     compétentes de l'existence du titre autorisant l'étranger à exercer une
+     activité salariée en France » (L. 5221-8, LEGIARTI000018766932). Et
+     R. 5221-2 (LEGIARTI000053963834) dispense d'autorisation de travail les
+     ressortissants de l'Union européenne, des autres États de l'Espace
+     économique européen et de la Confédération suisse. Les deux textes ont
+     été lus à la source le 26 septembre 2026, deux fois chacun.
+
+     Le registre d'un transporteur portait vingt-neuf mentions « travailleur
+     étranger à renseigner », dont deux pour des ressortissants de l'Union.
+     Rend true, false, ou null quand la nationalité n'est pas reconnue : on ne
+     tranche pas ce qu'on ne sait pas. */
+  var SANS_TITRE = [
+    "française", "allemande", "autrichienne", "belge", "bulgare", "chypriote",
+    "croate", "danoise", "espagnole", "estonienne", "finlandaise", "grecque",
+    "hongroise", "irlandaise", "italienne", "lettone", "lituanienne",
+    "luxembourgeoise", "maltaise", "néerlandaise", "polonaise", "portugaise",
+    "roumaine", "slovaque", "slovène", "suédoise", "tchèque",
+    "islandaise", "norvégienne", "liechtensteinoise", "suisse",
+  ];
+  var PAYS_SANS_TITRE = {
+    "france": 1, "allemagne": 1, "autriche": 1, "belgique": 1, "bulgarie": 1,
+    "chypre": 1, "croatie": 1, "danemark": 1, "espagne": 1, "estonie": 1,
+    "finlande": 1, "grèce": 1, "hongrie": 1, "irlande": 1, "italie": 1,
+    "lettonie": 1, "lituanie": 1, "luxembourg": 1, "malte": 1, "pays-bas": 1,
+    "pologne": 1, "portugal": 1, "roumanie": 1, "slovaquie": 1, "slovénie": 1,
+    "suède": 1, "tchéquie": 1, "république tchèque": 1, "islande": 1,
+    "norvège": 1, "liechtenstein": 1, "suisse": 1,
+  };
+  function titreDeTravailRequis(valeur) {
+    var bas = plat(valeur);
+    if (!bas) return null;
+    if (SANS_TITRE.indexOf(bas) >= 0 || PAYS_SANS_TITRE[bas]) return false;
+    var adj = ADJECTIF[bas];
+    if (adj && SANS_TITRE.indexOf(adj) >= 0) return false;
+    if (NATIONALITES.indexOf(bas) >= 0 || adj) return true;
+    return null;
+  }
+
   window.ListesValeurs = {
     salarie: salaries,
+    titreDeTravailRequis: titreDeTravailRequis,
+    nationalitePhrase: nationalitePhrase,
+    nationaliteAdjectif: nationaliteAdjectif,
     nationalite: NATIONALITES,
     pays: PAYS,
     titreSejour: TITRES_SEJOUR,

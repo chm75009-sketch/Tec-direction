@@ -43,6 +43,48 @@
     var m = d.getMonth() + 1, j = d.getDate();
     return (j < 10 ? "0" + j : j) + "/" + (m < 10 ? "0" + m : m) + "/" + d.getFullYear();
   }
+  /* Une date, lue sans décalage d'horaire, dans les deux écritures qui
+     arrivent ici : « 2026-09-26 » depuis un champ de formulaire, et
+     « 26/09/2026 » depuis l'écran qui met déjà en français avant d'appeler le
+     générateur. La seconde manquait, et la date d'entrée se perdait. */
+  var MOIS_LUS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet",
+    "août", "septembre", "octobre", "novembre", "décembre"];
+  /* Le comité, tel que la fiche ou le parcours l'ont noté : « oui, élu »,
+     « non, procès-verbal de carence », ou simplement « oui » et « non ». */
+  /* Une date saisie se lit en toutes lettres, jamais sous sa forme rangée :
+     « 2027-05-01 » sortait tel quel dans l'avis affiché au personnel.
+     Relevé le 26 septembre 2026. */
+  function croDate(v, quoi) {
+    var d = dateDe(v);
+    return d ? leJour(d) : cro(v, quoi);
+  }
+
+  function sansComiteCtx(ctx) {
+    var p = (ctx && ctx.profil) || {};
+    var v = String(p.cseExiste || ((ctx && ctx.fiche) || {}).cseExiste ||
+      ((ctx && ctx.donnees) || {}).cseExiste || "").trim().toLowerCase();
+    return v.indexOf("non") === 0;
+  }
+
+  function dateDe(v) {
+    var t = String(v == null ? "" : v).trim();
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(t);
+    if (m) return jourDe(m[1], m[2], m[3]);
+    m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(t);
+    if (m) return jourDe(m[3], m[2], m[1]);
+    /* « 15 mars 2021 », et « 1er avril 2021 » : c'est la forme que l'écran
+       passe au générateur, et celle qui manquait. */
+    m = /^(\d{1,2})(?:er)?\s+([a-zà-ÿ]+)\s+(\d{4})$/i.exec(t);
+    if (m) {
+      var k = MOIS_LUS.indexOf(m[2].toLowerCase());
+      if (k >= 0) return jourDe(m[3], String(k + 1), m[1]);
+    }
+    return null;
+  }
+  function jourDe(a, mo, j) {
+    var d = new Date(parseInt(a, 10), parseInt(mo, 10) - 1, parseInt(j, 10), 12, 0, 0);
+    return isNaN(d) ? null : d;
+  }
   function dans(d, jours) {
     var r = new Date(d);
     r.setDate(r.getDate() + jours);
@@ -705,9 +747,23 @@
 
       L.push("VOTRE CALENDRIER");
       L.push("");
+      /* LE CALENDRIER SE COMPTE DEPUIS L'EMBAUCHE, PAS DEPUIS AUJOURD'HUI.
+
+         Le tableau portait « avant le premier jour de travail » en face de
+         demain : pour une embauche le jour même, il faisait déclarer après.
+         Déclarer après l'embauche, c'est le travail dissimulé de L. 8221-5, 1°.
+         Relevé le 26 septembre 2026. L'embauche « ne peut intervenir qu'après
+         déclaration » (L. 1221-10, LEGIARTI000006900849) et la déclaration
+         s'adresse « au plus tôt dans les huit jours précédant la date
+         prévisible de l'embauche » (R. 1221-4, LEGIARTI000024214323). */
+      var emb = dateDe(d.dateEmbauche);
       L = L.concat(tableau(["Étape", "Date", "Preuve conservée"], [
-        ["Réunion des informations de l'article R. 1221-1", jj(d0), "liste complétée"],
-        ["Déclaration à l'URSSAF ou MSA : avant le premier jour de travail du salarié", jj(dans(d0, 1)), "accusé de réception de la déclaration"],
+        ["Réunion des informations de l'article R. 1221-1",
+          emb ? "à partir du " + jj(dans(emb, -8)) : jj(d0), "liste complétée"],
+        ["Déclaration à l'URSSAF ou à la MSA, avant que le salarié ne prenne son poste",
+          emb ? "du " + jj(dans(emb, -8)) + " au " + jj(emb) + ", avant la prise de poste"
+              : "au plus tôt huit jours avant l'embauche, et avant la prise de poste",
+          "accusé de réception de la déclaration"],
         ["Conservation de la déclaration et de l'accusé", "en permanence", "au dossier du personnel"],
       ]));
 
@@ -811,9 +867,21 @@
 
       L.push("VOTRE CALENDRIER");
       L.push("");
+      /* LE CALENDRIER SE COMPTE DEPUIS L'ENTRÉE, PAS DEPUIS AUJOURD'HUI.
+
+         Pour une salariée entrée en 2021, le document annonçait un « premier
+         entretien » un an après la date d'édition. La date d'entrée vient du
+         registre ; sans elle, la ligne dit d'où elle se compte au lieu
+         d'inventer un jour. Relevé le 26 septembre 2026. */
+      var ent = dateDe(d.entree || d.dateEmbauche);
+      var quatre = ent ? new Date(ent.getFullYear() + 4, ent.getMonth(), ent.getDate(), 12) : null;
       L = L.concat(tableau(["Étape", "Date", "Preuve conservée"], [
-        ["Premier entretien : première année d'emploi", jj(dans(d0, 365)), "document signé et remis"],
-        ["Entretien tous les 4 ans", "à la même date", "document signé et remis"],
+        ["Premier entretien, au cours de la première année suivant l'embauche",
+          ent ? "avant le " + jj(dans(ent, 365)) : "un an après l'entrée, date d'entrée à porter",
+          "document signé et remis"],
+        ["Puis tous les quatre ans",
+          quatre ? "prochain repère : " + jj(quatre) : "quatre ans après le précédent",
+          "document signé et remis"],
         ["Remise d'une copie au salarié le jour même", jj(d0), "signature du salarié sur l'original"],
       ]));
 
@@ -821,8 +889,14 @@
 
       L.push("LES RÈGLES");
       L.push("");
-      L.push("« Un entretien de parcours professionnel est organisé au cours de la première année, puis " +
-             "au cours de la quatrième année suivant l'embauche, et tous les quatre ans » (L. 6315-1, I).");
+      /* LA CITATION ÉTAIT FABRIQUÉE. « au cours de la quatrième année suivant
+         l'embauche » ne figure pas dans le texte : relevé le 26 septembre
+         2026. L'article, lu à la source le même jour (LEGIARTI000053279288),
+         dit ceci, mot pour mot. */
+      L.push("« A l'occasion de son embauche, le salarié est informé qu'il bénéficie d'un entretien " +
+             "de parcours professionnel avec son employeur au cours de la première année suivant " +
+             "son embauche. Tout salarié restant employé dans la même entreprise bénéficie d'un " +
+             "entretien de parcours professionnel tous les quatre ans » (L. 6315-1, I).");
       L.push("");
       L.push("LES CINQ SUJETS OBLIGATOIRES :");
       L.push("  1. Compétences et qualifications mobilisées dans l'emploi actuel");
@@ -984,13 +1058,22 @@
       L.push("AVIS AU PERSONNEL - PÉRIODE DE PRISE DES CONGÉS PAYÉS");
       L.push("");
       L.push("La période de prise des congés payés est fixée du " +
-        cro(d.debutPeriode, "DATE DE DÉBUT") + " au " + cro(d.finPeriode, "DATE DE FIN") + ".");
+        croDate(d.debutPeriode, "DATE DE DÉBUT") + " au " + croDate(d.finPeriode, "DATE DE FIN") + ".");
       L.push("");
       L.push("Cette période comprend la période du 1er mai au 31 octobre (L. 3141-13).");
       L.push("");
       L.push("[LE CAS ÉCHÉANT : Cette période est celle que fixe l'accord d'entreprise du [DATE].]");
-      L.push("[À DÉFAUT D'ACCORD : Cette période est fixée par l'employeur après avis du " +
-             "comité social et économique, recueilli le [DATE].]");
+      /* « Définit après avis, LE CAS ÉCHÉANT, du comité social et économique »
+         (L. 3141-16, LEGIARTI000035652687, lu à la source le 26 septembre
+         2026, deux lectures concordantes) : sans comité, il n'y a pas d'avis
+         à recueillir, et la phrase qui en suppose un rendait l'avis faux. */
+      if (sansComiteCtx(ctx))
+        L.push("[À DÉFAUT D'ACCORD : Cette période est fixée par l'employeur. Aucun comité social " +
+               "et économique n'étant en place, l'avis prévu « le cas échéant » par L. 3141-16 " +
+               "n'a pas lieu d'être recueilli.]");
+      else
+        L.push("[À DÉFAUT D'ACCORD : Cette période est fixée par l'employeur après avis, le cas " +
+               "échéant, du comité social et économique, recueilli le [DATE].]");
       L.push("");
       L.push("Les demandes de congés sont adressées à [DESTINATAIRE] avant le [DATE].");
       L.push("L'ordre des départs sera communiqué à chaque salarié un mois au moins avant son départ.");
@@ -1001,10 +1084,24 @@
 
       L.push("VOTRE CALENDRIER");
       L.push("");
+      /* LE CALENDRIER SE COMPTE DEPUIS LA PÉRIODE, PAS DEPUIS AUJOURD'HUI.
+
+         Pour une période de mai à octobre 2027, l'écran annonçait des
+         demandes « avant le 25/11/2026 » : les trois dates partaient du jour
+         de l'édition. Elles se comptent depuis l'ouverture de la période
+         saisie, et quand elle ne l'est pas, elles restent à compléter.
+         Relevé le 26 septembre 2026. */
+      var deb = dateDe(d.debutPeriode), finP = dateDe(d.finPeriode);
       L = L.concat(tableau(["Étape", "Date", "Trace conservée"], [
-        ["Rédaction et affichage de l'avis : au moins deux mois avant l'ouverture", jj(d0), "affichage daté, photographie"],
-        ["Demandes de congés par les salariés : avant la date fixée", jj(dans(d0, 60)), "demandes reçues"],
-        ["Communication de l'ordre des départs : un mois avant chaque départ", jj(dans(d0, 90)), "notification datée par salarié"],
+        ["Affichage de l'avis : au moins deux mois avant l'ouverture (D. 3141-5)",
+          deb ? jj(dans(deb, -60)) : "[à compléter : deux mois avant l'ouverture]",
+          "affichage daté, photographie"],
+        ["Ouverture de la période de prise", deb ? jj(deb) : "[date de début à saisir]",
+          "avis affiché"],
+        ["Clôture de la période de prise", finP ? jj(finP) : "[date de fin à saisir]",
+          "congés soldés ou reportés selon l'accord"],
+        ["Communication de l'ordre des départs : un mois avant le départ de chaque salarié (D. 3141-6)",
+          "par salarié, un mois avant sa date", "notification datée par salarié"],
       ]));
 
       L = L.concat(DP.liens(ctx, ["emploi", "rh"]));
@@ -1072,7 +1169,7 @@
              "de modifier moins d'un mois avant la date prévue.");
       L.push("");
       L.push("ORDRE DES DÉPARTS EN CONGÉ");
-      L.push("Période de prise : " + cro(d.debutPeriode, "DATE") + " - " + cro(d.finPeriode, "DATE"));
+      L.push("Période de prise : du " + croDate(d.debutPeriode, "DATE") + " au " + croDate(d.finPeriode, "DATE"));
       L.push("");
       L = L.concat(tableau(["Salarié", "Dates demandées", "Dates accordées", "Décision", "Critère appliqué", "Notifié le"],
         [["[NOM]", "[du] au [du]", "[du] au [du]", "[accordé / décalé / refusé]", "[lequel]", "[date]"]]));
@@ -1090,10 +1187,17 @@
 
       L.push("VOTRE CALENDRIER");
       L.push("");
+      /* Les deux délais se comptent par salarié, depuis SA date de départ :
+         une date unique pour tout le personnel n'aurait pas de sens. */
+      var debOrdre = dateDe(d.debutPeriode);
       L = L.concat(tableau(["Étape", "Date", "Trace conservée"], [
         ["Fixation de l'ordre des départs", jj(d0), "ordre établi"],
-        ["Communication à chaque salarié : UN MOIS avant son départ", jj(dans(d0, 30)), "notification datée individuellement"],
-        ["Absence de modification moins d'un mois avant le départ : sauf circonstances exceptionnelles", jj(dans(d0, 30)), "preuve d'absence de modification"],
+        ["Ouverture de la période de prise", debOrdre ? jj(debOrdre) : "[date de début à saisir]",
+          "avis de période affiché"],
+        ["Communication à chaque salarié : un mois avant SON départ (D. 3141-6)",
+          "par salarié, un mois avant sa date", "notification datée individuellement"],
+        ["Aucune modification moins d'un mois avant le départ, sauf circonstances exceptionnelles",
+          "par salarié, un mois avant sa date", "preuve d'absence de modification"],
       ]));
 
       L = L.concat(DP.liens(ctx, ["emploi", "rh"]));
@@ -1280,8 +1384,11 @@
       L.push("");
       L.push("");
 
+      /* « oui, élu » ou « oui », « non, procès-verbal de carence » ou
+         « non » : on ne retient que le premier mot. */
       var cse = String(p.cseExiste || (ctx.fiche || {}).cseExiste ||
         (ctx.donnees || {}).cseExiste || "").trim().toLowerCase();
+      cse = cse.indexOf("oui") === 0 ? "oui" : (cse.indexOf("non") === 0 ? "non" : cse);
 
       L.push("ÉTAPE 0 - À QUI LA BASE EST-ELLE DUE ?");
       L.push("");

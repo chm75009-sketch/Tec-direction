@@ -46,9 +46,25 @@
     });
   }
   function propre(t) {
-    return String(t == null ? "" : t).replace(/[—–]/g, "-").replace(/ /g, " ");
+    return String(t == null ? "" : t).replace(/[—–]/g, "-").replace(/ /g, " ")
+      .replace(/│/g, "|");
   }
-  function estSeparateur(l) { return /^[\s|:\-─═]+$/.test(l) && l.indexOf("-") >= 0; }
+  /* LES TABLEAUX DESSINÉS AU TRAIT.
+
+     Des générateurs encadrent leurs tableaux avec les caractères de dessin
+     des boîtes. Rendus tels quels, le cadre sortait en texte et les cellules
+     se coupaient, « 1°) » seul sur une ligne. La barre verticale de dessin
+     devient le séparateur de cellules, les lignes qui ne portent que du
+     cadre se jettent, et le tableau redevient un tableau. Relevé le
+     26 septembre 2026. */
+  function estCadre(l) {
+    /* Un angle ou un croisement est exigé : un simple filet de ─, qui sépare
+       deux parties d'un document, reste un filet et se rend comme tel. */
+    return /^[\s┌┬┐├┼┤└┴┘─═|+:]+$/.test(l) && /[┌┬┐├┼┤└┴┘]/.test(l);
+  }
+  function estSeparateur(l) {
+    return /^[\s|:\-─═_]+$/.test(l) && /[-─═_]/.test(l);
+  }
   function cellules(l) {
     var c = l.split("|").map(function (x) { return x.trim(); });
     if (c.length && c[0] === "") c.shift();
@@ -65,12 +81,30 @@
   function blocs(t) {
     t = propre(t);
     var lignes = t.split("\n"), b = [], para = [], premier = true, table = null;
+    var cadreVu = false, tableCadre = false;
     function viderTable() {
       if (!table) return;
-      var nb = table.reduce(function (m, l) { return Math.max(m, l.length); }, 0);
-      var rows = table.map(function (l) { while (l.length < nb) l.push(""); return l; });
+      /* Dans un tableau dessiné au trait, une cellule trop longue est écrite
+         sur deux lignes, et la seconde n'a pas de première colonne : elle
+         rejoint la ligne du dessus au lieu d'en former une nouvelle. */
+      var jointes = [];
+      table.forEach(function (l) {
+        var avant = jointes.length ? jointes[jointes.length - 1] : null;
+        if (tableCadre && avant && !String(l[0] == null ? "" : l[0]).trim()) {
+          l.forEach(function (c, i) {
+            if (!String(c == null ? "" : c).trim()) return;
+            avant[i] = avant[i] ? avant[i] + " " + c : c;
+          });
+          return;
+        }
+        jointes.push(l.slice());
+      });
+      var nb = jointes.reduce(function (m, l) { return Math.max(m, l.length); }, 0);
+      var rows = jointes.map(function (l) { while (l.length < nb) l.push(""); return l; });
       b.push({ k: "table", head: rows[0], rows: rows.slice(1) });
       table = null;
+      tableCadre = false;
+      cadreVu = false;
     }
     function vider() {
       if (!para.length) return;
@@ -112,8 +146,19 @@
       } else if (/https?:\/\//.test(texte) && para.length === 1) {
         b.push({ k: "lien", t: texte });
       } else if (para.every(function (l) { return /^\s{2,}/.test(l) || /^\s*[-•·]\s/.test(l); })) {
+        /* UNE CITATION COUPÉE À SOIXANTE-DOUZE SIGNES N'EST PAS UNE LISTE.
+
+           Les générateurs écrivent leur texte en lignes courtes, en retrait.
+           Chacune devenait une puce : une citation de quatre lignes sortait
+           en quatre puces, et une longue en trente. Une ligne sans marque,
+           qui commence en minuscule et suit une ligne inachevée, continue la
+           précédente : c'est une coupure de mise en page, pas un élément de
+           plus. Relevé le 26 septembre 2026. */
+        var items = [];
         para.forEach(function (l) {
-          if (/https?:\/\//.test(l)) b.push({ k: "lien", t: l.trim().replace(/^[-•·]\s*/, "") });
+          var brut = l.trim();
+          var lien = /https?:\/\//.test(brut);
+          var puce = /^[-•·]\s*/.test(brut);
           /* UNE LISTE DÉJÀ NUMÉROTÉE NE PREND PAS DE PUCE EN PLUS.
 
              L'échelle des sanctions du règlement intérieur est écrite « 1. »
@@ -121,8 +166,21 @@
              liste à puces, elle sortait « - 1. L'avertissement ». Relevé le
              25 septembre 2026 : le numéro est dans le texte, la puce s'en
              va. */
-          else if (/^\s*\d{1,2}[.)]\s/.test(l)) b.push({ k: "p", t: l.trim() });
-          else b.push({ k: "puce", t: l.trim().replace(/^[-•·]\s*/, "") });
+          var numero = /^\d{1,2}[.)]\s/.test(brut);
+          var avant = items.length ? items[items.length - 1] : null;
+          if (avant && !puce && !numero && !lien && !avant.lien &&
+              /^[a-zà-ÿ«(]/.test(brut) && !/[.:;»)\]]$/.test(avant.t)) {
+            avant.t += " " + brut;
+            return;
+          }
+          items.push({ t: brut.replace(/^[-•·]\s*/, ""), puce: puce, numero: numero, lien: lien });
+        });
+        items.forEach(function (x) {
+          if (x.lien) b.push({ k: "lien", t: x.t });
+          else if (x.numero) b.push({ k: "p", t: x.t });
+          else if (x.puce) b.push({ k: "puce", t: x.t });
+          /* Un seul bloc en retrait, sans marque : c'est un paragraphe. */
+          else b.push({ k: items.length === 1 ? "p" : "puce", t: x.t });
         });
       } else if (para.length >= 2 && para.every(function (l) { return /^[^:]{2,70} ?:/.test(l.trim()); })) {
         para.forEach(function (l) { b.push({ k: "p", t: l.trim() }); });
@@ -133,10 +191,13 @@
       para = [];
     }
     lignes.forEach(function (l) {
+      /* Une ligne de cadre ne porte aucun texte : elle se jette, et elle ne
+         ferme pas le tableau qu'elle traverse. */
+      if (estCadre(l)) { cadreVu = true; if (!table) vider(); return; }
       if (estLigneTable(l) || (table && estSeparateur(l))) {
         vider();
         if (estSeparateur(l)) return;
-        if (!table) table = [];
+        if (!table) { table = []; tableCadre = cadreVu; }
         table.push(cellules(l));
         return;
       }

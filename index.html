@@ -41,6 +41,39 @@
   .fiche label .nom{font:400 16px/1.35 system-ui;color:var(--texte-2);margin:0}
   .fiche input,.fiche select{font:18px system-ui;padding:12px 14px;min-height:48px;
     border:1px solid var(--filet-2);border-radius:10px;background:var(--surface);color:var(--texte)}
+  /* Le pli des organismes : fermé, il ne pèse qu'une ligne sur la fiche ;
+     ouvert, il est la fiche des organismes, et il n'y en a qu'une. */
+  /* L'effectif du registre, sous le champ : un fait, pas une alerte, sauf
+     quand les deux chiffres ne se rejoignent pas. */
+  .eff-reg{margin:14px 0 0;padding:13px 14px;border:1px solid var(--filet);border-radius:12px;
+    background:var(--creux);font-size:var(--t2);line-height:1.45;color:var(--texte-2)}
+  .eff-reg p{margin:0 0 8px}
+  .eff-reg .er-ecart{color:var(--ambre);font-weight:600}
+  .eff-reg .er-boutons button{font:600 15px/1 system-ui;padding:10px 14px;min-height:44px;
+    border:1px solid var(--filet);border-radius:10px;background:var(--surface);color:var(--texte);cursor:pointer}
+  .eff-reg .er-motif{display:flex;flex-direction:column;gap:5px;margin:10px 0 0}
+  .eff-reg .er-motif input{font-size:16px;padding:11px 12px;min-height:46px;width:100%;
+    box-sizing:border-box;border:1px solid var(--filet);border-radius:10px}
+  .pli-org{margin:18px 0 0;border:1px solid var(--filet);border-radius:12px;background:var(--surface)}
+  /* `display:block` retire la boîte du marqueur : sans elle, le titre et sa
+     précision se rangeaient en deux colonnes étroites sur un téléphone. */
+  .pli-org>summary{display:block;cursor:pointer;padding:14px 16px;font:600 16px/1.35 system-ui;list-style:none}
+  .pli-org>summary::-webkit-details-marker{display:none}
+  .pli-org>summary::before{content:"+ ";color:var(--accent);font-weight:700}
+  .pli-org[open]>summary::before{content:"- "}
+  .pli-org>summary span{display:block;font:400 14px/1.35 system-ui;color:var(--texte-2);margin-top:3px}
+  .pli-org>div{padding:0 16px 16px}
+  .pli-org .aide-champ{font-size:14px;line-height:1.4;color:var(--texte-2)}
+  /* La semaine : des lignes courtes, la date à gauche, le retard en rouge. */
+  .semaine{margin:0 0 18px;padding:14px 16px;border:1px solid var(--filet);border-radius:12px;background:var(--surface)}
+  .semaine h2{font:600 17px/1.3 system-ui;margin:0 0 10px}
+  .sem-l{display:flex;gap:10px;align-items:baseline;padding:7px 0;border-top:1px solid var(--filet)}
+  .sem-l:first-child{border-top:0}
+  .sem-d{flex:0 0 auto;min-width:74px;font:600 13px/1.4 system-ui;color:var(--texte-2)}
+  .sem-l.passe .sem-d{color:#b3261e}
+  .sem-q{font-size:15px;line-height:1.35}
+  .sem-plus{margin:8px 0 0;font-size:13.5px;color:var(--texte-2)}
+  .semaine-tout{display:inline-block;margin-top:10px;font-size:14.5px}
   .fiche .idcc-liste{font-size:16px}
   .fiche .idcc-liste .idcc-o{min-height:44px}
   .btn-suite{display:block;width:100%;margin:22px 0 0;font:600 19px system-ui;padding:16px;
@@ -74,8 +107,13 @@
   .grand:hover{background:var(--accent);color:#fff}
   @media (min-width:700px){
     main.wrap{max-width:720px}
-    .portes{flex-direction:row}
-    .grand{flex:1;min-height:110px;justify-content:center}
+    /* CINQ PORTES SUR UNE SEULE RANGÉE DÉBORDAIENT DE LA COLONNE.
+       « flex-direction:row » sans retour à la ligne poussait les deux
+       dernières hors de la page, à droite : mesuré le 26 septembre 2026, la
+       colonne fait 688 pixels et les boutons allaient jusqu'à 1218. Elles
+       reviennent à la ligne, deux par deux. */
+    .portes{flex-direction:row;flex-wrap:wrap}
+    .grand{flex:1 1 calc(50% - 7px);min-height:110px;justify-content:center;font-size:23px}
   }
 
   footer{margin:40px 0 32px;padding-top:14px;border-top:1px solid var(--filet);
@@ -99,7 +137,7 @@
 
 <header class="site">
   <div class="wrap">
-    <p class="marque">Jurisprudence <span>relations collectives</span></p>
+    <p class="marque">T.E.C <span>Transports</span></p>
   </div>
 </header>
 
@@ -108,6 +146,41 @@
   <section class="fiche" id="ecran-fiche" hidden>
     <h1>Votre entreprise</h1>
     <div id="fiche-accueil"></div>
+    <!-- L'effectif du registre, en face de l'effectif saisi. -->
+    <div id="effectif-registre" class="eff-reg" hidden></div>
+
+    <!-- LA REPRÉSENTATION DU PERSONNEL, POSÉE UNE FOIS.
+         Le comité, ses élections, le procès-verbal de carence, le délégué
+         syndical : quatre réponses qui commandent ce qui est dû, et que la
+         fiche ne demandait nulle part. Repliées, comme les organismes.
+         Relevé le 26 septembre 2026. -->
+    <details id="pli-representation" class="pli-org">
+      <summary>Représentation du personnel <span>comité, élections, délégué syndical</span></summary>
+      <div id="fiche-representation"></div>
+    </details>
+
+    <!-- CE QUI NE CHANGE JAMAIS SE SAISIT ICI, ET UNE SEULE FOIS.
+         Les organismes de l'entreprise, retraite complémentaire, prévoyance,
+         frais de santé, caisse, santé au travail, OPCO, inspection, conseil de
+         prud'hommes, étaient redemandés à chaque contrat et laissés en rouge
+         dans les courriers. Repliés par défaut : la fiche reste courte, et ils
+         ne se remplissent qu'une fois. Demande du 26 septembre 2026. -->
+    <details id="pli-organismes" class="pli-org">
+      <summary>Organismes et interlocuteurs <span>à remplir une fois, repris dans tous les documents</span></summary>
+      <div id="fiche-organismes"></div>
+    </details>
+
+    <!-- CE QUI TIENT À LA PROFESSION DE TRANSPORTEUR.
+         Registre des transporteurs, licence et copies conformes, gestionnaire
+         de transport, capacité financière : rien de tout cela n'était demandé,
+         et les échéances qui vont avec n'étaient donc nulle part. Relevé le
+         26 septembre 2026. Le bloc ne s'ouvre que pour une entreprise de
+         transport : ailleurs, il n'a rien à faire sur l'écran. -->
+    <details id="pli-transport" class="pli-org" hidden>
+      <summary>Transport routier <span>registre, licence, gestionnaire, capacité financière</span></summary>
+      <div id="fiche-transport"></div>
+      <div id="capacite-transport" class="eff-reg" hidden></div>
+    </details>
     <button type="button" class="btn-suite" id="continuer-fiche">Continuer</button>
   </section>
 
@@ -116,6 +189,17 @@
     <div class="rappel">
       <div class="texte"><b id="rail-ent"></b> <span id="rail-ent-txt"></span></div>
     </div>
+    <!-- CE QUI EST À FAIRE CETTE SEMAINE, AVANT LES BOUTONS.
+         L'accueil offrait cinq portes et aucune date : le dirigeant n'avait
+         nulle part une liste de ce qui vient. Ce bloc ramasse les échéances
+         des sept prochains jours, et celles qui sont dépassées, de la flotte,
+         des conducteurs et des salariés. Il ne s'affiche que s'il y a
+         quelque chose. Demande du 26 septembre 2026. -->
+    <section id="semaine" class="semaine" hidden>
+      <h2>Cette semaine</h2>
+      <div id="semaine-liste"></div>
+      <a class="semaine-tout" href="agenda.html">Tout l'agenda social</a>
+    </section>
     <p class="chapeau"><b>Audit</b> : une question par obligation, oui ou non ; à non, le document
     manquant est écrit pour vous ; à oui, vous déposez le vôtre et il est contrôlé.
     <b>Gérer</b> : les documents du quotidien, de l'embauche à la rupture, contrat, sanction,
@@ -155,6 +239,9 @@
 <script src="version.js"></script>
 <script src="idcc.js"></script>
 <script src="profil.js"></script>
+<!-- Lues, jamais écrites : les échéances de la flotte et des salariés. -->
+<script src="flotte.js"></script>
+<script src="echeances-salaries.js"></script>
 <script>
 (function () {
   "use strict";
@@ -219,16 +306,29 @@
     denomination: "Dénomination",
     siret: "SIRET",
     adresse: "Adresse du siège",
-    responsable: "Représentant légal (nom, qualité)",
+    responsableNom: "Représentant légal (nom)",
+    responsableQualite: "Sa qualité",
     courriel: "Adresse e-mail",
     effectif: "Effectif (salariés)",
     secteur: "Secteur",
-    conventionCollective: "Convention collective (IDCC)"
+    conventionCollective: "Convention collective (IDCC)",
   };
+  /* LA QUESTION DU COMITÉ SE POSE À L'ENTRÉE, DANS SON PROPRE PLI.
+
+     Elle commande le règlement intérieur (avis du comité ou procès-verbal de
+     carence), l'agenda, les consultations et la moitié des courriers. Posée
+     d'abord ici en oui-non, elle a rejoint le pli « Représentation du
+     personnel » le 26 septembre 2026, avec ses trois réponses, la date des
+     élections, celle du procès-verbal de carence et le délégué syndical : une
+     seule case pour une seule clé, et le reste avec elle. */
   /* Ce qui n'empêche pas de continuer. Le courriel est une coordonnée, non un
      élément d'identité : un document se dépose au greffe sans lui. */
   var FACULTATIFS = { courriel: true };
-  var CHAMPS = (window.Profil ? window.Profil.IDENTITE : []).filter(function (ch) {
+  /* Les champs de la fiche d'accueil qui ne sont pas dans l'identité : la
+     question du comité vit dans la fiche longue des parcours, et la voici
+     posée aussi à l'entrée. Même clé, même enregistrement. */
+  var HORS_IDENTITE = [];
+  var CHAMPS = (window.Profil ? window.Profil.IDENTITE.concat(HORS_IDENTITE) : []).filter(function (ch) {
     return NOMS[ch.c] !== undefined;
   }).map(function (ch) {
     var c = {};
@@ -278,12 +378,222 @@
     $("continuer-fiche").disabled = !complet(profil());
     window.scrollTo(0, 0);
   }
+  /* CE QUI VIENT DANS LES SEPT JOURS, ET CE QUI EST DÉJÀ DÉPASSÉ.
+
+     Les trois sources qui portent des dates : la flotte (contrôle technique,
+     limiteur, chronotachygraphe, permis, FCO, carte conducteur), les
+     salariés (déclaration préalable, visite d'information et de prévention,
+     entretien de parcours, fin d'essai, terme d'un contrat à durée
+     déterminée) et la fiche d'entreprise, pour la licence de transport.
+     Rien n'est calculé ici : chaque module rend ses échéances, l'accueil les
+     range par date. */
+  function enFrCourt(iso) {
+    var d = new Date(iso + "T12:00:00");
+    if (isNaN(d)) return iso;
+    return d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+  }
+  function semaine() {
+    var L = [];
+    try {
+      if (window.Flotte && window.Flotte.echeances) L = L.concat(window.Flotte.echeances());
+    } catch (e) {}
+    try {
+      if (window.EcheancesSalaries && window.EcheancesSalaries.echeances)
+        L = L.concat(window.EcheancesSalaries.echeances());
+    } catch (e) {}
+    /* La licence de transport : elle tient à l'entreprise, pas à un véhicule
+       ni à un salarié, et c'est pourquoi elle ne figurait nulle part. */
+    try {
+      if (window.Profil && window.Profil.echeancesTransport)
+        L = L.concat(window.Profil.echeancesTransport());
+    } catch (e) {}
+    var limite = new Date();
+    limite.setDate(limite.getDate() + 7);
+    var bout = limite.toISOString().slice(0, 10);
+    L = L.filter(function (e) { return e.date && (e.etat === "passe" || e.date <= bout); });
+    L.sort(function (a, b) { return a.date < b.date ? -1 : (a.date > b.date ? 1 : 0); });
+    var hote = document.getElementById("semaine");
+    if (!hote) return;
+    if (!L.length) { hote.hidden = true; return; }
+    hote.hidden = false;
+    var MAX = 8;
+    document.getElementById("semaine-liste").innerHTML =
+      L.slice(0, MAX).map(function (e) {
+        return '<div class="sem-l ' + (e.etat === "passe" ? "passe" : "proche") + '">' +
+          '<span class="sem-d">' + (e.etat === "passe" ? "en retard" : enFrCourt(e.date)) + "</span>" +
+          '<span class="sem-q"><b>' + esc(e.quoi) + "</b> " + esc(e.qui) + "</span></div>";
+      }).join("") +
+      (L.length > MAX ? '<p class="sem-plus">et ' + (L.length - MAX) + " autre" +
+        (L.length - MAX > 1 ? "s" : "") + ".</p>" : "");
+  }
+  function esc(t) {
+    return String(t == null ? "" : t).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
   function montrerPortes() {
     var p = profil();
     majRappel(p);
     $("ecran-fiche").hidden = true;
     $("ecran-portes").hidden = false;
+    semaine();
     window.scrollTo(0, 0);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     L'EFFECTIF SAISI, ET CELUI DU REGISTRE.
+
+     Il était saisi à la main et jamais rapproché du registre : l'agenda
+     affichait « Effectif retenu : 41 » et « 85 salariés au registre » sur le
+     même écran, et tous les seuils reposaient sur un chiffre libre. Relevé le
+     26 septembre 2026. Le registre calcule maintenant le sien selon
+     L. 1111-2, avec sa date ; l'écart s'affiche, se reprend d'un bouton, et
+     se garde s'il est motivé. Rien n'est imposé : c'est l'employeur qui
+     arrête son effectif, mais il le fait en connaissance de cause. */
+  function direEffectif() {
+    var z = $("effectif-registre");
+    if (!z || !window.Profil.effectifRegistre) return;
+    var e = window.Profil.effectifRegistre();
+    if (!e.lignes) { z.hidden = true; return; }
+    var champ = $("fc-effectif");
+    var saisi = champ ? parseFloat(String(champ.value).replace(",", ".")) : NaN;
+    var calcule = e.total;
+    var dit = "Registre du personnel au " + jourFr(e.date) + " : " +
+      nombreFr(calcule) + " salarié" + (calcule > 1 ? "s" : "") + " au sens de L. 1111-2 (" +
+      e.plein + " à temps plein" +
+      (e.cdd ? ", " + nombreFr(e.cdd) + " au titre des contrats à durée déterminée, au prorata de leur présence" : "") +
+      (e.partiel ? ", " + nombreFr(e.partiel) + " au titre des temps partiels, au prorata de leur horaire" : "") +
+      ").";
+    if (e.sansHoraire.length) {
+      dit += " " + (e.sansHoraire.length > 1
+        ? e.sansHoraire.length + " salariés à temps partiel sans horaire au registre ne sont pas comptés"
+        : "Un salarié à temps partiel sans horaire au registre n'est pas compté") +
+        " : " + e.sansHoraire.join(", ") + ".";
+    }
+    if (e.remplacement) {
+      dit += " " + e.remplacement + " remplacement" + (e.remplacement > 1 ? "s" : "") +
+        " de salarié absent exclu" + (e.remplacement > 1 ? "s" : "") + " du décompte.";
+    }
+    var ecart = isFinite(saisi) && Math.abs(saisi - calcule) >= 0.5;
+    z.innerHTML = '<p class="er-dit">' + ech(dit) + "</p>" +
+      (ecart ? '<p class="er-ecart">Vous avez saisi ' + ech(nombreFr(saisi)) +
+        " : l'écart avec le registre est de " + ech(nombreFr(Math.abs(saisi - calcule))) +
+        ". Reprenez le registre, ou dites pourquoi vous retenez un autre chiffre.</p>" : "") +
+      '<div class="er-boutons"><button type="button" id="er-reprendre">Reprendre ' +
+      ech(nombreFr(calcule)) + "</button></div>" +
+      (ecart ? '<label class="er-motif"><span>Pourquoi ce chiffre plutôt que celui du registre</span>' +
+        '<input type="text" id="er-motif" value="' + ech(lireMotif()) +
+        '" placeholder="le registre ne porte pas encore les entrées du mois"></label>' : "");
+    z.hidden = false;
+    var b = $("er-reprendre");
+    if (b) b.addEventListener("click", function () {
+      if (!champ) return;
+      /* Le champ est de type nombre : il refuse la virgule, et se vide. */
+      champ.value = String(calcule);
+      champ.dispatchEvent(new Event("input", { bubbles: true }));
+      champ.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    var m = $("er-motif");
+    if (m) m.addEventListener("input", function () {
+      var p = window.Profil.lire();
+      p.effectifMotif = m.value;
+      window.Profil.ecrire(p);
+    });
+  }
+  function lireMotif() {
+    var p = window.Profil ? window.Profil.lire() : {};
+    return String(p.effectifMotif || "");
+  }
+  function nombreFr(n) {
+    var x = Math.round(Number(n) * 100) / 100;
+    return String(x % 1 === 0 ? x : x.toFixed(2)).replace(".", ",");
+  }
+  function jourFr(d) {
+    var M = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet",
+      "août", "septembre", "octobre", "novembre", "décembre"];
+    var j = d.getDate();
+    return (j === 1 ? "1er" : j) + " " + M[d.getMonth()] + " " + d.getFullYear();
+  }
+  function ech(t) {
+    return String(t == null ? "" : t).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+  function euros(n) {
+    return String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " €";
+  }
+
+  /* LE BLOC DU TRANSPORT NE S'OUVRE QUE POUR UN TRANSPORTEUR.
+     Le secteur de la fiche décide, et la convention 16 avec lui : ailleurs,
+     ces champs n'ont rien à demander. */
+  function estTransporteur(p) {
+    var s = String((p && p.secteur) || "").toLowerCase();
+    var c = String((p && p.conventionCollective) || "").toLowerCase();
+    return s.indexOf("transport") >= 0 || /(^|\D)0*16(\D|$)/.test(c) ||
+      c.indexOf("transport") >= 0;
+  }
+  function direTransport() {
+    var z = $("pli-transport");
+    if (!z) return;
+    z.hidden = !estTransporteur(profil());
+  }
+
+  /* CE QUE LE PARC EXIGE, EN FACE DE CE QUI EST SAISI.
+     R. 3211-32 : 9 000 € pour le premier véhicule de plus de 3,5 tonnes,
+     5 000 € par lourd suivant, 900 € par véhicule léger ; 1 800 € et 900 €
+     quand le parc est entièrement léger. R. 3211-12 : autant de copies
+     conformes que de véhicules. Ce qui manque au parc est nommé, jamais
+     supposé. */
+  function direCapacite() {
+    var z = $("capacite-transport");
+    if (!z || !window.Profil || !window.Profil.capaciteTransport) return;
+    var c = window.Profil.capaciteTransport(), p = c.parc, L = [];
+    if (!p.lignes) {
+      z.innerHTML = '<p class="er-dit">La flotte ne porte aucun véhicule : ' +
+        "le montant de la capacité financière et le nombre de copies conformes " +
+        "ne peuvent pas être calculés. Ouvrez « Flotte et conducteurs » pour les " +
+        "saisir.</p>";
+      z.hidden = false;
+      return;
+    }
+    var moteurs = p.lourds + p.legers;
+    L.push('<p class="er-dit">Flotte : ' + moteurs + " véhicule" + (moteurs > 1 ? "s" : "") +
+      " à moteur (" + p.lourds + " de plus de 3,5 tonnes, " + p.legers + " en deçà)" +
+      (p.remorques ? ", " + p.remorques + " remorque" + (p.remorques > 1 ? "s qui ne comptent pas" :
+        " qui ne compte pas") : "") + ".</p>");
+    if (p.sansPoids.length)
+      L.push('<p class="er-ecart">' + p.sansPoids.length + " véhicule" +
+        (p.sansPoids.length > 1 ? "s dont le genre ne dit pas le poids ne sont pas comptés" :
+          " dont le genre ne dit pas le poids n'est pas compté") + " : " +
+        ech(p.sansPoids.slice(0, 6).join(", ")) +
+        (p.sansPoids.length > 6 ? "…" : "") + ".</p>");
+    if (c.exige) {
+      L.push('<p class="er-dit">Capacité financière exigée : ' + euros(c.exige) +
+        " (" + ech(c.dit) + ", R. 3211-32).</p>");
+      if (c.capitaux === null)
+        L.push('<p class="er-ecart">Les capitaux et réserves du dernier exercice ne sont pas saisis : ' +
+          "l'écart ne peut pas être mesuré.</p>");
+      else if (c.manque > 0)
+        L.push('<p class="er-ecart">Capitaux saisis : ' + euros(c.capitaux) + ". Il manque " +
+          euros(c.manque) + " pour atteindre le montant exigé.</p>");
+      else
+        L.push('<p class="er-dit">Capitaux saisis : ' + euros(c.capitaux) +
+          ", le montant exigé est atteint.</p>");
+    }
+    if (moteurs) {
+      if (!isFinite(c.copies))
+        L.push('<p class="er-ecart">Le nombre de copies conformes n\'est pas saisi : ' +
+          "il devrait correspondre aux " + moteurs + " véhicules du parc (R. 3211-12).</p>");
+      else if (c.copies < moteurs)
+        L.push('<p class="er-ecart">' + c.copies + " copie" + (c.copies > 1 ? "s" : "") +
+          " conforme" + (c.copies > 1 ? "s" : "") + " pour " + moteurs +
+          " véhicules : il en manque " + (moteurs - c.copies) + " (R. 3211-12).</p>");
+      else
+        L.push('<p class="er-dit">' + c.copies + " copies conformes pour " + moteurs +
+          " véhicules.</p>");
+    }
+    z.innerHTML = L.join("");
+    z.hidden = false;
   }
 
   if (window.Profil && CHAMPS.length === Object.keys(NOMS).length) {
@@ -291,8 +601,47 @@
       champs: CHAMPS,
       legende: "Votre entreprise",
       echange: false,
-      onChange: function (p) { $("continuer-fiche").disabled = !complet(p); }
+      onChange: function (p) { $("continuer-fiche").disabled = !complet(p); direEffectif(); direTransport(); }
     });
+    direEffectif();
+    /* La représentation du personnel : le comité, ses élections, la carence,
+       le délégué syndical. Ces quatre réponses commandent ce qui s'affiche
+       dans presque tous les modules. */
+    if ($("fiche-representation") && window.Profil.REPRESENTATION) {
+      window.Profil.rendre($("fiche-representation"), {
+        champs: window.Profil.REPRESENTATION,
+        prefixe: "fr",
+        legende: "Représentation du personnel",
+        aide: "Elles décident de ce qui vous est dû : la consultation du comité, " +
+          "le procès-verbal de carence, la négociation annuelle. Laissées vides, " +
+          "aucun module ne conclut à votre place.",
+        echange: false
+      });
+    }
+    window.Profil.rendre($("fiche-organismes"), {
+      champs: window.Profil.ORGANISMES,
+      prefixe: "fo",
+      legende: "Organismes et interlocuteurs de l'entreprise",
+      aide: "Ils ne dépendent ni du salarié ni de la date : saisis une fois, " +
+        "ils entrent d'eux-mêmes dans les contrats, les courriers et les dépôts. " +
+        "Laissés vides, le document garde son crochet rouge à cet endroit.",
+      echange: false
+    });
+    if ($("fiche-transport") && window.Profil.TRANSPORT) {
+      window.Profil.rendre($("fiche-transport"), {
+        champs: window.Profil.TRANSPORT,
+        prefixe: "ft",
+        legende: "Autorisation d'exercer et titres de transport",
+        aide: "Ce sont les pièces que l'entreprise doit tenir pour exercer : " +
+          "l'inscription au registre, la licence et ses copies conformes, le " +
+          "gestionnaire de transport, les capitaux propres de l'exercice. " +
+          "Le parc de la flotte dit en face ce qui est exigé.",
+        echange: false,
+        onChange: direCapacite
+      });
+      direTransport();
+      direCapacite();
+    }
     var autre = $("fiche-accueil").querySelector('option[value="__autre"]');
     if (autre) autre.textContent = "Autre";
     var cc = $("fc-conventionCollective");

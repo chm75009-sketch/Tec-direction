@@ -65,6 +65,20 @@ MARQUE = {
 # n'importe quelle balise « link » qui porte un rel d'icône.
 LIEN_ICONE = re.compile(r'(<link [^>]*rel="(?:apple-touch-)?icon"[^>]*href=")icons/[^"]+(")')
 
+# L'EN-TÊTE PORTE LE NOM DU CLIENT, PAS CELUI DE L'APPLICATION.
+#
+# « L'en-tête dit Jurisprudence relations collectives et non SARL TEC » :
+# relevé le 26 septembre 2026. C'est le site de T.E.C : sur son accueil et sur
+# sa page de recherche, la marque est la sienne. Les autres pages portent le
+# nom de ce qu'elles font, « Agenda social », « Registre du personnel », et
+# cela reste juste.
+MARQUE_HAUT = [
+    (re.compile(r'(<p class="marque">)Jurisprudence <span>relations collectives</span>(</p>)'),
+     r'\1T.E.C <span>Transports</span>\2'),
+    (re.compile(r'(<p class="marque">)Jurisprudence et textes(</p>)'),
+     r'\1T.E.C, jurisprudence et textes\2'),
+]
+
 LIGNES = [
     # (ligne à poser, repère après lequel l'insérer, pages à épargner)
     ('<script src="verrou.js"></script>', '<meta name="viewport"', {PORTE}),
@@ -135,6 +149,9 @@ def marquer():
     for f in sorted(ici.glob("*.html")):
         t = f.read_text(encoding="utf-8")
         neuf, n = LIEN_ICONE.subn(r"\1icons-tec/icon-180.png\2", t)
+        for motif, par in MARQUE_HAUT:
+            neuf, k = motif.subn(par, neuf)
+            n += k
         if n:
             f.write_text(neuf, encoding="utf-8")
             liens += n

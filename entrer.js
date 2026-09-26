@@ -189,8 +189,11 @@
           $("patiente").hidden = true;
           $("ouvrir").disabled = false;
           $("erreur").hidden = false;
-          $("erreur").textContent = "Ce mot de passe n'ouvre pas le dossier. Vérifiez les " +
-            "majuscules et les tirets, puis réessayez.";
+          /* Le message ne décrit plus la forme du mot de passe : il parlait de
+             tirets que celui-ci ne contient pas, et un message d'erreur qui
+             renseigne sur ce qu'on cherche aide surtout celui qui cherche.
+             Relevé le 26 septembre 2026. */
+          $("erreur").textContent = "Ce mot de passe n'ouvre pas le dossier. Réessayez.";
           $("mot").select();
         });
       }, 40);

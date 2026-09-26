@@ -125,6 +125,12 @@
     font-variant-numeric:tabular-nums}
   .jour .h small{display:block;font:400 10px/1.5 system-ui;color:var(--texte-3)}
   .jour.change{box-shadow:inset 3px 0 0 var(--ambre)}
+  /* La journée qui passe le plafond quotidien : liseré rouge, et l'heure du
+     jour en rouge. Elle se voit dans la grille sans qu'on lise une liste. */
+  .jour.hc{opacity:.55}
+  .jour .quand .hcq{display:block;font-weight:400;color:var(--texte-3);font-size:11px;line-height:1.3}
+  .jour.trop{box-shadow:inset 3px 0 0 var(--rouge)}
+  .jour.trop .h{color:var(--rouge)}
   .jour.verrou select,.jour.verrou input{background:var(--creux);color:var(--texte-2)}
   .semaine{display:flex;justify-content:space-between;align-items:baseline;gap:10px;
     padding:9px 10px 13px;border-bottom:1px solid var(--filet);
@@ -145,6 +151,12 @@
     background:var(--surface);color:var(--texte)}
   .ecart{margin:10px 0 0;font-size:var(--t2);font-weight:600;color:var(--ambre)}
   .ecart.ok{color:var(--vert)}
+  /* Les contrôles du mois : ce qui est franchi se lit d'abord, en rouge, et
+     porte le jour et le chiffre. Le reste est en gris, c'est du rappel. */
+  .al{margin:0 0 8px;font-size:var(--t2);font-weight:600;color:var(--ambre)}
+  .al.rouge{color:var(--rouge)}
+  #controles p.doux{margin:0 0 8px}
+  #controles p:last-child{margin-bottom:0}
 
   .sceau{margin:var(--e3) 0 0;border:1px solid var(--vert);background:var(--vert-clair);
     border-radius:var(--r1);padding:12px 14px}
@@ -169,6 +181,20 @@
     border:1px solid var(--filet-2);border-radius:var(--r1);background:var(--surface);
     color:var(--texte);width:100%;box-sizing:border-box}
   .champ textarea{min-height:84px;line-height:1.45;resize:vertical}
+  #frais{display:grid;gap:10px;margin:14px 0 0}
+  @media (min-width:560px){#frais{grid-template-columns:1fr 1fr 1fr}}
+  #frais .champ > span{text-transform:none;letter-spacing:0;font:600 13px/1.3 system-ui;color:var(--texte-2)}
+  #frais .champ small{display:block;font:400 12px/1.4 system-ui;color:var(--texte-3);margin-top:2px}
+  #frais input{min-height:44px}
+  #sujetions .tuile small{display:block;font:400 12px/1.4 system-ui;color:var(--texte-3);margin-top:5px}
+  .tableau-etat{margin:14px 0 0;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tableau-etat table{border-collapse:collapse;width:100%;min-width:620px;font-size:14px}
+  .tableau-etat th,.tableau-etat td{border-bottom:1px solid var(--filet);padding:8px 10px;
+    text-align:left;vertical-align:top;white-space:nowrap}
+  .tableau-etat th{font:600 12px/1.2 system-ui;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--texte-3);background:var(--creux)}
+  .tableau-etat td small{color:var(--texte-3)}
+  .tableau-etat tr.vide td{color:var(--texte-3);font-style:italic}
 
   .barre{display:flex;flex-direction:column;gap:10px;margin:var(--e4) 0 0}
   @media (min-width:640px){.barre{flex-direction:row}.barre button{flex:1}}
@@ -259,6 +285,28 @@
       <div class="barre"><button type="button" class="second" id="r-appliquer">Remettre tout le mois à cet horaire</button></div>
     </div>
 
+    <!-- LE RELEVÉ DE LA MACHINE PLUTÔT QUE LA SAISIE À LA MAIN.
+         Un conducteur a son chronotachygraphe, un atelier a sa pointeuse :
+         leurs exports portent déjà, pour chaque jour, l'heure de début, celle
+         de fin et la pause. Les retaper à la main, trente fois par mois et
+         par salarié, était le vrai travail. Relevé le 26 septembre 2026.
+         Ce qui est importé s'écrit dans les jours du mois affiché, et rien
+         n'est écrasé en silence : l'écran dit combien de jours ont été
+         repris. -->
+    <div class="bloc">
+      <h2>Importer un relevé</h2>
+      <p class="doux">Le fichier du chronotachygraphe, de la pointeuse ou un tableau à vous :
+        une ligne par jour, avec le jour, l'heure de début, l'heure de fin et la pause en minutes.
+        Formats lus : .xlsx, .csv, .txt. Seuls les jours du mois affiché sont repris.</p>
+      <label class="champ"><span>Fichier du relevé</span>
+        <input type="file" id="imp-fichier" accept=".xlsx,.csv,.txt,.tsv"></label>
+      <p class="doux">ou collez le tableau :</p>
+      <label class="champ"><span>Tableau collé</span>
+        <textarea id="imp-colle" rows="3" placeholder="01/10/2026	06:00	16:30	45"></textarea></label>
+      <div class="barre"><button type="button" class="second" id="imp-lire">Reprendre ces jours</button></div>
+      <p class="etat" id="imp-etat"></p>
+    </div>
+
     <div class="bloc">
       <h2>Jours du mois</h2>
       <p class="doux">Les jours travaillés arrivent déjà remplis par l'horaire de référence : il n'y a
@@ -272,6 +320,14 @@
       <div class="bilan">
         <div class="tuile"><span class="et">Jours travaillés</span><div class="n" id="t-jours">0</div></div>
         <div class="tuile"><span class="et">Calculé par les jours</span><div class="n" id="t-calcule">0,00 h</div></div>
+        <!-- LE MOIS DU CONTRAT, EN FACE DU MOIS COMPTÉ.
+             Un conducteur était pré-rempli à 35 heures et 9 h à 17 h, soit
+             154 heures au mois, quand son contrat porte 169 heures de temps
+             de service : le relevé signé contredisait le contrat. La tuile
+             n'apparaît que si le contrat écrit ici a donné la durée.
+             Relevé le 26 septembre 2026. -->
+        <div class="tuile" id="tuile-contrat" hidden><span class="et">Dû au contrat</span>
+          <div class="n" id="t-contrat">0,00 h</div></div>
         <div class="tuile aremplir"><span class="et">Total retenu</span>
           <input type="text" id="t-retenu" inputmode="decimal" placeholder="à remplir" autocomplete="off"
             aria-label="Total retenu par l'entreprise, en heures"></div>
@@ -279,6 +335,36 @@
       <p class="ecart" id="ecart"></p>
       <label class="champ" id="l-motif" hidden style="margin-top:12px"><span>Motif de l'écart</span>
         <input type="text" id="t-motif" placeholder="pourquoi le total retenu diffère du calcul des jours"></label>
+    </div>
+
+    <!-- L'AMPLITUDE, LA NUIT, LES REPAS ET LES DÉCOUCHERS.
+         Le relevé comptait des heures et rien d'autre : ni l'amplitude des
+         journées, ni les heures de nuit, ni les repas et découchers qui se
+         paient. Relevé le 26 septembre 2026. Ce qui se calcule est calculé
+         depuis les horaires saisis ; ce que seul l'employeur sait, le nombre
+         de repas pris hors du domicile et de nuits passées dehors, se compte
+         à la main, et les montants viennent de la convention. -->
+    <div class="bloc" id="bloc-sujetions" hidden>
+      <h2>Amplitude, nuit, repas et découchers</h2>
+      <div class="bilan" id="sujetions"></div>
+      <div class="champs" id="frais"></div>
+      <p class="doux" id="frais-dit"></p>
+    </div>
+
+    <!-- CE QUE LE RELEVÉ DOIT DIRE AVANT D'ÊTRE SIGNÉ.
+         Il additionnait les journées sans dire qu'une journée de treize heures
+         ou une semaine de cinquante-quatre heures est interdite, ni combien
+         d'heures passaient la durée légale. Relevé le 26 septembre 2026. -->
+    <div class="bloc">
+      <h2>Heures supplémentaires et plafonds</h2>
+      <div id="controles"></div>
+      <!-- Un dépassement scellé sans un mot est une preuve contre
+           l'entreprise : le mois ne se clôt pas tant qu'il n'est pas expliqué.
+           Relevé le 26 septembre 2026. -->
+      <label class="champ" id="l-motif-dep" hidden style="margin-top:12px">
+        <span>Motif du dépassement</span>
+        <input type="text" id="t-motif-dep"
+          placeholder="ce qui explique le dépassement, et ce qui a été fait"></label>
     </div>
 
     <div class="bloc">
@@ -292,6 +378,7 @@
         <button type="button" class="second" id="rectifier" hidden>Ouvrir un rectificatif</button>
         <button type="button" class="second" id="rouvrir" hidden>Rouvrir le mois</button>
       </div>
+      <p class="al rouge" id="cl-refus" hidden></p>
       <div class="sceau" id="sceau" hidden><div class="t">Mois clos</div><div class="d" id="sceau-d"></div></div>
       <div id="f-rectif" hidden>
         <div class="deux">
@@ -365,6 +452,22 @@
       <button type="button" class="second" id="b-word">Récapitulatif à signer, en Word</button>
     </div>
 
+    <!-- L'ÉTAT DU MOIS, POUR TOUS LES SALARIÉS.
+         Le décompte se tenait salarié par salarié, et rien ne donnait la vue
+         du mois entier : il fallait ouvrir quatre-vingt-deux fiches pour
+         savoir où en était la paie. Relevé le 26 septembre 2026. Le tableau
+         ne calcule rien de neuf : il reprend ce que chaque mois tenu a
+         enregistré, et dit lesquels ne l'ont pas été. -->
+    <div class="bloc">
+      <h2>L'état du mois, tous les salariés</h2>
+      <p class="doux" id="etat-tous-dit"></p>
+      <div class="barre">
+        <button type="button" class="second" id="b-etat">Voir l'état du mois</button>
+        <button type="button" class="second" id="b-etat-excel" hidden>Export pour la paie</button>
+      </div>
+      <div id="etat-tous"></div>
+    </div>
+
     <details class="loi" style="margin-top:24px">
       <summary>Voir le texte de loi</summary>
       <div>
@@ -401,6 +504,14 @@
 <script src="tableur-export.js"></script>
 <script src="profil.js"></script>
 <script src="version.js"></script>
+<!-- La lecture des classeurs, pour le relevé du chronotachygraphe. -->
+<script src="lire-classeur.js"></script>
+<!-- La durée due par le contrat, écrite au moment où le contrat a été fait. -->
+<script src="echeances-salaries.js"></script>
+<!-- La convention des transports : ses montants de repas et de découcher, sa
+     période de nuit et sa garantie d'amplitude. C'est le même fichier que les
+     contrats, avec ses sources et ses dates. -->
+<script src="contrats-transport.js"></script>
 <script src="heures.js"></script>
 <script>
 (function () {

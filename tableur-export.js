@@ -98,6 +98,9 @@
      quadrillage et non un tableau. */
   var STYLES = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
     '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    /* Le format des dates, écrit une fois : jour/mois/année, comme on les lit
+       ici. Sans lui, une vraie date apparaîtrait en nombre de jours. */
+    '<numFmts count="1"><numFmt numFmtId="164" formatCode="dd/mm/yyyy"/></numFmts>' +
     '<fonts count="3"><font><sz val="11"/><name val="Calibri"/></font>' +
     '<font><b/><sz val="13"/><color rgb="FF1F3864"/><name val="Calibri"/></font>' +
     '<font><b/><sz val="11"/><name val="Calibri"/></font></fonts>' +
@@ -110,13 +113,26 @@
     '<top style="medium"><color rgb="FF4A5568"/></top><bottom style="medium"><color rgb="FF4A5568"/></bottom>' +
     '<diagonal/></border></borders>' +
     '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
-    '<cellXfs count="6">' +
+    '<cellXfs count="10">' +
     '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
     '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment vertical="center"/></xf>' +
     '<xf numFmtId="0" fontId="2" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>' +
     '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>' +
     '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>' +
     '<xf numFmtId="0" fontId="0" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>' +
+    /* LES NOMBRES SONT DES NOMBRES. Styles 6 et 7 : les mêmes cellules
+       cadrées que 3 et 5, au format « 0,00 », alignées à droite. Toute
+       cellule était écrite en texte, et un relevé d'heures ouvert dans Excel
+       ne se totalisait pas : « 154,50 » y était une chaîne. Relevé le
+       26 septembre 2026. */
+    '<xf numFmtId="2" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="top"/></xf>' +
+    '<xf numFmtId="2" fontId="0" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="top"/></xf>' +
+    /* LES DATES SONT DES DATES. Styles 8 et 9 : les mêmes cellules cadrées
+       que 3 et 5, au format jour/mois/année. Une date écrite en texte ne se
+       trie pas et ne se soustrait pas : un registre exporté ne permettait
+       aucun calcul d'ancienneté. Relevé le 26 septembre 2026. */
+    '<xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="top"/></xf>' +
+    '<xf numFmtId="164" fontId="0" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="top"/></xf>' +
     '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
 
   /* La ligne d'en-tête d'une feuille : la première qui porte au moins quatre
@@ -139,7 +155,13 @@
       largeurs = [];
       for (var j = 0; j < nbCol; j++) {
         var w = 10;
-        lignes.forEach(function (l, i) { if (i >= tete && l && l[j] != null && pleines(l) > 1) w = Math.max(w, Math.min(48, String(l[j]).length + 2)); });
+        lignes.forEach(function (l, i) {
+          if (!(i >= tete && l && l[j] != null && pleines(l) > 1)) return;
+          /* Une date compte pour ce qu'elle affiche, jj/mm/aaaa, et non pour
+             la longueur de son écriture interne. */
+          var lg = l[j] instanceof Date ? 10 : String(l[j]).length;
+          w = Math.max(w, Math.min(48, lg + 2));
+        });
         largeurs.push(w);
       }
     }
@@ -160,6 +182,22 @@
       for (var j = 0; j < largeur; j++) {
         var cel = ligne[j], ref = colonne(j + 1) + (i + 1);
         if (cel === null || cel === undefined || cel === "") { x += '<c r="' + ref + '" s="' + style + '"/>'; continue; }
+        /* Un nombre passé comme nombre s'écrit en nombre : il s'additionne
+           dans le tableur, et il s'affiche avec deux décimales. */
+        if (typeof cel === "number" && isFinite(cel)) {
+          var sn = style === 5 ? 7 : (style === 3 ? 6 : style);
+          x += '<c r="' + ref + '" s="' + sn + '"><v>' + cel + "</v></c>";
+          continue;
+        }
+        /* Une date passée comme date s'écrit en date : elle se trie, et la
+           différence entre deux dates donne des jours. */
+        if (cel instanceof Date && isFinite(cel.getTime())) {
+          var sd = style === 5 ? 9 : (style === 3 ? 8 : style);
+          var serie = Math.round((Date.UTC(cel.getFullYear(), cel.getMonth(), cel.getDate()) -
+            Date.UTC(1899, 11, 30)) / 864e5);
+          x += '<c r="' + ref + '" s="' + sd + '"><v>' + serie + "</v></c>";
+          continue;
+        }
         x += '<c r="' + ref + '" s="' + style + '" t="inlineStr"><is><t xml:space="preserve">' + ech(cel) + "</t></is></c>";
       }
       x += "</row>";
@@ -183,9 +221,31 @@
      qui l'ouvre avec un outil tiers y voit alors le nom de cet outil, et une
      relecture du 25 septembre 2026 a cru y lire « openpyxl » en auteur. On
      écrit donc les nôtres, comme pour les documents Word. */
+  /* L'AUTEUR D'UN DOCUMENT, C'EST L'ENTREPRISE QUI LE SIGNE.
+
+     Les propriétés sortaient avec un auteur vide : un lecteur qui ouvre le
+     fichier avec un autre outil y voit alors le nom de cet outil. Relevé le
+     26 septembre 2026. À défaut d'auteur passé par l'appelant, on prend le
+     représentant légal de la fiche, puis la dénomination. Rien d'autre n'y
+     entre jamais. */
+  function auteurParDefaut() {
+    var p = null;
+    try {
+      p = (global.Profil && global.Profil.lire) ? global.Profil.lire()
+        : JSON.parse(global.localStorage.getItem("profil-entreprise") || "null");
+    } catch (e) { p = null; }
+    if (!p) return "";
+    var nom = String(p.responsableNom || "").trim();
+    var qual = String(p.responsableQualite || "").trim();
+    var sign = nom ? (qual ? nom + ", " + qual : nom) : String(p.responsable || "").trim();
+    var ent = String(p.denomination || p.entreprise || "").trim();
+    if (sign && ent) return sign + " - " + ent;
+    return sign || ent;
+  }
+
   function proprietes(o) {
     var d = new Date().toISOString().slice(0, 19) + "Z";
-    var qui = (o && o.auteur) || "";
+    var qui = (o && o.auteur) || auteurParDefaut();
     return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
       '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties"' +
       ' xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/"' +
@@ -232,7 +292,11 @@
         feuilles.map(function (f, i) { return '<Relationship Id="rId' + (i + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet' + (i + 1) + '.xml"/>'; }).join("") +
         '<Relationship Id="rId' + (feuilles.length + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>' },
       { nom: "xl/styles.xml", contenu: STYLES },
-      { nom: "docProps/core.xml", contenu: proprietes(opts) },
+      /* À défaut de titre passé, celui du premier onglet : un classeur sans
+         titre s'ouvre sans nom dans les propriétés. */
+      { nom: "docProps/core.xml", contenu: proprietes({
+        titre: (opts && opts.titre) || (feuilles[0] && feuilles[0].titre) || "",
+        auteur: opts && opts.auteur }) },
     ];
     feuilles.forEach(function (f, i) { entrees.push({ nom: "xl/worksheets/sheet" + (i + 1) + ".xml", contenu: feuilleXml(f.lignes, f.largeurs) }); });
     var octets = zip(entrees);

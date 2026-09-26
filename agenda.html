@@ -19,6 +19,8 @@
 <!-- La flotte : chargée pour son API de lecture seule, window.Flotte.echeances().
      Le fichier ne touche à rien tant que les écrans de sa page sont absents. -->
 <script src="flotte.js"></script>
+<!-- Les échéances propres à chaque salarié : registre, contrat, entretiens. -->
+<script src="echeances-salaries.js"></script>
 <!-- L'ÉCHÉANCIER, CONSTRUIT TOUT SEUL DEPUIS LA FICHE D'ENTREPRISE. Rien avant
      lui : pas de formulaire, pas de chapeau. L'effectif vient de la fiche, le
      reste des brouillons d'audit présents sur ce poste. Une carte par
@@ -271,6 +273,7 @@
     agenda: "saisi ici", fiche: "repris de la fiche d'entreprise", nao: "repris de l'audit NAO", cse: "repris de l'audit CSE",
     bdese: "repris de l'audit BDESE", eco: "repris de l'audit du licenciement économique",
     pse: "repris de l'audit PSE", flotte: "repris de Flotte et conducteurs",
+    salaries: "repris du registre et des contrats",
     registre: "repris du registre du personnel",
   };
   var B = {};
@@ -397,8 +400,33 @@
         w: "L. 2311-2 : le comité est mis en place dans les entreprises d'au moins onze salariés. " +
           "Effectif retenu : " + effectif + ". Ni réunions, ni consultations, ni élections à inscrire." });
 
+    /* QUAND IL N'Y A PAS DE COMITÉ, ON N'EN PRÉPARE PAS LES RÉUNIONS.
+
+       L'agenda inscrivait « Réunions ordinaires du CSE » et les trois
+       consultations récurrentes à une entreprise dont la fiche dit qu'aucun
+       comité n'est en place : le dirigeant préparait les réunions d'une
+       instance qui n'existe pas. Relevé le 26 septembre 2026. Ce qui est dû
+       alors, c'est l'organisation des élections, ou le procès-verbal de
+       carence si elles n'ont donné aucun candidat : L. 2314-4 pour
+       l'information du personnel, L. 2314-9 pour la carence. */
+    var repCse = String(((window.Profil && window.Profil.lire()) || {}).cseExiste || "").trim().toLowerCase();
+    /* La fiche répond maintenant « oui, élu », « non, procès-verbal de
+       carence » ou « non, aucune élection organisée » : l'égalité stricte à
+       « non » ne reconnaissait plus aucune de ces réponses. */
+    var pasDeComite = !sansComite && repCse.indexOf("non") === 0;
+    if (pasDeComite) {
+      attentes.push({ t: "Aucun comité en place : ce sont les élections qui sont dues, pas les réunions.",
+        w: "Votre fiche répond « non » à la question du comité social et économique, et votre effectif " +
+          "l'impose (L. 2311-2). L'employeur informe le personnel de l'organisation des élections par tout " +
+          "moyen donnant date certaine, le premier tour se tenant au plus tard le quatre-vingt-dixième jour " +
+          "suivant cette information (L. 2314-4). Si aucun candidat ne se présente, le procès-verbal de " +
+          "carence est établi et transmis à l'inspection du travail dans les quinze jours (L. 2314-9). " +
+          "Les réunions, les consultations récurrentes et la base de données ne se préparent qu'une fois " +
+          "le comité élu." });
+    }
+
     /* --- réunions du CSE : une cadence, pas une date --- */
-    if (effectif !== null && !sansComite) {
+    if (effectif !== null && !sansComite && !pasDeComite) {
       var mensuel = effectif >= 300;
       cadences.push({
         titre: "Réunions ordinaires du CSE",
@@ -499,8 +527,20 @@
       }
     }
 
+    /* Ce qui vient à la place : l'organisation des élections. */
+    if (pasDeComite) {
+      cadences.push({
+        titre: "Organiser les élections du comité social et économique",
+        rythme: "premier tour au plus tard le quatre-vingt-dixième jour suivant l'information du personnel",
+        fondement: "L. 2314-4 : l'employeur informe le personnel de l'organisation des élections par tout moyen donnant date certaine",
+        docs: "la note d'information du personnel, l'invitation des organisations syndicales, le protocole d'accord préélectoral ; à défaut de candidat, le procès-verbal de carence (L. 2314-9)",
+        prov: "profil",
+        detail: "Votre fiche indique qu'aucun comité n'est en place. Les documents s'écrivent dans Audit, puis Comité social et économique.",
+      });
+    }
+
     /* --- consultations récurrentes du CSE --- */
-    if ((effectif !== null || d.bdeseDerniereMaj) && !sansComite) {
+    if ((effectif !== null || d.bdeseDerniereMaj) && !sansComite && !pasDeComite) {
       var CONSULTATIONS = ["les orientations stratégiques de l'entreprise",
         "la situation économique et financière de l'entreprise",
         "la politique sociale de l'entreprise, les conditions de travail et l'emploi"];
@@ -601,17 +641,27 @@
     (function () {
       var reg = null;
       try { reg = JSON.parse(localStorage.getItem("registre-personnel") || "null"); } catch (e) { reg = null; }
-      var n = ((reg && reg.salaries) || []).filter(function (x) {
-        return String(x.nom || "").trim() || String(x.pre || "").trim();
-      }).length;
-      if (!n) return;
+      /* LES INSCRITS ET CEUX QUI SONT EN POSTE NE SONT PAS LE MÊME NOMBRE.
+
+         L'agenda affichait « 85 salariés au registre » à côté de l'effectif
+         de la fiche, 82, sans dire ce qui les sépare : les lignes d'exemple
+         et les sorties. On compte ici ceux qui sont en poste, c'est-à-dire
+         sans date de sortie, et l'on dit les deux nombres quand ils
+         diffèrent. Relevé le 26 septembre 2026. */
+      var inscrits = ((reg && reg.salaries) || []).filter(function (x) {
+        return !x.ex && (String(x.nom || "").trim() || String(x.pre || "").trim());
+      });
+      var n = inscrits.filter(function (x) { return !String(x.sor || "").trim(); }).length;
+      if (!inscrits.length) return;
       cadences.push({
         titre: "Décompte des heures de chaque salarié",
         rythme: "chaque mois, à clore et à faire signer",
         fondement: "L. 3171-2 et D. 3171-8 (décompte quotidien, récapitulation hebdomadaire, dès que tous les salariés ne suivent pas le même horaire collectif)",
         docs: "le relevé du mois, clos et remis au salarié ; les réclamations et leurs réponses",
         prov: "registre",
-        detail: n + " salarié" + (n > 1 ? "s" : "") + " au registre du personnel. L'écran du décompte est dans Gérer.",
+        detail: n + " salarié" + (n > 1 ? "s" : "") + " en poste" +
+          (inscrits.length !== n ? " sur " + inscrits.length + " inscrits" : "") +
+          " au registre du personnel. L'écran du décompte est dans Gérer.",
       });
     })();
 
@@ -631,6 +681,28 @@
           retard: e.etat === "passe",
           detail: e.etat === "passe" ? "Échéance dépassée." : "",
           prov: "flotte",
+        });
+      });
+    }
+
+    /* CE QUI SUIT CHAQUE SALARIÉ, ET QUI MANQUAIT ICI.
+
+       L'agenda ne portait que les rendez-vous collectifs : ni fin de période
+       d'essai, ni terme d'un contrat à durée déterminée, ni visite
+       d'information et de prévention, ni entretien de parcours. Le dirigeant
+       n'avait donc aucune liste de ce qu'il doit à chacun. Relevé le
+       26 septembre 2026. Les dates viennent du registre et du contrat écrit
+       dans l'application, jamais d'une règle supposée. */
+    if (window.EcheancesSalaries && window.EcheancesSalaries.echeances) {
+      window.EcheancesSalaries.echeances().forEach(function (e) {
+        lignes.push({
+          tri: e.date, quand: enFr(e.date),
+          titre: e.quoi + " : " + e.qui,
+          fondement: e.fond,
+          docs: e.faire || "",
+          retard: e.etat === "passe",
+          detail: e.etat === "passe" ? "Échéance dépassée." : "",
+          prov: "salaries",
         });
       });
     }

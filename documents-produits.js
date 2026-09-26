@@ -45,6 +45,20 @@
     return s === "" ? "[" + (quoi || "à compléter") + "]" : s;
   }
 
+  /* CE QUI NE CHANGE JAMAIS SE PREND DANS LA FICHE.
+
+     L'adresse de l'unité de contrôle de l'inspection du travail et la ville du
+     conseil de prud'hommes revenaient en rouge dans chaque courrier, et il
+     fallait les retaper à chaque document. Elles sont saisies une fois sur la
+     fiche d'entreprise, sous « Organismes et interlocuteurs », et reprises
+     ici. Vides, le crochet reste : rien n'est deviné. Demande du 26 septembre
+     2026, « généraliser ce principe à chaque fois où on doit compléter des
+     informations constantes ». */
+  function org(p, cle, quoi) {
+    var s = String((p && p[cle]) || "").trim();
+    return s === "" ? "[" + quoi + "]" : s;
+  }
+
   function leJour(d) {
     var MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet",
                 "août", "septembre", "octobre", "novembre", "décembre"];
@@ -235,6 +249,44 @@
     return out.join(", ");
   }
 
+  /* LES EMPLOIS RÉELLEMENT ÉCRITS AU REGISTRE.
+
+     La liste du 7.3 vient du document unique ; encore faut-il qu'elle
+     corresponde aux emplois que l'entreprise occupe vraiment. L'audit du
+     26 septembre 2026 demandait de relier cette liste au registre du
+     personnel. Le registre ne décide de rien : il donne les intitulés
+     d'emploi et leur nombre, et c'est l'employeur qui rapproche. Un emploi
+     qu'il ne reconnaît pas dans la liste est un emploi à ajouter ou à écarter,
+     et le document le dit ainsi plutôt que de trancher. */
+  /* Un tableau, au format que feuille-doc.js reconnaît : une ligne
+     d'intitulés, puis une ligne par enregistrement, les colonnes séparées
+     par une barre verticale. */
+  function tableauSimple(entetes, lignes) {
+    var L = [entetes.join(" | ")];
+    lignes.forEach(function (l) { L.push(l.join(" | ")); });
+    return L;
+  }
+
+  function emploisDuRegistre() {
+    var R = null;
+    try {
+      R = JSON.parse((typeof window !== "undefined" && window.localStorage
+        ? window.localStorage.getItem("registre-personnel") : null) || "null");
+    } catch (e) { R = null; }
+    var L = (R && R.salaries) || [];
+    var compte = {};
+    L.forEach(function (x) {
+      if (x && x.ex) return;
+      if (String((x && x.sor) || "").trim()) return;
+      var e = String((x && x.emp) || "").trim();
+      if (!e) return;
+      compte[e] = (compte[e] || 0) + 1;
+    });
+    return Object.keys(compte).sort(function (a, b) {
+      return compte[b] - compte[a] || a.localeCompare(b, "fr");
+    }).map(function (e) { return { emp: e, n: compte[e] }; });
+  }
+
   D["DIS-CTL-RI-01"] = {
     nom: "Le règlement intérieur, et ses formalités",
     detail: "Le règlement rédigé, puis les cinq formalités dans l'ordre, chacune " +
@@ -246,6 +298,16 @@
       var nom = cro(p.denomination || p.entreprise, "DÉNOMINATION SOCIALE");
       var eff = p.effectif;
       var sect = secteurDe(p);
+      /* LE RÈGLEMENT NE PARLE PAS D'UN COMITÉ QUI N'EXISTE PAS.
+
+         Sans comité, le texte gardait le référent désigné par le comité et
+         la consultation préalable du comité sur les dispositifs
+         informatiques : des clauses inapplicables dans un règlement qu'on
+         signe. Elles sont écrites autrement quand la fiche répond non.
+         Relevé le 26 septembre 2026. */
+      var repCseRi = String(p.cseExiste || (ctx.fiche || {}).cseExiste ||
+        (ctx.donnees || {}).cseExiste || "").trim().toLowerCase();
+      var sansCseRi = repCseRi.indexOf("non") === 0;
       var L = [];
 
       L = L.concat(entete(ctx, "Règlement intérieur",
@@ -525,6 +587,23 @@
       L.push("par l'inspecteur du travail. Si aucun poste n'est concerné, supprimez les");
       L.push("7.3 et 7.5 et gardez les autres : ils sont, eux, la loi elle-même.");
       L.push("");
+      var empReg = emploisDuRegistre();
+      if (empReg.length) {
+        L.push("NOTE - Les emplois réellement écrits à votre registre du personnel, ce jour,");
+        L.push("sont les suivants. Rapprochez-les de la liste du 7.3 : un emploi qui y");
+        L.push("figure et qui manque à la liste est à ajouter, un poste listé qui ne");
+        L.push("correspond à personne est à retirer. Le registre ne décide pas à votre");
+        L.push("place, il dit ce qui est écrit.");
+        L.push("");
+        L = L.concat(tableauSimple(["Emploi au registre", "Salariés en poste"],
+          empReg.map(function (x) { return [x.emp, String(x.n)]; })));
+        L.push("");
+      } else {
+        L.push("NOTE - Le registre du personnel ne porte aucun emploi ce jour : la liste du");
+        L.push("7.3 ne peut pas y être rapprochée. Inscrivez vos salariés au registre, et");
+        L.push("ce document donnera la liste de leurs emplois en face de celle des postes.");
+        L.push("");
+      }
       L.push("Article 8 - Rétablissement de conditions de travail protectrices");
       L.push("");
       L.push("(L. 1321-1, 2°)");
@@ -741,8 +820,13 @@
       L.push("L'entreprise met en œuvre les dispositifs de sécurité et de journalisation");
       L.push("nécessaires à la protection de ses systèmes. Ces dispositifs, leur finalité et");
       L.push("la durée de conservation des données sont portés à la connaissance du personnel");
-      L.push("avant leur mise en service (L. 1222-4), et le comité social et économique est");
-      L.push("informé et consulté préalablement.");
+      if (sansCseRi) {
+        L.push("avant leur mise en service (L. 1222-4). Dès qu'un comité social et économique");
+        L.push("sera élu, il sera informé et consulté préalablement à leur mise en œuvre.");
+      } else {
+        L.push("avant leur mise en service (L. 1222-4), et le comité social et économique est");
+        L.push("informé et consulté préalablement.");
+      }
       L.push("");
       L.push("Les fichiers et messages que le salarié identifie comme personnels ne sont pas");
       L.push("ouverts par l'employeur hors de sa présence ou sans qu'il ait été appelé, sauf");
@@ -976,7 +1060,9 @@
       L.push("souhaite pas, à l'un des interlocuteurs suivants :");
       L.push("");
       L.push("  - son responsable hiérarchique ou la direction ;");
-      L.push("  - le référent en matière de lutte contre le harcèlement sexuel et les agissements sexistes désigné par le comité social et économique parmi ses membres : [NOM ET COORDONNÉES] ;");
+      L.push(sansCseRi
+        ? "  - [DÈS QU'UN COMITÉ SOCIAL ET ÉCONOMIQUE SERA ÉLU : le référent en matière de lutte contre le harcèlement sexuel et les agissements sexistes qu'il désigne parmi ses membres] ;"
+        : "  - le référent en matière de lutte contre le harcèlement sexuel et les agissements sexistes désigné par le comité social et économique parmi ses membres : [NOM ET COORDONNÉES] ;");
       L.push("  - [SI L'ENTREPRISE ATTEINT 250 SALARIÉS : le référent désigné par l'employeur : NOM ET COORDONNÉES] ;");
       L.push("  - le médecin du travail ou le service de prévention et de santé au travail : [COORDONNÉES] ;");
       L.push("  - l'inspection du travail : [COORDONNÉES DE LA SECTION COMPÉTENTE].");
@@ -1017,8 +1103,8 @@
       L.push("conserve la faculté de s'adresser directement à l'autorité externe");
       L.push("compétente dans les conditions prévues par la même loi.");
       L.push("");
-      L.push("NOTE - Cette loi n'est pas au code du travail : l'application ne l'a pas lue");
-      L.push("à la source et n'en détaille donc pas le contenu ici. Si vous n'avez pas");
+      L.push("NOTE - Cette loi n'est pas au code du travail : elle n'a pas été lue à");
+      L.push("la source, et son contenu n'est pas détaillé ici. Si vous n'avez pas");
       L.push("encore de procédure interne de recueil des signalements, supprimez la");
       L.push("dernière phrase du troisième alinéa jusqu'à sa mise en place : l'existence");
       L.push("du dispositif, elle, doit être rappelée dans tous les cas (L. 1321-2, 3°).");
@@ -1175,8 +1261,11 @@
          jours à l'inspection. C'est lui qui accompagne alors le règlement.  */
       var repCse = String(p.cseExiste || (ctx.fiche || {}).cseExiste ||
         (ctx.donnees || {}).cseExiste || "").trim().toLowerCase();
-      var sansCse = repCse === "non";
-      var avecCse = repCse === "oui";
+      /* La fiche répond « oui, élu », « non, procès-verbal de carence » ou
+         « non, aucune élection organisée » ; le parcours, lui, écrit « oui »
+         ou « non ». On lit le premier mot, qui est le même dans les deux. */
+      var sansCse = repCse.indexOf("non") === 0;
+      var avecCse = repCse.indexOf("oui") === 0;
       var d0 = ctx.aujourdhui instanceof Date ? ctx.aujourdhui : new Date();
       var pieceAvis = sansCse ? "procès-verbal de carence" : "avis du comité social et économique";
 
@@ -1184,9 +1273,21 @@
       L.push("");
       L.push("Cinq formalités, chacune avec le document qui l'accomplit. Rien ne");
       L.push("s'affiche, ne se dépose ni n'entre en vigueur avant la première : le");
-      L.push("règlement ne peut être introduit qu'après " +
-        (sansCse ? "l'établissement du procès-verbal de carence"
-                 : "avoir été soumis à l'avis du comité") + " (L. 1321-4).");
+      /* L. 1321-4 ne dit rien du procès-verbal de carence : il exige l'avis
+         du comité. Sans comité, cet avis est sans objet, et c'est le
+         procès-verbal de carence (L. 2314-9) qui établit qu'il n'y avait
+         personne à consulter. Attribuer à L. 1321-4 une règle qu'il ne porte
+         pas a été relevé le 26 septembre 2026. */
+      L.push(sansCse
+        ? "règlement ne peut être introduit qu'après avoir été soumis à l'avis du"
+        : "règlement ne peut être introduit qu'après avoir été soumis à l'avis du");
+      L.push(sansCse
+        ? "comité social et économique (L. 1321-4) ; sans comité, cet avis est sans"
+        : "comité social et économique (L. 1321-4).");
+      if (sansCse) {
+        L.push("objet, et c'est le procès-verbal de carence qui établit qu'il n'y avait");
+        L.push("personne à consulter (L. 2314-9).");
+      }
       L.push("");
       L.push("");
 
@@ -1194,7 +1295,8 @@
       L.push(sansCse ? "ÉTAPE 1 - SANS COMITÉ : LE PROCÈS-VERBAL DE CARENCE"
                      : "ÉTAPE 1 - L'AVIS DU COMITÉ SOCIAL ET ÉCONOMIQUE");
       L.push("");
-      L.push("(L. 1321-4 ; L. 2314-9 à défaut de comité) - à faire en premier,");
+      L.push("(L. 1321-4 pour l'avis du comité ; L. 2314-9 pour le procès-verbal de");
+      L.push("carence, à défaut de comité) - à faire en premier,");
       L.push("avant toute autre formalité");
       L.push("");
       /* LA QUESTION D'ABORD, TOUJOURS, ET LES TROIS RÉPONSES ÉCRITES.
@@ -1265,7 +1367,7 @@
       L.push("");
       if (sansCse) {
         L.push("Monsieur l'Inspecteur du travail");
-        L.push("[ADRESSE DE L'UNITÉ DE CONTRÔLE COMPÉTENTE]");
+        L.push(org(p, "orgInspection", "ADRESSE DE L'UNITÉ DE CONTRÔLE COMPÉTENTE"));
         L.push("");
         L.push(cro(p.ville, "lieu") + ", le [DATE D'ENVOI]");
         L.push("");
@@ -1362,7 +1464,8 @@
       L.push((sansCse
         ? "n'ayant pu être mis en place, et il est déposé au greffe du conseil de"
         : "et il est déposé au greffe du conseil de"));
-      L.push("prud'hommes de [VILLE DU RESSORT] et communiqué à l'inspection du travail.");
+      L.push("prud'hommes de " + org(p, "orgPrudhommes", "VILLE DU RESSORT") +
+        " et communiqué à l'inspection du travail.");
       L.push("");
       L.push("Il fixe les règles de santé et de sécurité, les conditions de");
       L.push("participation des salariés au rétablissement de conditions de travail");
@@ -1407,7 +1510,7 @@
       L.push(cro(p.adresse, "adresse"));
       L.push("");
       L.push("Monsieur le Greffier en chef");
-      L.push("Conseil de prud'hommes de [VILLE DU RESSORT]");
+      L.push("Conseil de prud'hommes de " + org(p, "orgPrudhommes", "VILLE DU RESSORT"));
       L.push("");
       L.push(cro(p.ville, "lieu") + ", le [DATE D'ENVOI]");
       L.push("");
@@ -1473,7 +1576,7 @@
       L.push(cro(p.adresse, "adresse"));
       L.push("");
       L.push("Monsieur l'Inspecteur du travail");
-      L.push("[ADRESSE DE L'UNITÉ DE CONTRÔLE COMPÉTENTE]");
+      L.push(org(p, "orgInspection", "ADRESSE DE L'UNITÉ DE CONTRÔLE COMPÉTENTE"));
       L.push("");
       L.push(cro(p.ville, "lieu") + ", le [DATE D'ENVOI]");
       L.push("");
@@ -1564,28 +1667,42 @@
       L.push("");
       L.push("────────────────────────────────────────────────────────────────────────");
       L.push("");
-      L.push("AVANT DE DÉPOSER, TROIS VÉRIFICATIONS");
+      /* CE QUE L'APPLICATION FAIT, ELLE NE DIT PAS LE CONTRAIRE.
+
+         Ce bloc annonçait que « l'application ne lit pas les conventions
+         collectives » deux pages avant un article qui cite le délai de
+         l'article 15 de la convention des transports routiers, et renvoyait
+         le lecteur à un avocat pour un document qu'il vient de produire ici.
+         Relevé le 26 septembre 2026 : l'outil perdait sa crédibilité sur sa
+         propre page. Ce qui reste est ce qui est vrai : la convention est lue
+         quand le dépôt la porte, les accords d'entreprise ne le sont pas, et
+         l'inspecteur du travail peut exiger le retrait d'une clause. */
+      L.push("AVANT DE DÉPOSER, DEUX VÉRIFICATIONS");
       L.push("");
-      L.push("Votre convention collective d'abord" +
-        (String(p.conventionCollective || "").trim()
-          ? ", soit celle que votre fiche désigne : " + String(p.conventionCollective).trim() + ". "
-          : ". ") +
-        "Elle peut imposer des mentions que ce texte ne porte pas, encadrer la");
-      L.push("procédure disciplinaire plus strictement que la loi, ou prévoir une");
-      L.push("commission de discipline. L'application ne lit pas les conventions");
-      L.push("collectives : cette lecture vous revient, et elle est indispensable.");
+      var ccNom = String(p.conventionCollective || "").trim();
+      var idcc16 = idccDe(p) === "16";
+      L.push("Votre convention collective d'abord" + (ccNom ? ", " + ccNom + "." : "."));
+      if (idcc16) {
+        L.push("Les clauses qui en dépendent sont écrites ici d'après son texte : le délai");
+        L.push("de convocation de l'article 15, celui de l'article 16 pour l'arrêt de");
+        L.push("travail, et l'obligation de déclarer une suspension de permis. Vérifiez");
+        L.push("qu'aucun avenant postérieur ne les a modifiés.");
+      } else {
+        L.push("Elle peut imposer des mentions que ce texte ne porte pas, encadrer la");
+        L.push("procédure disciplinaire plus strictement que la loi, ou prévoir une");
+        L.push("commission de discipline. Les clauses conventionnelles ne sont écrites");
+        L.push("ici que pour les conventions lues à la source ; pour la vôtre, cette");
+        L.push("lecture reste à faire.");
+      }
       L.push("");
       L.push("Vos accords d'entreprise et vos usages ensuite. Un accord sur le temps de");
       L.push("travail, le télétravail ou le droit à la déconnexion peut contredire une");
-      L.push("clause écrite ici. C'est l'accord qui l'emporte.");
+      L.push("clause écrite ici. C'est l'accord qui l'emporte, et ce document ne le");
+      L.push("connaît pas.");
       L.push("");
-      L.push("Un avocat enfin, si le règlement doit fonder des sanctions. Ce document est");
-      L.push("un projet rédigé à partir des textes, non une consultation juridique : il");
-      L.push("ne tient compte ni de votre organisation, ni de vos contentieux en cours,");
-      L.push("ni des particularités de vos postes. Avant de déposer, faites-le relire par");
-      L.push("un avocat en droit du travail, et n'hésitez pas à le soumettre en amont à");
-      L.push("l'inspecteur du travail, qui peut à tout moment en exiger le retrait ou la");
-      L.push("modification (L. 1322-1).");
+      L.push("Enfin, vous pouvez soumettre le projet à l'inspecteur du travail avant de");
+      L.push("le déposer : il peut à tout moment exiger le retrait ou la modification");
+      L.push("d'une clause contraire à la loi (L. 1322-1).");
       L.push("");
       L.push("────────────────────────────────────────────────────────────────────────");
       L.push("");
@@ -1694,7 +1811,64 @@
   D["DIS-CTL-RI-01"].parties = partiesRi;
 
   /* Ce que la page demande : y a-t-il un document pour ce point ? */
-  function pour(id) { return Object.prototype.hasOwnProperty.call(D, id) ? D[id] : null; }
+  /* L'EXEMPLE RESTE À L'ÉCRAN, IL NE PART PAS DANS LE FICHIER.
+
+     Deux exigences opposées, et elles se concilient par le support. À l'écran,
+     l'exemple rempli sert : « un modèle vierge que personne n'a jamais vu
+     rempli ne dit pas comment le remplir », posé le 12 septembre 2026. Dans le
+     fichier que l'entreprise enregistre, imprime ou envoie, il est un danger :
+     « aucun exemple dans un fichier produit », relevé le 26 septembre 2026,
+     après qu'un document unique fictif est sorti signé au nom du client.
+
+     La coupe se fait sur deux repères que tous les documents portent : le
+     bandeau en tête, et la ligne « À COMPLÉTER » qui ouvre la partie du
+     client. Sans ces deux repères, rien n'est coupé : on ne devine pas où
+     commence un exemple. */
+  function sansExemple(texte) {
+    var L = String(texte == null ? "" : texte).split("\n");
+    var debut = -1, fin = -1;
+    for (var i = 0; i < L.length; i++) {
+      var t = L[i];
+      if (debut < 0 && (t.indexOf("EXEMPLE") === 0 || t.indexOf("À ADAPTER") === 0)) { debut = i; continue; }
+      if (debut >= 0 && /À COMPLÉTER\s*$/.test(t.trim())) { fin = i; break; }
+    }
+    if (debut < 0) return L.join("\n");
+    /* Le bandeau seul, sans exemple derrière : il s'en va, et rien d'autre. */
+    if (fin < 0) return L.slice(0, debut).concat(L.slice(debut + 1)).join("\n");
+    var avant = L.slice(0, debut);
+    while (avant.length && !String(avant[avant.length - 1]).trim()) avant.pop();
+    return avant.concat([""], L.slice(fin + 1)).join("\n");
+  }
+
+  /* Le générateur rendu passe par le tri des bandeaux : c'est le seul endroit
+     par lequel tous les documents sortent, et il vaut mieux un tri qu'une
+     relecture de cent trente-six fichiers. `parties` et les autres propriétés
+     restent accessibles : on ne remplace que `produire`. */
+  /* LES CODES INTERNES NE SORTENT PAS DU CABINET.
+
+     Les documents se renvoient l'un à l'autre par le code du point qui les
+     produit : « le document du point CSE-CTL-SST-06 de ce module rédige cet
+     acte ». Ce code est l'identifiant d'un générateur ; il ne dit rien au
+     destinataire et il dit tout de l'outil. Il est remplacé par le nom du
+     document qu'il désigne, entre guillemets. Relevé le 26 septembre 2026. */
+  var CODE = /\b[A-Z]{3}-[A-Z]{3}-[A-Z0-9]{2,12}(?:-[A-Z0-9]{2,3})?\b/g;
+  function sansCodes(t) {
+    return String(t == null ? "" : t).replace(CODE, function (m) {
+      var d = Object.prototype.hasOwnProperty.call(D, m) ? D[m] : null;
+      if (!d || !d.nom) return m;
+      return "« " + String(d.nom).split(" : ")[0].trim() + " »";
+    });
+  }
+
+  function pour(id) {
+    if (!Object.prototype.hasOwnProperty.call(D, id)) return null;
+    var g = D[id];
+    if (!g || typeof g.produire !== "function" || g.__bandeau) return g;
+    var brut = g.produire;
+    g.produire = function (ctx) { return sansCodes(ajusterBandeau(brut.call(g, ctx))); };
+    g.__bandeau = true;
+    return g;
+  }
 
   /* Les modules déposent leurs générateurs ici, chacun dans son fichier :
      documents-cse.js, documents-pse.js… Un seul registre, huit sources : c'est
@@ -1770,13 +1944,46 @@
   /* Le bandeau qui ouvre tout exemple : demande du 9 septembre 2026,
      « commencer par un exemple en disant que c'est juste un exemple et que le
      document doit tenir compte des spécificités de l'entreprise ». */
-  var EXEMPLE = "EXEMPLE, À ADAPTER : ce document est un simple schéma, qui doit être adapté et " +
-    "complété en fonction des particularités de l'entreprise, de ses postes, de ses effectifs et de sa convention collective.";
+  /* LE BANDEAU DIT QUE CE QUI SUIT N'EST PAS LE DOCUMENT DU CLIENT.
+
+     Il disait « ce document est un simple schéma » : trop faible pour un
+     lecteur qui venait de voir l'en-tête de son entreprise deux lignes plus
+     haut. Une relecture du 26 septembre 2026 a pris l'exemple pour le
+     document de l'entreprise et y a lu des personnes qui n'existent pas. Le
+     bandeau nomme donc l'entreprise fictive, et dit où commence le document
+     à compléter. */
+  var EXEMPLE = "EXEMPLE : ce qui suit n'est pas votre document. C'est celui d'une entreprise " +
+    "fictive, donnée en illustration : ses personnes, ses dates, ses chiffres et ses faits ne " +
+    "concernent pas votre entreprise et ne doivent jamais être signés. Votre document à " +
+    "compléter vient après, à la ligne « À COMPLÉTER ».";
+
+  /* DEUX BANDEAUX, PARCE QU'IL Y A DEUX SORTES DE DOCUMENTS.
+
+     Certains s'ouvrent sur l'exemple entièrement rempli d'une entreprise
+     fictive, et le bandeau ci-dessus dit de ne pas le signer. D'autres sont
+     le document de l'entreprise elle-même, avec ses blancs entre crochets :
+     leur dire « ce qui suit n'est pas votre document » serait faux, et le
+     règlement intérieur, qui est de ceux-là, l'affichait. Relevé et corrigé
+     le 26 septembre 2026, le jour même où le premier bandeau a été renforcé.
+
+     Le tri ne se fait pas à la main sur cent trente-six documents : il se
+     fait sur le texte produit. Un document qui nomme l'une des entreprises
+     fictives porte un exemple ; les autres reçoivent l'avertissement qui leur
+     convient, celui d'un modèle à adapter. */
+  var ADAPTER = "À ADAPTER : ce document est un modèle rédigé à partir des textes. " +
+    "Ce qui reste entre crochets est à compléter, et ce qui ne correspond pas à votre " +
+    "organisation est à corriger ou à supprimer avant signature.";
+  var FICTIVES = /TRANSPORTS EXEMPLE SARL|MÉCA EXEMPLE SAS|BÂTI EXEMPLE SARL|COMMERCE EXEMPLE SARL|SERVICES EXEMPLE SAS|Entreprise EXEMPLE SARL/;
+  function ajusterBandeau(t) {
+    var s = String(t == null ? "" : t);
+    if (s.indexOf(EXEMPLE) < 0) return s;
+    return FICTIVES.test(s) ? s : s.split(EXEMPLE).join(ADAPTER);
+  }
 
   global.DocumentsProduits = {
     pour: pour, tous: D, ajouter: ajouter,
     outils: { cro: cro, leJour: leJour, dans: dans, entete: entete, identite: identite,
       liens: liens, EXEMPLE: EXEMPLE },
-    liens: liens, EXEMPLE: EXEMPLE,
+    liens: liens, EXEMPLE: EXEMPLE, ADAPTER: ADAPTER, sansExemple: sansExemple, sansCodes: sansCodes,
   };
 })(typeof window !== "undefined" ? window : this);
