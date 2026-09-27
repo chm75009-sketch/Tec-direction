@@ -79,6 +79,17 @@ MARQUE_HAUT = [
      r'\1T.E.C, jurisprudence et textes\2'),
 ]
 
+# LES ONGLETS DISAIENT ENCORE « JURISPRUDENCE ». La barre du haut portait bien
+# T.E.C, mais le titre de chaque page, celui qui s'affiche dans l'onglet du
+# navigateur et sous l'icône installée, gardait le nom de l'application.
+# Relevé le 26 septembre 2026.
+TITRES = [
+    (re.compile(r'(<title>[^<]*?)\s*[-·]\s*Jurisprudence(?: relations collectives| et textes)?(</title>)'),
+     r'\1 - SARL TEC\2'),
+    (re.compile(r'<title>Jurisprudence(?: relations collectives| et textes)?</title>'),
+     '<title>SARL TEC</title>'),
+]
+
 LIGNES = [
     # (ligne à poser, repère après lequel l'insérer, pages à épargner)
     ('<script src="verrou.js"></script>', '<meta name="viewport"', {PORTE}),
@@ -150,6 +161,9 @@ def marquer():
         t = f.read_text(encoding="utf-8")
         neuf, n = LIEN_ICONE.subn(r"\1icons-tec/icon-180.png\2", t)
         for motif, par in MARQUE_HAUT:
+            neuf, k = motif.subn(par, neuf)
+            n += k
+        for motif, par in TITRES:
             neuf, k = motif.subn(par, neuf)
             n += k
         if n:
