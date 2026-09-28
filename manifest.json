@@ -3,7 +3,7 @@
   "short_name": "T.E.C",
   "description": "Les documents, les contrôles et les échéances de T.E.C Transports.",
   "lang": "fr",
-  "version": "13.09",
+  "version": "13.10",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",
