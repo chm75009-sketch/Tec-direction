@@ -69,6 +69,12 @@
         return window.Documents.liste(p.rubrique).then(function (deja) {
           var vu = (deja || []).some(function (d) { return d.nom === p.nom; });
           if (vu) return null;
+          /* UNE PIÈCE RETIRÉE NE REVIENT PLUS. Elle n'était plus dans la base,
+             donc la repose la rentrait de nouveau à chaque entrée, et le geste
+             de l'utilisatrice était défait sans un mot. Relevé le 26 septembre
+             2026. « Mes documents » garde la liste des noms retirés, et propose
+             de rendre la pièce quand on la veut de nouveau. */
+          if (window.Documents.estRetire && window.Documents.estRetire(p.nom)) return null;
           var blob = new Blob([deBase64(p.b64)], { type: p.type });
           faites++;
           return window.Documents.enregistrer(p.rubrique, {
