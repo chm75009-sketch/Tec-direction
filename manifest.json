@@ -1,9 +1,9 @@
 {
-  "name": "T.E.C Transports",
-  "short_name": "T.E.C",
-  "description": "Les documents, les contrôles et les échéances de T.E.C Transports.",
+  "name": "SARL TEC",
+  "short_name": "SARL TEC",
+  "description": "Les documents, les contrôles et les échéances de SARL TEC.",
   "lang": "fr",
-  "version": "13.12",
+  "version": "13.13",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",

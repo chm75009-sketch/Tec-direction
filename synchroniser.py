@@ -47,9 +47,9 @@ PROPRES = {"entrer.html", "entrer.js", "dossier-tec.js", "verrou.js",
 # chaque synchronisation : ils sont donc réécrits ici, après la copie, plutôt
 # que tenus à la main.
 MARQUE = {
-    "name": "T.E.C Transports",
-    "short_name": "T.E.C",
-    "description": "Les documents, les contrôles et les échéances de T.E.C Transports.",
+    "name": "SARL TEC",
+    "short_name": "SARL TEC",
+    "description": "Les documents, les contrôles et les échéances de SARL TEC.",
     "theme_color": "#e4324a",
     "background_color": "#ffffff",
     "icons": [
@@ -73,11 +73,21 @@ LIEN_ICONE = re.compile(r'(<link [^>]*rel="(?:apple-touch-)?icon"[^>]*href=")ico
 # sa page de recherche, la marque est la sienne. Les autres pages portent le
 # nom de ce qu'elles font, « Agenda social », « Registre du personnel », et
 # cela reste juste.
+#
+# LE NOM EXACT, CELUI DE LA FICHE. « T.E.C » et « T.E.C Transports » ne sont
+# pas la dénomination : la liste demande « SARL TEC partout », et c'est ce que
+# porte la fiche d'entreprise, donc les documents. Corrigé le 28 septembre
+# 2026.
 MARQUE_HAUT = [
     (re.compile(r'(<p class="marque">)Jurisprudence <span>relations collectives</span>(</p>)'),
-     r'\1T.E.C <span>Transports</span>\2'),
+     r'\1SARL TEC <span>Transports</span>\2'),
     (re.compile(r'(<p class="marque">)Jurisprudence et textes(</p>)'),
-     r'\1T.E.C, jurisprudence et textes\2'),
+     r'\1SARL TEC, jurisprudence et textes\2'),
+    # Les pages déjà recopiées portent l'ancienne marque : on la reprend.
+    (re.compile(r'(<p class="marque">)T\.E\.C <span>Transports</span>(</p>)'),
+     r'\1SARL TEC <span>Transports</span>\2'),
+    (re.compile(r'(<p class="marque">)T\.E\.C, jurisprudence et textes(</p>)'),
+     r'\1SARL TEC, jurisprudence et textes\2'),
 ]
 
 # LES ONGLETS DISAIENT ENCORE « JURISPRUDENCE ». La barre du haut portait bien

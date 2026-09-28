@@ -1,7 +1,7 @@
 {
-  "name": "T.E.C Transports",
-  "short_name": "T.E.C",
-  "description": "Les documents, les contrôles et les échéances de T.E.C Transports.",
+  "name": "SARL TEC",
+  "short_name": "SARL TEC",
+  "description": "Les documents, les contrôles et les échéances de SARL TEC.",
   "lang": "fr",
   "start_url": "audit-cse.html",
   "scope": ".",
