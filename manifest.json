@@ -3,7 +3,7 @@
   "short_name": "SARL TEC",
   "description": "Les documents, les contrôles et les échéances de SARL TEC.",
   "lang": "fr",
-  "version": "13.16",
+  "version": "13.17",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",
