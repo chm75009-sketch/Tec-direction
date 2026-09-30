@@ -17,9 +17,15 @@ l'application :
 Sans argument, il ne copie rien et se contente de remettre les lignes et la
 marque sur les pages déjà là.
 
-Ce qui n'est jamais copié : sw.js. Le service worker rendait à une navigation
-la redirection 307 de l'hébergeur et la page s'ouvrait sur ERR_FAILED ; c'est
-sans-cache.js qui désinscrit celui qui traîne encore sur un appareil.
+Ce qui n'est jamais copié : sw.js, celui de l'application, qui met les pages en
+cache. Le service worker rendait à une navigation la redirection 307 de
+l'hébergeur et la page s'ouvrait sur ERR_FAILED ; c'est sans-cache.js qui
+désinscrit celui qui traîne encore sur un appareil.
+
+Mais un sw.js est écrit à sa place, copie du worker minimal : les pages
+l'appellent toutes par ce nom, et l'hébergeur répondait 404. Un 404 dans la
+console à chaque ouverture de page n'apprend rien à personne, et il masque les
+vraies pannes. Posé le 30 septembre 2026.
 """
 
 import json
@@ -131,6 +137,12 @@ def copier(source):
         if p.exists():
             p.unlink()
             print("retiré :", mort)
+    # Le sw.js du site, copie du worker minimal : les pages le demandent par ce
+    # nom, et il ne met rien en cache. Sans lui, 404 à chaque page.
+    mini = ici / "sw-min.js"
+    if mini.exists():
+        shutil.copy2(mini, ici / "sw.js")
+        print("sw.js posé : copie du worker minimal")
     print("copiés :", n, "fichiers depuis", src)
 
 

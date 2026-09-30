@@ -147,6 +147,9 @@
      directement sur la fiche de l'entreprise, sans rien demander. */
   function ouvrirSeance() {
     try { window.sessionStorage.setItem("seance-ouverte", "oui"); } catch (e) {}
+    /* Le battement, pour que les autres onglets adoptent la séance sans
+       redemander le mot de passe : voir verrou.js, qui l'entretient ensuite. */
+    try { window.localStorage.setItem("seance-battement", String(Date.now())); } catch (e) {}
   }
 
   /* Où l'on voulait aller. Le verrou le dit dans l'adresse ; on n'accepte

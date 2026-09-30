@@ -20,6 +20,26 @@
    quand l'onglet ou l'application se ferme. Le mot de passe est donc demandé
    à chaque ouverture, une seule fois, et non à chaque page.
 
+   LA SÉANCE EST PARTAGÉE ENTRE LES ONGLETS
+
+   sessionStorage ne vaut que pour l'onglet qui l'a écrit : ouvrir un lien dans
+   un nouvel onglet redemandait le mot de passe, et le registre s'ouvrait dans
+   un onglet pendant que la porte se refermait dans l'autre. Relevé le
+   29 septembre 2026.
+
+   Un battement de coeur règle cela sans transformer la séance en séance
+   permanente : tant qu'un onglet est ouvert, il inscrit l'heure dans
+   localStorage toutes les cinq secondes. Un onglet qui s'ouvre et trouve cette
+   heure récente, moins de vingt secondes, adopte la séance sans redemander le
+   mot de passe. Quand le dernier onglet se ferme, le battement s'arrête et la
+   marque périme d'elle-même.
+
+   CE QUE CELA COÛTE, ET IL FAUT LE SAVOIR : pendant ces vingt secondes, la
+   séance survit à la fermeture du navigateur. Qui le referme et le rouvre
+   aussitôt entre sans mot de passe. Au-delà, la porte redemande. C'est le prix
+   de la séance partagée entre onglets, et il est écrit ici pour qu'il soit
+   décidé plutôt que subi.
+
    CE QU'IL NE FAIT PAS
 
    Il ne protège pas les données déjà écrites dans le navigateur : qui a la
@@ -31,6 +51,9 @@
 
   var PORTE = "entrer.html";
   var CLE = "seance-ouverte";
+  var CLE_BATTEMENT = "seance-battement";
+  var FENETRE = 20000;          /* vingt secondes */
+  var PERIODE = 5000;           /* le battement, toutes les cinq secondes */
 
   /* L'hébergeur sert « /entrer.html » par une redirection vers « /entrer » :
      la page de la porte s'appelle donc tantôt avec son extension, tantôt sans.
@@ -41,10 +64,35 @@
   var nom = page.replace(/\.html$/, "");
   if (nom === PORTE.replace(/\.html$/, "")) return;
 
+  /* Le battement : tant qu'une page vit avec une séance ouverte, elle écrit
+     l'heure. C'est ce que lit l'onglet suivant. */
+  function battre() {
+    try { window.localStorage.setItem(CLE_BATTEMENT, String(Date.now())); } catch (e) {}
+  }
+  function tenirLeBattement() {
+    battre();
+    window.setInterval(battre, PERIODE);
+    /* Un onglet revenu au premier plan bat tout de suite : sur un téléphone,
+       les minuteries des onglets en arrière-plan sont ralenties ou arrêtées. */
+    document.addEventListener("visibilitychange", function () {
+      if (!document.hidden) battre();
+    });
+  }
+
   var ouverte;
   try { ouverte = window.sessionStorage.getItem(CLE) === "oui"; }
   catch (e) { return; }
-  if (ouverte) return;
+  if (ouverte) { tenirLeBattement(); return; }
+
+  /* Pas de séance dans cet onglet : un autre en a-t-il une, ouverte à l'instant ? */
+  var battement = 0;
+  try { battement = Number(window.localStorage.getItem(CLE_BATTEMENT)) || 0; }
+  catch (e) { battement = 0; }
+  if (battement && Date.now() - battement < FENETRE) {
+    try { window.sessionStorage.setItem(CLE, "oui"); } catch (e) {}
+    tenirLeBattement();
+    return;
+  }
 
   /* La page est cachée avant d'être remplacée : sans cela, la fiche de
      l'entreprise paraît une fraction de seconde avant le renvoi. */
