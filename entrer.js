@@ -43,10 +43,32 @@
     });
   }
 
+  /* LE RECHARGEMENT NE JETTE PAS CE QUE LE DOSSIER NE PORTE PAS.
+
+     « Recharger le dossier d'origine » réécrivait la fiche d'entreprise en
+     entier : les organismes saisis ici, l'URSSAF, la caisse de retraite, le
+     service de santé au travail, l'inspection, disparaissaient sans un mot,
+     parce que le dossier chiffré ne les contient pas. Relevé le 29 septembre
+     2026. La fiche se fusionne donc : le dossier l'emporte sur ce qu'il porte,
+     et ce qu'il ne porte pas reste. Les autres clés, elles, sont des listes
+     entières et se remplacent. */
+  function fusionner(local, venu) {
+    if (!local || typeof local !== "object" || Array.isArray(local)) return venu;
+    if (!venu || typeof venu !== "object" || Array.isArray(venu)) return venu;
+    var out = {};
+    Object.keys(local).forEach(function (k) { out[k] = local[k]; });
+    Object.keys(venu).forEach(function (k) {
+      if (venu[k] !== "" && venu[k] !== null && venu[k] !== undefined) out[k] = venu[k];
+    });
+    return out;
+  }
+
   function poser(dossier) {
     CLES.forEach(function (c) {
       if (dossier[c] === undefined) return;
-      try { window.localStorage.setItem(c, JSON.stringify(dossier[c])); } catch (e) {}
+      var aEcrire = dossier[c];
+      if (c === "profil-entreprise") aEcrire = fusionner(lire(c), dossier[c]);
+      try { window.localStorage.setItem(c, JSON.stringify(aEcrire)); } catch (e) {}
     });
     try { window.localStorage.setItem("dossier-ouvert-le", new Date().toISOString()); } catch (e) {}
     return poserPieces(dossier.documents);
@@ -100,8 +122,8 @@
     var L = [
       ["Entreprise", p.denomination || ""],
       ["Convention collective", p.conventionCollective || ""],
-      ["Salariés au registre", String(S.length)],
-      ["Dont en poste", String(enPoste)],
+      ["Lignes du registre", String(S.length)],
+      ["Salariés en poste", String(enPoste)],
       ["Véhicules", String(v.length)],
       ["Fiches conducteur", String(Object.keys(c).length)],
     ];
@@ -146,8 +168,15 @@
     });
 
     $("recharger").addEventListener("click", function () {
-      if (!window.confirm("Recharger le dossier d'origine ? Ce qui a été modifié sur cet " +
-        "appareil sera remplacé.")) return;
+      /* Le message dit ce qu'il fait et ce qu'il épargne : le registre, la
+         flotte et le forfait reviennent au dossier tel qu'il a été remis, la
+         fiche d'entreprise garde les renseignements ajoutés ici, et les pièces
+         déjà déposées ne sont pas touchées. Relevé le 29 septembre 2026 : le
+         bouton annonçait un remplacement de tout. */
+      if (!window.confirm("Recharger le dossier d'origine ? Le registre du personnel, la " +
+        "flotte et le forfait en jours reviendront au dossier tel qu'il a été remis, et ce " +
+        "qui a été saisi sur cet appareil pour eux sera remplacé. Les renseignements ajoutés " +
+        "à la fiche de l'entreprise et les pièces déjà déposées sont conservés.")) return;
       if (!DOSSIER) return;
       Promise.resolve(poser(DOSSIER)).then(function (n) {
         $("e-deja").hidden = true;
@@ -165,9 +194,15 @@
        Repartir du dossier d'origine reste possible, mais c'est un bouton, et
        il prévient. */
     function essayer() {
+      /* LE MESSAGE D'ERREUR NE SURVIT PAS À L'ESSAI SUIVANT.
+
+         « Ce mot de passe n'ouvre pas le dossier » restait sous le champ quand
+         on renvoyait le formulaire à vide : il n'était masqué qu'après le
+         contrôle du champ, donc jamais dans ce cas. Relevé le 29 septembre
+         2026. */
+      $("erreur").hidden = true;
       var mot = $("mot").value;
       if (!mot) { $("mot").focus(); return; }
-      $("erreur").hidden = true;
       $("patiente").hidden = false;
       $("ouvrir").disabled = true;
       /* Le rendu doit passer avant le calcul, sinon l'écran reste figé sans
