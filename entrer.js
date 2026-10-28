@@ -33,13 +33,39 @@
       });
   }
 
+  function dechiffrer(k, p) {
+    return window.crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: deBase64(p.vecteur) }, k, deBase64(p.contenu));
+  }
+
+  /* DEUX MOTS DE PASSE POUR LA MEME PORTE.
+
+     Le premier essai est celui d'origine : le mot de passe dérive la clé et
+     déchiffre le dossier. S'il échoue, on tente le second chemin : le mot de
+     passe n'ouvre pas le dossier directement, il ouvre d'abord une petite
+     boite (DOSSIER_CLE_2) qui contient la clé du dossier, puis déchiffre avec
+     elle. Les deux mènent au meme dossier ; seul le mot de passe diffère. Si
+     aucun des deux ne marche, c'est que le mot de passe est faux. */
   function ouvrir(mot) {
     var p = window.DOSSIER_CHIFFRE;
     return clef(mot, deBase64(p.sel), p.tours).then(function (k) {
-      return window.crypto.subtle.decrypt(
-        { name: "AES-GCM", iv: deBase64(p.vecteur) }, k, deBase64(p.contenu));
+      return dechiffrer(k, p);
     }).then(function (clair) {
       return JSON.parse(new TextDecoder().decode(clair));
+    }).catch(function () {
+      var w = window.DOSSIER_CLE_2;
+      if (!w) throw new Error("mauvais mot de passe");
+      return clef(mot, deBase64(w.sel), w.tours).then(function (kw) {
+        return window.crypto.subtle.decrypt(
+          { name: "AES-GCM", iv: deBase64(w.vecteur) }, kw, deBase64(w.contenu));
+      }).then(function (brut) {
+        return window.crypto.subtle.importKey(
+          "raw", brut, { name: "AES-GCM" }, false, ["decrypt"]);
+      }).then(function (kd) {
+        return dechiffrer(kd, p);
+      }).then(function (clair) {
+        return JSON.parse(new TextDecoder().decode(clair));
+      });
     });
   }
 
