@@ -1,4 +1,4 @@
-/* LE WORKER DU SITE TEC.
+/* LE WORKER DU SITE TEC. (v2)
 
    Les fichiers du site sont servis tels quels par la liaison ASSETS : pour
    toutes les pages, rien ne change. Ce Worker n'ajoute qu'une seule porte,
