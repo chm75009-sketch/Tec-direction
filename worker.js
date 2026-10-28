@@ -19,40 +19,22 @@
    pas lié, la porte répond sans rien enregistrer, et le site tourne comme
    avant.                                                                     */
 
-/* La petite boite de la clé du dossier, recopiée de window.DOSSIER_CLE_2.
-   Ces valeurs sont déjà publiques (elles voyagent avec chaque page) : les
-   mettre ici n'expose rien de plus. Un mot de passe qui ouvre cette boite est
-   le bon, et c'est tout ce qu'on vérifie. */
-const CLE2 = {
-  tours: 600000,
-  sel: "G3Ba4ta2xyL3QrpQeikhTQ==",
-  vecteur: "7PzkvtUag9pYMt9M",
-  contenu: "2KVSuC4kJsZzqWiAkdiZI0qDAcT4LzS4kjbgeyQ7zlYacOspuBRfELTMo1qXago8",
-};
-
-function deB64(s) {
-  const b = atob(s), u = new Uint8Array(b.length);
-  for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i);
-  return u;
+/* Le mot de passe qui ouvre le journal est gardé en secret sur le Worker,
+   sous le nom JOURNAL_MOT, posé dans le tableau de bord Cloudflare. Il n'est
+   donc pas dans ce fichier (le dépôt est public), et la vérification est une
+   simple comparaison, sans calcul lourd : le Worker a un temps de calcul
+   serré, et une dérivation à six cent mille tours le dépassait, ce qui
+   refusait meme le bon mot de passe. */
+function egal(a, b) {
+  if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
+  let d = 0;
+  for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return d === 0;
 }
 
-/* Le mot de passe est bon si, dérivé en clé, il déchiffre la petite boite.
-   Le déchiffrement vérifie l'empreinte : s'il passe, le mot de passe est le
-   bon ; sinon il lève, et on répond non. */
-async function motValide(mot) {
-  if (!mot) return false;
-  try {
-    const base = await crypto.subtle.importKey(
-      "raw", new TextEncoder().encode(mot), { name: "PBKDF2" }, false, ["deriveKey"]);
-    const k = await crypto.subtle.deriveKey(
-      { name: "PBKDF2", salt: deB64(CLE2.sel), iterations: CLE2.tours, hash: "SHA-256" },
-      base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
-    await crypto.subtle.decrypt(
-      { name: "AES-GCM", iv: deB64(CLE2.vecteur) }, k, deB64(CLE2.contenu));
-    return true;
-  } catch (e) {
-    return false;
-  }
+function motValide(mot, env) {
+  if (!mot || !env || !env.JOURNAL_MOT) return false;
+  return egal(String(mot), String(env.JOURNAL_MOT));
 }
 
 function texte(s) {
@@ -168,7 +150,10 @@ async function journal(request, env) {
     /* Sinon c'est l'envoi du formulaire de lecture. */
     let mot = "";
     try { const f = await request.formData(); mot = f.get("mot") || ""; } catch (e) {}
-    if (await motValide(mot)) {
+    if (!env || !env.JOURNAL_MOT) {
+      return new Response(pageMot("Le journal n'est pas encore configuré."), { status: 503, headers: HTML });
+    }
+    if (motValide(mot, env)) {
       return new Response(await pageJournal(env), { headers: HTML });
     }
     return new Response(pageMot("Ce mot de passe n'ouvre pas le journal."), { status: 401, headers: HTML });
