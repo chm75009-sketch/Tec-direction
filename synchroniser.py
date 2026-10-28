@@ -38,8 +38,8 @@ PORTE = "entrer.html"
 JAMAIS = {"sw.js"}
 PROPRES = {"entrer.html", "entrer.js", "dossier-tec.js", "verrou.js",
            "sans-cache.js", "sw-min.js", "synchroniser.py", "README.md",
-           "netlify.toml", "wrangler.toml", ".assetsignore", "favicon.ico",
-           "fiche-tec.js"}
+           "netlify.toml", "wrangler.toml", "worker.js", ".assetsignore",
+           "favicon.ico", "fiche-tec.js"}
 
 # L'IDENTITÉ DU CLIENT, ET NON CELLE DE L'APPLICATION.
 #

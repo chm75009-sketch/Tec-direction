@@ -4,5 +4,6 @@ README.md
 synchroniser.py
 netlify.toml
 wrangler.toml
+worker.js
 .assetsignore
 .git

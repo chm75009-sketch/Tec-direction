@@ -51,7 +51,7 @@
     return clef(mot, deBase64(p.sel), p.tours).then(function (k) {
       return dechiffrer(k, p);
     }).then(function (clair) {
-      return JSON.parse(new TextDecoder().decode(clair));
+      return { dossier: JSON.parse(new TextDecoder().decode(clair)), qui: "tec" };
     }).catch(function () {
       var w = window.DOSSIER_CLE_2;
       if (!w) throw new Error("mauvais mot de passe");
@@ -64,9 +64,26 @@
       }).then(function (kd) {
         return dechiffrer(kd, p);
       }).then(function (clair) {
-        return JSON.parse(new TextDecoder().decode(clair));
+        return { dossier: JSON.parse(new TextDecoder().decode(clair)), qui: "lea" };
       });
     });
+  }
+
+  /* LE REGISTRE DES OUVERTURES.
+
+     À chaque ouverture réussie, on dit au site qui vient d'ouvrir et quand.
+     C'est au mieux : la requête part sans qu'on l'attende, et si elle échoue,
+     l'ouverture du dossier n'en souffre pas. Rien du dossier n'est envoyé,
+     seulement « tec » ou « lea ». */
+  function journaliser(qui) {
+    try {
+      window.fetch("/journal", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ qui: qui }),
+        keepalive: true,
+      }).catch(function () {});
+    } catch (e) {}
   }
 
   /* LE RECHARGEMENT NE JETTE PAS CE QUE LE DOSSIER NE PORTE PAS.
@@ -237,8 +254,10 @@
       /* Le rendu doit passer avant le calcul, sinon l'écran reste figé sans
          rien dire pendant la seconde que prend la dérivation. */
       window.setTimeout(function () {
-        ouvrir(mot).then(function (dossier) {
+        ouvrir(mot).then(function (res) {
+          var dossier = res.dossier;
           DOSSIER = dossier;
+          journaliser(res.qui);
           ouvrirSeance();
           var suite = dejaLa()
             ? Promise.resolve(poserPieces(dossier.documents)).then(function () { return null; })

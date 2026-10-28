@@ -4,8 +4,12 @@
 # tableau de bord lance à chaque envoi sur main, sache quoi publier. Sans lui,
 # la construction échoue et rien ne part.
 #
-# Le site n'est que des fichiers : pas de code serveur, pas de variable, pas
-# de secret. Tout ce qu'il y a à dire tient dans le dossier des actifs.
+# Les pages restent de simples fichiers, servis tels quels par la liaison
+# ASSETS. Un petit Worker (worker.js) s'ajoute à coté : il ne touche à rien,
+# sauf à une seule adresse, /journal, qui tient le registre des ouvertures du
+# dossier. Toute requête qui correspond à un fichier du site est servie
+# directement, sans passer par le Worker ; seul /journal, qui n'est pas un
+# fichier, lui parvient.
 #
 # html_handling reste au réglage par défaut, celui qui sert index.html quand on
 # ouvre la racine du site. Il avait été mis à « none » pour éviter la
@@ -15,8 +19,17 @@
 # qui est bien pire. Mesuré en ligne le 25 septembre 2026.
 
 name = "tec-direction"
+main = "worker.js"
 compatibility_date = "2026-09-23"
 
 [assets]
 directory = "./"
+binding = "ASSETS"
 not_found_handling = "none"
+
+# Le registre des ouvertures vit ici. Tant que cette liaison n'est pas en
+# place, la porte /journal répond mais n'enregistre rien, et le site tourne
+# comme avant. L'identifiant est celui de l'espace KV « journal-tec » du compte.
+[[kv_namespaces]]
+binding = "JOURNAL"
+id = "5d26b8498f89411295ad73635c0b1e71"
