@@ -66,7 +66,7 @@ async function deposer(request, env) {
   return new Response("", { status: 204 });
 }
 
-const NOMS = { tec: "TEC (direction)", lea: "Léa (avocate)", "?": "inconnu" };
+const NOMS = { tec: "TEC (direction)", lea: "Léa", "?": "inconnu" };
 
 function cadre(corps) {
   return '<!doctype html><html lang="fr"><head><meta charset="utf-8">' +
