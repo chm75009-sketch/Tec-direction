@@ -85,6 +85,12 @@
   .cle button:hover{background:#755c31}
   .cle button:disabled{opacity:.6;cursor:default}
   .cle .aide{margin:14px 0 0;font-size:var(--t2);line-height:1.55;color:#9fb0cc}
+  /* RAFRAÎCHIR. Quand le navigateur garde une vieille version de la page, ce
+     bouton vide son cache et recharge la page à neuf. Discret, sous le reste. */
+  .cle button.rafraichir{width:auto;margin:16px auto 0;display:block;background:transparent;
+    border:0;color:#9fb0cc;font:600 13px system-ui;min-height:0;padding:6px 10px;
+    text-decoration:underline;cursor:pointer}
+  .cle button.rafraichir:hover{background:transparent;color:#e7ecf4}
 
   .dit{margin:14px 0 0;padding:13px 15px;border-radius:12px;font-size:var(--t2);line-height:1.5}
   .dit.mal{background:#fdecec;color:#8E1B1B}
@@ -103,6 +109,11 @@
   .pied{margin:30px 0 0;font-size:13px;line-height:1.7;color:var(--texte-3)}
   .pied b{color:var(--texte-2);font-weight:600}
   .pied .sep{display:block;height:1px;background:#e6e9ee;margin:18px 0}
+  /* LIEN DISCRET VERS LE JOURNAL. Il mène à la page des accès, elle-meme
+     protégée par le mot de passe : le montrer ici n'ouvre rien. */
+  .lien-journal{margin:20px 0 0;text-align:center}
+  .lien-journal a{font-size:12px;color:var(--texte-3);text-decoration:underline}
+  .lien-journal a:hover{color:var(--texte-2)}
   [hidden]{display:none !important}
 </style>
 <script src="sans-cache.js"></script>
@@ -160,6 +171,7 @@
         appareil, elle n'est conservée nulle part.</p>
       <div class="dit mal" id="erreur" hidden></div>
       <div class="dit attend" id="patiente" hidden>Ouverture en cours...</div>
+      <button type="button" class="rafraichir" id="rafraichir">Rafraîchir la page</button>
     </div>
   </section>
 
@@ -205,11 +217,50 @@
     Exportez d'abord ce que vous tenez à garder.
   </p>
 
+  <p class="lien-journal"><a href="journal">Journal des accès</a></p>
+
 </main>
 
 <script src="base-documents.js"></script>
 <script src="dossier-tec.js"></script>
 <script src="entrer.js"></script>
 <script src="rappel-urssaf.js" defer></script>
+<script>
+/* LE BOUTON RAFRAÎCHIR.
+
+   Il est ici, en clair dans la page, et non dans entrer.js : son role est
+   justement de récupérer une page restée vieille sur l'appareil, donc il doit
+   marcher meme si les scripts chargés sont anciens. Il désinscrit les service
+   workers, vide les caches, puis recharge la page à neuf. */
+(function () {
+  var b = document.getElementById("rafraichir");
+  if (!b) return;
+  b.addEventListener("click", function () {
+    b.disabled = true;
+    b.textContent = "Rafraîchissement...";
+    var recharger = function () {
+      var u = location.pathname + "?v=" + Date.now() + location.hash;
+      location.replace(u);
+    };
+    var taches = [];
+    try {
+      if ("serviceWorker" in navigator) {
+        taches.push(navigator.serviceWorker.getRegistrations().then(function (rs) {
+          return Promise.all(rs.map(function (r) { return r.unregister(); }));
+        }).catch(function () {}));
+      }
+    } catch (e) {}
+    try {
+      if (window.caches && caches.keys) {
+        taches.push(caches.keys().then(function (ks) {
+          return Promise.all(ks.map(function (k) { return caches.delete(k); }));
+        }).catch(function () {}));
+      }
+    } catch (e) {}
+    Promise.all(taches).then(recharger, recharger);
+    window.setTimeout(recharger, 1500);
+  });
+})();
+</script>
 </body>
 </html>
