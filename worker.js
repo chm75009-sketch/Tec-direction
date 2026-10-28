@@ -106,12 +106,18 @@ function pageMot(erreur) {
     '</form>');
 }
 
+/* L'heure est montrée à l'heure de la France (Europe/Paris), qui suit seule
+   l'heure d'été et l'heure d'hiver : l'horodatage est gardé en UTC, mais
+   affiché dans le fuseau de la France. */
 function dateLisible(iso) {
   try {
     const d = new Date(iso);
-    const p = function (n) { return String(n).padStart(2, "0"); };
-    return p(d.getUTCDate()) + "/" + p(d.getUTCMonth() + 1) + "/" + d.getUTCFullYear() +
-      " à " + p(d.getUTCHours()) + "h" + p(d.getUTCMinutes()) + " (UTC)";
+    const parts = new Intl.DateTimeFormat("fr-FR", {
+      timeZone: "Europe/Paris", day: "2-digit", month: "2-digit", year: "numeric",
+      hour: "2-digit", minute: "2-digit", hour12: false,
+    }).formatToParts(d);
+    const g = function (t) { var x = parts.find(function (p) { return p.type === t; }); return x ? x.value : ""; };
+    return g("day") + "/" + g("month") + "/" + g("year") + " à " + g("hour") + "h" + g("minute");
   } catch (e) { return iso; }
 }
 

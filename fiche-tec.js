@@ -59,3 +59,42 @@
 
   if (change) ecrire(p);
 })();
+
+/* LE JOURNAL DES ACCÈS, DANS LE MENU.
+
+   Propre au site de la SARL TEC : la page /journal n'existe que sur ce site,
+   elle n'a rien à faire dans l'application qui sert à d'autres entreprises.
+   C'est pourquoi le lien est posé ici, dans fiche-tec.js, et non dans barre.js.
+
+   Le menu est construit à chaque ouverture et ajouté au corps de la page. On
+   guette donc son apparition, et on glisse une entrée à la fin de la liste des
+   modules. Le journal reste protégé par le mot de passe : montrer le lien
+   n'ouvre rien. */
+(function () {
+  "use strict";
+  function poser(menu) {
+    if (!menu || menu.querySelector("[data-journal]")) return;
+    var ul = menu.querySelector("nav ul") || menu.querySelector("ul");
+    if (!ul) return;
+    var li = document.createElement("li");
+    var a = document.createElement("a");
+    a.href = "journal";
+    a.textContent = "Journal des accès";
+    a.setAttribute("data-journal", "1");
+    li.appendChild(a);
+    ul.appendChild(li);
+  }
+  function demarrer() {
+    try {
+      var mo = new window.MutationObserver(function () {
+        var m = document.getElementById("barre-menu");
+        if (m) poser(m);
+      });
+      mo.observe(document.body, { childList: true });
+    } catch (e) {}
+  }
+  /* Ce script est appelé dans l'en-tête, avant que le corps existe : on attend
+     donc qu'il soit là pour le surveiller. */
+  if (document.body) demarrer();
+  else document.addEventListener("DOMContentLoaded", demarrer);
+})();
