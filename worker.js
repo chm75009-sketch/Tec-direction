@@ -116,7 +116,11 @@ function cadre(corps) {
     'th{color:#666;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.03em}' +
     'td.qui{font-weight:600}' +
     '.vide{color:#777;padding:14px 0}' +
-    '</style></head><body><div class="boite">' + corps + '</div></body></html>';
+    'a.retour{display:inline-block;margin-top:18px;color:#e4324a;' +
+    'text-decoration:none;font-size:15px;font-weight:600}' +
+    '</style></head><body><div class="boite">' + corps +
+    '<a class="retour" href="/">&larr; Retour à l\'application</a>' +
+    '</div></body></html>';
 }
 
 function pageMot(erreur) {
