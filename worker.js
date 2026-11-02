@@ -51,8 +51,12 @@ async function deposer(request, env) {
     return new Response("", { status: 204 });
   }
   if (!env.JOURNAL) return new Response("", { status: 204 });
-  let qui = "?";
-  try { const d = await request.json(); if (d && d.qui) qui = String(d.qui); } catch (e) {}
+  let qui = "?", page = "";
+  try {
+    const d = await request.json();
+    if (d && d.qui) qui = String(d.qui);
+    if (d && d.page) page = String(d.page).slice(0, 60).replace(/[^a-z0-9_-]/gi, "");
+  } catch (e) {}
   qui = (qui === "tec" || qui === "lea") ? qui : "?";
   const quand = new Date().toISOString();
   const pays = (request.cf && request.cf.country) || "";
@@ -60,13 +64,34 @@ async function deposer(request, env) {
   const ua = request.headers.get("User-Agent") || "";
   const cle = "log:" + quand + ":" + Math.random().toString(36).slice(2, 8);
   try {
-    await env.JOURNAL.put(cle, JSON.stringify({ qui, quand, pays, ip, ua }),
-      { metadata: { qui, quand, pays } });
+    await env.JOURNAL.put(cle, JSON.stringify({ qui, quand, pays, ip, ua, page }),
+      { metadata: { qui, quand, pays, page } });
   } catch (e) {}
   return new Response("", { status: 204 });
 }
 
 const NOMS = { tec: "TEC (direction)", lea: "Léa", "?": "inconnu" };
+
+/* Le nom lisible d'une page. Les plus courantes ont leur libellé ; les autres
+   sont rendues telles quelles, les traits d'union devenant des espaces. */
+const PAGES = {
+  index: "Accueil", gerer: "Gérer", auditer: "Audit (catalogue)", audit: "Audit",
+  documents: "Documents produits", "mes-documents": "Mes documents",
+  questions: "Mes questions", agenda: "Agenda social", registre: "Registre du personnel",
+  flotte: "Flotte", "conformite-transport": "Tachygraphe et cartes conducteurs",
+  "controle-urssaf": "Contrôle URSSAF", "contrats-transport": "Contrats transport",
+  forfait: "Forfait en jours", heures: "Heures", visites: "Visites médicales",
+  equipe: "Comité social et économique", recherche: "Recherche", parcours: "Parcours",
+  "notes-service": "Notes de service", contraventions: "Contraventions",
+  sanctions: "Sanctions", courriers: "Courriers", bdese: "BDESE", duerp: "DUERP",
+  egalite: "Égalité professionnelle", minima: "Minima conventionnels",
+};
+function joliPage(p) {
+  if (!p) return "";
+  if (PAGES[p]) return PAGES[p];
+  const s = String(p).replace(/-/g, " ");
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
 
 function cadre(corps) {
   return '<!doctype html><html lang="fr"><head><meta charset="utf-8">' +
@@ -129,15 +154,20 @@ async function pageJournal(env) {
   const lignes = liste.keys.map(function (k) { return k.metadata || {}; })
     .filter(function (m) { return m.quand; })
     .sort(function (a, b) { return a.quand < b.quand ? 1 : -1; });
-  let corps = '<h1>Journal des accès</h1><p class="sous">' + lignes.length +
-    ' ouverture' + (lignes.length > 1 ? 's' : '') + ' du dossier.</p>';
+  const ouvertures = lignes.filter(function (m) { return !m.page; }).length;
+  const vues = lignes.length - ouvertures;
+  let corps = '<h1>Journal des accès</h1><p class="sous">' + ouvertures +
+    ' ouverture' + (ouvertures > 1 ? 's' : '') + ' du dossier, ' + vues +
+    ' page' + (vues > 1 ? 's' : '') + ' consultée' + (vues > 1 ? 's' : '') + '.</p>';
   if (!lignes.length) {
-    corps += '<p class="vide">Aucune ouverture enregistrée pour l\'instant.</p>';
+    corps += '<p class="vide">Rien d\'enregistré pour l\'instant.</p>';
   } else {
-    corps += '<table><thead><tr><th>Qui</th><th>Quand</th><th>Pays</th></tr></thead><tbody>';
+    corps += '<table><thead><tr><th>Qui</th><th>Quand</th><th>Quoi</th><th>Pays</th></tr></thead><tbody>';
     corps += lignes.map(function (m) {
+      const quoi = m.page ? joliPage(m.page) : "Ouverture du dossier";
       return '<tr><td class="qui">' + texte(NOMS[m.qui] || m.qui || "inconnu") +
         '</td><td>' + texte(dateLisible(m.quand)) +
+        '</td><td>' + texte(quoi) +
         '</td><td>' + texte(m.pays || "") + '</td></tr>';
     }).join("");
     corps += '</tbody></table>';

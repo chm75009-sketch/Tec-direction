@@ -76,6 +76,9 @@
      l'ouverture du dossier n'en souffre pas. Rien du dossier n'est envoyé,
      seulement « tec » ou « lea ». */
   function journaliser(qui) {
+    /* On garde qui a ouvert, pour que chaque page suivante porte le même nom au
+       journal des pages (journal-page.js le relit). */
+    try { window.localStorage.setItem("journal-qui", qui); } catch (e) {}
     try {
       window.fetch("/journal", {
         method: "POST",

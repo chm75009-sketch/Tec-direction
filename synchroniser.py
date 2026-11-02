@@ -39,7 +39,7 @@ JAMAIS = {"sw.js"}
 PROPRES = {"entrer.html", "entrer.js", "dossier-tec.js", "verrou.js",
            "sans-cache.js", "sw-min.js", "synchroniser.py", "README.md",
            "netlify.toml", "wrangler.toml", "worker.js", ".assetsignore",
-           "favicon.ico", "fiche-tec.js"}
+           "favicon.ico", "fiche-tec.js", "journal-page.js"}
 
 # L'IDENTITÉ DU CLIENT, ET NON CELLE DE L'APPLICATION.
 #
@@ -113,6 +113,8 @@ LIGNES = [
     ('<script src="sans-cache.js"></script>', '<meta name="viewport"', set()),
     # Le nom du gérant, corrigé dans la fiche gardée par le navigateur.
     ('<script src="fiche-tec.js"></script>', '<meta name="viewport"', {PORTE}),
+    # Le journal des pages : chaque page ouverte s'inscrit au journal.
+    ('<script src="journal-page.js"></script>', '<meta name="viewport"', {PORTE}),
 ]
 
 ici = pathlib.Path(__file__).resolve().parent
