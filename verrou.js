@@ -81,8 +81,14 @@
       return r === "parc";
     } catch (e) { return false; }
   }
+  /* Le parc, ce sont la flotte et les pages « parc-... » (paramètres, sinistres,
+     tableau de bord). Toute autre page ramène le chef de parc à la flotte.
+     « parcours », qui ne porte pas de trait d'union, n'en fait pas partie. */
+  function pageDuParc() {
+    return nom === "flotte" || nom.indexOf("parc-") === 0;
+  }
   function confiner() {
-    if (roleParc() && nom !== "flotte") {
+    if (roleParc() && !pageDuParc()) {
       try { document.documentElement.style.visibility = "hidden"; } catch (e) {}
       window.location.replace("flotte.html");
       return true;
