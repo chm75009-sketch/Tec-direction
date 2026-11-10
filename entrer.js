@@ -298,7 +298,7 @@
              l'accueil : c'est la seule page que le verrou lui laisse. */
           if (role === "parc") {
             Array.prototype.forEach.call(document.querySelectorAll("a.entrer"), function (a) {
-              a.setAttribute("href", "flotte.html");
+              a.setAttribute("href", "parc-tableau.html");
             });
           }
           var suite = dejaLa()
@@ -308,7 +308,7 @@
             /* LE CHEF DE PARC N'A PAS D'ÉCRAN INTERMÉDIAIRE. Demande du
                10 novembre 2026 : une fois son code validé, il entre droit sur
                le parc, sans la page qui récapitule les données de la société. */
-            if (role === "parc") { window.location.replace("flotte.html"); return; }
+            if (role === "parc") { window.location.replace("parc-tableau.html"); return; }
             $("patiente").hidden = true;
             $("e-ouvrir").hidden = true;
             if (n === null) {
