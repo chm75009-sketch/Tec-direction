@@ -63,6 +63,32 @@
   var page = window.location.pathname.split("/").pop() || "index.html";
   var nom = page.replace(/\.html$/, "");
   if (nom === PORTE.replace(/\.html$/, "")) return;
+  /* La page qui crée le code du chef de parc n'est pas derrière le verrou :
+     elle fait son propre travail avec le mot de passe maître, tapé sur place. */
+  if (nom === "generer-acces-parc") return;
+
+  /* LE CHEF DE PARC N'A QUE LA FLOTTE.
+
+     Son code ouvre une séance de role « parc ». Toute page autre que la flotte
+     le ramène à la flotte : il ne peut ni l'atteindre par un lien, ni par
+     l'adresse. Le role est écrit par entrer.js dans les deux stockages ; on lit
+     d'abord celui de l'onglet, puis celui du poste, pour l'onglet qui vient
+     d'adopter la séance. */
+  function roleParc() {
+    try {
+      var r = window.sessionStorage.getItem("seance-role");
+      if (!r) r = window.localStorage.getItem("seance-role");
+      return r === "parc";
+    } catch (e) { return false; }
+  }
+  function confiner() {
+    if (roleParc() && nom !== "flotte") {
+      try { document.documentElement.style.visibility = "hidden"; } catch (e) {}
+      window.location.replace("flotte.html");
+      return true;
+    }
+    return false;
+  }
 
   /* Le battement : tant qu'une page vit avec une séance ouverte, elle écrit
      l'heure. C'est ce que lit l'onglet suivant. */
@@ -82,7 +108,7 @@
   var ouverte;
   try { ouverte = window.sessionStorage.getItem(CLE) === "oui"; }
   catch (e) { return; }
-  if (ouverte) { tenirLeBattement(); return; }
+  if (ouverte) { if (confiner()) return; tenirLeBattement(); return; }
 
   /* Pas de séance dans cet onglet : un autre en a-t-il une, ouverte à l'instant ? */
   var battement = 0;
@@ -90,6 +116,7 @@
   catch (e) { battement = 0; }
   if (battement && Date.now() - battement < FENETRE) {
     try { window.sessionStorage.setItem(CLE, "oui"); } catch (e) {}
+    if (confiner()) return;
     tenirLeBattement();
     return;
   }

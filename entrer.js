@@ -69,6 +69,30 @@
     });
   }
 
+  /* L'ACCÈS DU CHEF DE PARC.
+
+     Demande du 10 novembre 2026. Le chef de parc n'a accès qu'à la gestion du
+     parc, et à rien d'autre. Son code n'ouvre pas le dossier complet : il
+     ouvre un fichier à part, DOSSIER_PARC, qui ne contient que les véhicules,
+     les fiches conducteur et le nom de la société. Le registre du personnel,
+     le dossier de l'affaire et les audits ne sont jamais écrits sur son
+     appareil. Le verrou, ensuite, le tient sur la seule page de la flotte.
+
+     Ce fichier est produit une fois, sur le téléphone de la société, par la
+     page generer-acces-parc.html : le mot de passe maître y déchiffre le
+     dossier, en extrait le parc, et le rechiffre sous le code du chef de parc,
+     sans que le mot de passe maître ne quitte l'appareil. */
+  function ouvrirParc(mot) {
+    var p = window.DOSSIER_PARC;
+    if (!p || !p.contenu) return Promise.reject(new Error("pas de fichier parc"));
+    return clef(mot, deBase64(p.sel), p.tours).then(function (k) {
+      return window.crypto.subtle.decrypt(
+        { name: "AES-GCM", iv: deBase64(p.vecteur) }, k, deBase64(p.contenu));
+    }).then(function (clair) {
+      return { dossier: JSON.parse(new TextDecoder().decode(clair)), qui: "parc", role: "parc" };
+    });
+  }
+
   /* LE REGISTRE DES OUVERTURES.
 
      À chaque ouverture réussie, on dit au site qui vient d'ouvrir et quand.
@@ -191,8 +215,13 @@
      l'onglet, donc le mot de passe revient à chaque ouverture, une fois, et
      non à chaque page. Mesuré le 24 septembre 2026 : l'application s'ouvrait
      directement sur la fiche de l'entreprise, sans rien demander. */
-  function ouvrirSeance() {
+  function ouvrirSeance(role) {
     try { window.sessionStorage.setItem("seance-ouverte", "oui"); } catch (e) {}
+    /* Le role décide de ce que le verrou laisse ouvrir : « parc » ne donne que
+       la page de la flotte. Il est écrit dans les deux stockages, pour que les
+       autres onglets qui adoptent la séance le retrouvent. */
+    try { window.sessionStorage.setItem("seance-role", role || "tec"); } catch (e) {}
+    try { window.localStorage.setItem("seance-role", role || "tec"); } catch (e) {}
     /* Le battement, pour que les autres onglets adoptent la séance sans
        redemander le mot de passe : voir verrou.js, qui l'entretient ensuite. */
     try { window.localStorage.setItem("seance-battement", String(Date.now())); } catch (e) {}
@@ -257,11 +286,21 @@
       /* Le rendu doit passer avant le calcul, sinon l'écran reste figé sans
          rien dire pendant la seconde que prend la dérivation. */
       window.setTimeout(function () {
-        ouvrir(mot).then(function (res) {
+        /* Le dossier complet d'abord ; si le mot de passe n'y ouvre rien, on
+           tente le code du chef de parc, qui n'ouvre que le parc. */
+        ouvrir(mot).catch(function () { return ouvrirParc(mot); }).then(function (res) {
           var dossier = res.dossier;
           DOSSIER = dossier;
+          var role = res.role || "tec";
           journaliser(res.qui);
-          ouvrirSeance();
+          ouvrirSeance(role);
+          /* Le chef de parc entre directement sur la flotte, jamais sur
+             l'accueil : c'est la seule page que le verrou lui laisse. */
+          if (role === "parc") {
+            Array.prototype.forEach.call(document.querySelectorAll("a.entrer"), function (a) {
+              a.setAttribute("href", "flotte.html");
+            });
+          }
           var suite = dejaLa()
             ? Promise.resolve(poserPieces(dossier.documents)).then(function () { return null; })
             : Promise.resolve(poser(dossier));

@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Créer l'accès du chef de parc - SARL TEC</title>
+<meta name="description" content="Crée, une fois, le code du chef de parc, limité à la gestion du parc.">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#1F3864">
+
+<!--
+  CRÉER L'ACCÈS DU CHEF DE PARC.
+
+  Le chef de parc n'a accès qu'à la gestion du parc. Son code n'ouvre pas le
+  dossier complet : il ouvre un fichier à part qui ne contient que les
+  véhicules, les fiches conducteur et le nom de la société.
+
+  Cette page se lance une fois, sur le téléphone de la société. Le mot de passe
+  maître y déchiffre le dossier, sur l'appareil, sans en partir ; on en extrait
+  le parc ; on le rechiffre sous le code du chef de parc ; et l'on obtient un
+  fichier, dossier-parc.js, à nous renvoyer pour le mettre en ligne.
+
+  Rien n'est envoyé nulle part : tout le calcul se fait ici, dans le
+  navigateur.
+-->
+
+<link rel="stylesheet" href="style.css">
+<style>
+  :root{--encre-p:#1F3864;--papier-p:#f7f8fa;--or:#8a6d3b;--or-clair:#f3ede1}
+  body{background:var(--papier-p)}
+  main.wrap{max-width:560px;padding:0 20px var(--e7)}
+  .fronton{padding:36px 0 4px;text-align:center}
+  .fronton .marque{display:inline-flex;align-items:center;gap:9px;font:600 11px/1 system-ui;
+    letter-spacing:.16em;text-transform:uppercase;color:var(--or);background:var(--or-clair);
+    border-radius:999px;padding:8px 15px}
+  .fronton h1{font:600 27px/1.2 Georgia,'Times New Roman',serif;color:var(--encre-p);margin:18px 0 6px}
+  .fronton .sous{font-size:var(--t3);color:var(--texte-2);margin:0}
+  .carte{background:#fff;border:1px solid var(--filet);border-radius:18px;padding:24px 22px;
+    margin:22px 0 0;box-shadow:0 1px 3px rgba(31,56,100,.06)}
+  .carte h2{font:600 10px/1 system-ui;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--texte-3);margin:0 0 16px}
+  .etape{display:flex;gap:12px;margin:0 0 14px}
+  .etape .n{flex:0 0 auto;width:26px;height:26px;border-radius:50%;background:var(--encre-p);
+    color:#fff;font:700 14px/26px system-ui;text-align:center}
+  .etape .t{font-size:var(--t2);line-height:1.5;color:var(--texte-2)}
+  label > span{display:block;font:600 11px/1.2 system-ui;letter-spacing:.05em;
+    text-transform:uppercase;color:var(--texte-3);margin:0 0 6px}
+  input{width:100%;box-sizing:border-box;font:400 18px/1.3 system-ui;min-height:54px;
+    padding:13px 15px;border:1px solid #cfd6e0;border-radius:12px;background:#fff;color:var(--encre-p)}
+  .champ{margin:0 0 16px}
+  button.go{width:100%;margin:6px 0 0;font:600 18px system-ui;padding:16px;min-height:56px;
+    border-radius:12px;background:var(--or);color:#fff;border:0;cursor:pointer}
+  button.go:hover{background:#755c31}
+  button.go:disabled{opacity:.55;cursor:default}
+  .dit{margin:16px 0 0;padding:13px 15px;border-radius:12px;font-size:var(--t2);line-height:1.55}
+  .dit.mal{background:#fdecec;color:#8E1B1B}
+  .dit.attend{background:#eef1f6;color:var(--encre-p)}
+  .dit.bien{background:var(--vert-clair);border:1px solid var(--vert);color:var(--vert)}
+  .telec{display:block;width:100%;box-sizing:border-box;margin:16px 0 0;text-align:center;
+    text-decoration:none;font:600 17px system-ui;padding:16px;border-radius:14px;
+    background:var(--encre-p);color:#fff}
+  .code-vu{margin:14px 0 0;padding:14px 16px;border-radius:12px;background:var(--or-clair);
+    color:var(--encre-p);font:600 var(--t3)/1.4 system-ui;text-align:center}
+  .code-vu b{font:700 22px system-ui;letter-spacing:.04em;display:block;margin-top:4px}
+  .pied{margin:26px 0 0;font-size:13px;line-height:1.7;color:var(--texte-3)}
+  [hidden]{display:none !important}
+</style>
+</head>
+<body>
+<main class="wrap">
+
+  <div class="fronton">
+    <span class="marque">Réservé à la société</span>
+    <h1>Créer l'accès du chef de parc</h1>
+    <p class="sous">Un code qui n'ouvre que la gestion du parc, rien d'autre.</p>
+  </div>
+
+  <div class="carte">
+    <h2>Comment ça marche</h2>
+    <div class="etape"><span class="n">1</span><span class="t">Vous tapez votre mot de passe
+      habituel, celui qui ouvre le dossier. Il reste sur ce téléphone, il n'en sort pas.</span></div>
+    <div class="etape"><span class="n">2</span><span class="t">La page extrait le parc (véhicules,
+      fiches conducteur, nom de la société) et le referme sous le code du chef de parc. Le reste,
+      registre du personnel, dossier de l'affaire, audits, n'y entre jamais.</span></div>
+    <div class="etape"><span class="n">3</span><span class="t">Vous récupérez un fichier,
+      dossier-parc.js, et vous nous le renvoyez. Nous le mettons en ligne, et le code du chef de
+      parc est actif.</span></div>
+  </div>
+
+  <div class="carte">
+    <h2>Le code du chef de parc</h2>
+    <div class="champ">
+      <label><span>Code qui sera remis au chef de parc</span>
+        <input type="text" id="code-parc" value="ParcTEC2026" autocomplete="off"></label>
+    </div>
+    <div class="champ">
+      <label><span>Votre mot de passe, celui du dossier</span>
+        <input type="password" id="maitre" autocomplete="current-password" placeholder="votre mot de passe"></label>
+    </div>
+    <button type="button" class="go" id="go">Créer le fichier d'accès</button>
+    <div class="dit attend" id="patiente" hidden>Création en cours...</div>
+    <div class="dit mal" id="erreur" hidden></div>
+    <div id="resultat" hidden>
+      <div class="dit bien">Le fichier est prêt. Téléchargez-le et renvoyez-le nous.</div>
+      <div class="code-vu">Code du chef de parc <b id="code-vu"></b></div>
+      <a class="telec" id="telec" download="dossier-parc.js">Télécharger dossier-parc.js</a>
+    </div>
+  </div>
+
+  <p class="pied">Rien de ce que vous tapez ici n'est envoyé. Tout le calcul se fait sur votre
+    appareil. Si vous changez le code ci-dessus, prévenez-nous, pour que ce soit le bon qui soit
+    remis au chef de parc.</p>
+
+</main>
+
+<script src="dossier-tec.js"></script>
+<script>
+"use strict";
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var TOURS = 600000;
+
+  function deBase64(s) {
+    var brut = window.atob(s), t = new Uint8Array(brut.length);
+    for (var i = 0; i < brut.length; i++) t[i] = brut.charCodeAt(i);
+    return t;
+  }
+  function enBase64(bytes) {
+    var u = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes), s = "";
+    for (var i = 0; i < u.length; i++) s += String.fromCharCode(u[i]);
+    return window.btoa(s);
+  }
+  function clef(mot, sel, tours, usage) {
+    var enc = new TextEncoder();
+    return window.crypto.subtle
+      .importKey("raw", enc.encode(mot), { name: "PBKDF2" }, false, ["deriveKey"])
+      .then(function (base) {
+        return window.crypto.subtle.deriveKey(
+          { name: "PBKDF2", salt: sel, iterations: tours, hash: "SHA-256" },
+          base, { name: "AES-GCM", length: 256 }, false, [usage]);
+      });
+  }
+
+  /* Déchiffrer le dossier complet, par les deux chemins du mot de passe, comme
+     à la porte : le mot de passe direct, ou la petite boîte qui garde la clé. */
+  function ouvrirDossier(mot) {
+    var p = window.DOSSIER_CHIFFRE;
+    return clef(mot, deBase64(p.sel), p.tours, "decrypt").then(function (k) {
+      return window.crypto.subtle.decrypt({ name: "AES-GCM", iv: deBase64(p.vecteur) }, k, deBase64(p.contenu));
+    }).then(function (clair) {
+      return JSON.parse(new TextDecoder().decode(clair));
+    }).catch(function () {
+      var w = window.DOSSIER_CLE_2;
+      if (!w) throw new Error("mauvais mot de passe");
+      return clef(mot, deBase64(w.sel), w.tours, "decrypt").then(function (kw) {
+        return window.crypto.subtle.decrypt({ name: "AES-GCM", iv: deBase64(w.vecteur) }, kw, deBase64(w.contenu));
+      }).then(function (brut) {
+        return window.crypto.subtle.importKey("raw", brut, { name: "AES-GCM" }, false, ["decrypt"]);
+      }).then(function (kd) {
+        return window.crypto.subtle.decrypt({ name: "AES-GCM", iv: deBase64(p.vecteur) }, kd, deBase64(p.contenu));
+      }).then(function (clair) {
+        return JSON.parse(new TextDecoder().decode(clair));
+      });
+    });
+  }
+
+  /* Le parc, et rien d'autre : le nom de la société, les véhicules, les fiches
+     conducteur, et les seuls noms du registre (sans date de naissance, sans
+     nationalité, sans rémunération), dont la flotte a besoin pour nommer les
+     chauffeurs. */
+  function extraireParc(d) {
+    var prof = d["profil-entreprise"] || {};
+    var reg = d["registre-personnel"] || {};
+    var noms = (reg.salaries || []).map(function (s) {
+      return { nom: s.nom, pre: s.pre, emp: s.emp, ent: s.ent, sor: s.sor };
+    });
+    return {
+      "profil-entreprise": { denomination: prof.denomination || "SARL TEC" },
+      "flotte-vehicules": d["flotte-vehicules"] || [],
+      "flotte-conducteurs": d["flotte-conducteurs"] || {},
+      "registre-personnel": { salaries: noms },
+    };
+  }
+
+  function chiffrerParc(parc, code) {
+    var enc = new TextEncoder();
+    var sel = window.crypto.getRandomValues(new Uint8Array(16));
+    var iv = window.crypto.getRandomValues(new Uint8Array(12));
+    return clef(code, sel, TOURS, "encrypt").then(function (k) {
+      return window.crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, k, enc.encode(JSON.stringify(parc)));
+    }).then(function (contenu) {
+      return { sel: enBase64(sel), tours: TOURS, vecteur: enBase64(iv), contenu: enBase64(contenu) };
+    });
+  }
+
+  function demarrer() {
+    $("go").addEventListener("click", function () {
+      $("erreur").hidden = true;
+      $("resultat").hidden = true;
+      var code = ($("code-parc").value || "").trim();
+      var mot = $("maitre").value;
+      if (!code) { $("erreur").hidden = false; $("erreur").textContent = "Indiquez le code à remettre au chef de parc."; return; }
+      if (!mot) { $("maitre").focus(); return; }
+      if (!window.DOSSIER_CHIFFRE) { $("erreur").hidden = false; $("erreur").textContent = "Le dossier n'est pas chargé sur cette page."; return; }
+      $("patiente").hidden = false;
+      $("go").disabled = true;
+      window.setTimeout(function () {
+        ouvrirDossier(mot).then(function (d) {
+          return chiffrerParc(extraireParc(d), code);
+        }).then(function (bloc) {
+          var texte = "/* Accès du chef de parc, limité à la gestion du parc. Créé le " +
+            new Date().toISOString().slice(0, 10) + ". */\n" +
+            "window.DOSSIER_PARC = " + JSON.stringify(bloc) + ";\n";
+          var blob = new Blob([texte], { type: "application/javascript" });
+          $("telec").href = URL.createObjectURL(blob);
+          $("code-vu").textContent = code;
+          $("patiente").hidden = true;
+          $("go").disabled = false;
+          $("resultat").hidden = false;
+          $("resultat").scrollIntoView({ behavior: "smooth", block: "start" });
+        }).catch(function (e) {
+          $("patiente").hidden = true;
+          $("go").disabled = false;
+          $("erreur").hidden = false;
+          $("erreur").textContent = "Ce mot de passe n'ouvre pas le dossier. Réessayez.";
+          $("maitre").select();
+        });
+      }, 40);
+    });
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", demarrer);
+  else demarrer();
+})();
+</script>
+</body>
+</html>

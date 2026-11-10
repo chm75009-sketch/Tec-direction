@@ -39,7 +39,14 @@ JAMAIS = {"sw.js"}
 PROPRES = {"entrer.html", "entrer.js", "dossier-tec.js", "verrou.js",
            "sans-cache.js", "sw-min.js", "synchroniser.py", "README.md",
            "netlify.toml", "wrangler.toml", "worker.js", ".assetsignore",
-           "favicon.ico", "fiche-tec.js", "journal-page.js"}
+           "favicon.ico", "fiche-tec.js", "journal-page.js",
+           # L'accès du chef de parc : la page qui le crée, et le fichier
+           # chiffré qu'elle produit. Tous deux propres à ce site.
+           "generer-acces-parc.html", "dossier-parc.js"}
+
+# La page qui crée le code du chef de parc ne reçoit pas le verrou : elle doit
+# s'ouvrir sans séance, pour faire son travail avec le mot de passe maître.
+GENERATEUR = "generer-acces-parc.html"
 
 # L'IDENTITÉ DU CLIENT, ET NON CELLE DE L'APPLICATION.
 #
@@ -109,12 +116,12 @@ TITRES = [
 
 LIGNES = [
     # (ligne à poser, repère après lequel l'insérer, pages à épargner)
-    ('<script src="verrou.js"></script>', '<meta name="viewport"', {PORTE}),
+    ('<script src="verrou.js"></script>', '<meta name="viewport"', {PORTE, GENERATEUR}),
     ('<script src="sans-cache.js"></script>', '<meta name="viewport"', set()),
     # Le nom du gérant, corrigé dans la fiche gardée par le navigateur.
-    ('<script src="fiche-tec.js"></script>', '<meta name="viewport"', {PORTE}),
+    ('<script src="fiche-tec.js"></script>', '<meta name="viewport"', {PORTE, GENERATEUR}),
     # Le journal des pages : chaque page ouverte s'inscrit au journal.
-    ('<script src="journal-page.js"></script>', '<meta name="viewport"', {PORTE}),
+    ('<script src="journal-page.js"></script>', '<meta name="viewport"', {PORTE, GENERATEUR}),
 ]
 
 ici = pathlib.Path(__file__).resolve().parent
