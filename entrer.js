@@ -305,6 +305,10 @@
             ? Promise.resolve(poserPieces(dossier.documents)).then(function () { return null; })
             : Promise.resolve(poser(dossier));
           return suite.then(function (n) {
+            /* LE CHEF DE PARC N'A PAS D'ÉCRAN INTERMÉDIAIRE. Demande du
+               10 novembre 2026 : une fois son code validé, il entre droit sur
+               le parc, sans la page qui récapitule les données de la société. */
+            if (role === "parc") { window.location.replace("flotte.html"); return; }
             $("patiente").hidden = true;
             $("e-ouvrir").hidden = true;
             if (n === null) {
