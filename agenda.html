@@ -3,31 +3,31 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<script src="journal-page.js"></script>
-<script src="fiche-tec.js"></script>
-<script src="sans-cache.js"></script>
-<script src="verrou.js"></script>
+<script src="journal-page.js?v=34f7b952"></script>
+<script src="fiche-tec.js?v=1f7df923"></script>
+<script src="sans-cache.js?v=950dcf6c"></script>
+<script src="verrou.js?v=abd13bfd"></script>
 <meta name="theme-color" content="#1F3864">
 <link rel="icon" href="icons-tec/icon-180.png">
 <title>Agenda social</title>
 <!-- Équipe, droits et journal : le point unique d'autorisation. Chargé avant
      tout le reste, il masque la page tant que l'utilisateur n'est pas identifié.
      Tant qu'aucun utilisateur n'a été créé, il ne fait rien. Voir docs/DROITS.md. -->
-<script src="liste-choix.js"></script>
-<script src="listes-valeurs.js"></script>
-<script src="listes-auto.js"></script>
-<script src="apercu.js"></script>
-<script src="droits.js"></script>
+<script src="liste-choix.js?v=ac063648"></script>
+<script src="listes-valeurs.js?v=86b8eae2"></script>
+<script src="listes-auto.js?v=cc647c6a"></script>
+<script src="apercu.js?v=0d8afe7c"></script>
+<script src="droits.js?v=0c756e52"></script>
 <!-- La flotte : chargée pour son API de lecture seule, window.Flotte.echeances().
      Le fichier ne touche à rien tant que les écrans de sa page sont absents. -->
-<script src="flotte.js"></script>
+<script src="flotte.js?v=218623f7"></script>
 <!-- La conformité transport : chargée pour son API de lecture seule,
      window.ConformiteTransport.echeances(), afin que les téléchargements et le
      certificat ADR se préparent au même endroit que le reste. -->
-<script src="documents-transport.js"></script>
-<script src="conformite-transport.js"></script>
+<script src="documents-transport.js?v=6db77104"></script>
+<script src="conformite-transport.js?v=195fd765"></script>
 <!-- Les échéances propres à chaque salarié : registre, contrat, entretiens. -->
-<script src="echeances-salaries.js"></script>
+<script src="echeances-salaries.js?v=352698b5"></script>
 <!-- L'ÉCHÉANCIER, CONSTRUIT TOUT SEUL DEPUIS LA FICHE D'ENTREPRISE. Rien avant
      lui : pas de formulaire, pas de chapeau. L'effectif vient de la fiche, le
      reste des brouillons d'audit présents sur ce poste. Une carte par
@@ -75,9 +75,9 @@
      de deux lectures concordantes, cette page ne le cite pas : les périodicités
      des thèmes de négociation sont fondées sur L. 2242-13 (supplétif) et sur
      L. 2242-2, L. 2242-2-1 et L. 2242-11, tous relus deux fois. -->
-<link rel="stylesheet" href="style.css">
-<script src="barre.js"></script>
-<script src="installer.js"></script>
+<link rel="stylesheet" href="style.css?v=dc331296">
+<script src="barre.js?v=eb818b6f"></script>
+<script src="installer.js?v=9fa48eb1"></script>
 <style>
   main.wrap{max-width:560px;padding-bottom:var(--e7)}
   .rappel-fiche{margin:14px 0 0;font-size:var(--t2);color:var(--texte-2)}
@@ -196,10 +196,10 @@
 
 </main>
 
-<script src="profil.js"></script>
-<script src="audit-export.js"></script>
-<script src="base-documents.js"></script>
-<script src="moteur-nao.js"></script>
+<script src="profil.js?v=8aa4bb1e"></script>
+<script src="audit-export.js?v=890d7345"></script>
+<script src="base-documents.js?v=6d57384f"></script>
+<script src="moteur-nao.js?v=ca4aa271"></script>
 <script>
 (function () {
   "use strict";
@@ -1214,6 +1214,6 @@
     window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js"); });
 })();
 </script>
-<script src="assistant.js" defer></script>
+<script src="assistant.js?v=b29d04a2" defer></script>
 </body>
 </html>

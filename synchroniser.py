@@ -28,6 +28,7 @@ console à chaque ouverture de page n'apprend rien à personne, et il masque les
 vraies pannes. Posé le 30 septembre 2026.
 """
 
+import hashlib
 import json
 import pathlib
 import re
@@ -206,7 +207,59 @@ def marquer():
     print("manifestes au nom de", MARQUE["short_name"], ":", m, "| liens d'icône :", liens)
 
 
+# UN SUFFIXE DE VERSION SUR CHAQUE FICHIER .JS ET .CSS.
+#
+# Pourquoi. L'application installée sur l'iPhone garde l'ancien JavaScript même
+# quand le serveur dit de le revalider : une correction poussée ne se voyait
+# pas tant que le client ne supprimait pas l'icône pour la réinstaller. Relevé
+# le 12 novembre 2026 sur la recherche de la flotte.
+#
+# Comment. Chaque « src="x.js" » et « href="y.css" » qui pointe un fichier de
+# ce site reçoit « ?v=<empreinte du contenu> ». Un fichier qui change prend une
+# adresse nouvelle, donc le navigateur le recharge ; un fichier inchangé garde
+# la sienne, donc rien n'est retéléchargé pour rien. L'empreinte se calcule sur
+# le contenu, pas sur l'heure : deux synchronisations sans changement ne bougent
+# pas les adresses.
+#
+# Ce qu'on ne touche pas : les adresses externes (elles portent « :// »), les
+# références déjà suffixées d'autre chose (« ? »), le manifeste et les icônes.
+# Les pages recopiées arrivent sans suffixe ; les pages propres au site gardent
+# le leur d'une fois sur l'autre, donc on retire l'ancien « ?v=… » avant d'en
+# reposer un à jour.
+SRC_JS = re.compile(r'(<script\b[^>]*\ssrc=")([^"?:]+\.js)(?:\?v=[0-9a-f]+)?(")')
+HREF_CSS = re.compile(r'(<link\b[^>]*\shref=")([^"?:]+\.css)(?:\?v=[0-9a-f]+)?(")')
+
+
+def _empreinte(rel):
+    f = ici / rel
+    try:
+        return hashlib.md5(f.read_bytes()).hexdigest()[:8]
+    except OSError:
+        return None
+
+
+def versionner():
+    pages, liens = 0, 0
+
+    def remplacer(m):
+        nonlocal liens
+        h = _empreinte(m.group(2))
+        if not h:
+            return m.group(1) + m.group(2) + m.group(3)
+        liens += 1
+        return m.group(1) + m.group(2) + "?v=" + h + m.group(3)
+
+    for f in sorted(ici.glob("*.html")):
+        t = f.read_text(encoding="utf-8")
+        neuf = HREF_CSS.sub(remplacer, SRC_JS.sub(remplacer, t))
+        if neuf != t:
+            f.write_text(neuf, encoding="utf-8")
+            pages += 1
+    print("versionnés :", liens, "liens dans", pages, "pages")
+
+
 if len(sys.argv) > 1:
     copier(sys.argv[1])
 poser()
 marquer()
+versionner()
