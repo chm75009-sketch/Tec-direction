@@ -117,7 +117,7 @@
 <script src="base-documents.js?v=6d57384f"></script>
 <script src="lire-pdf.js?v=7667bc22"></script>
 <script src="lecture-carte.js?v=d66c2b73"></script>
-<script src="lecture-rapport.js?v=4883eb86"></script>
+<script src="lecture-rapport.js?v=24f7aa28"></script>
 <script src="conformite-transport.js?v=ff28a203"></script>
 <script>
 "use strict";
@@ -454,7 +454,7 @@
      - conducteur hors effectif, ou conduite sans carte sur un véhicule sans
      session de carte encadrante - est listé à part, à confirmer à la main. */
   function dispatcherCorrespondance(anoms) {
-    var sals = (window.CT && CT.salaries) ? CT.salaries() : [];
+    var sals = (CT && CT.salaries) ? CT.salaries() : [];
     function toks(s) {
       return String(s || "").toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
         .replace(/[^A-Z]+/g, " ").trim().split(" ").filter(function (w) { return w.length >= 2 && w !== "TEC"; });
