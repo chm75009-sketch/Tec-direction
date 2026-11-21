@@ -156,13 +156,31 @@ def copier(source):
     print("copiés :", n, "fichiers depuis", src)
 
 
+def _motif(ligne):
+    """La ligne telle qu'elle se trouve dans une page, avec ou sans « ?v=… ».
+
+    Les pages propres au site ne sont pas recopiées : elles gardent d'une fois
+    sur l'autre leur suffixe de version. Chercher la ligne nue ne la trouvait
+    donc pas, et une ligne de plus se posait à chaque synchronisation."""
+    nom = re.search(r'src="([^"]+)"', ligne).group(1)
+    return re.compile(r'<script src="' + re.escape(nom) + r'(?:\?v=[0-9a-f]+)?"></script>')
+
+
 def poser():
-    total, sans = 0, []
+    total, sans, retirees = 0, [], 0
     for f in sorted(ici.glob("*.html")):
         t = f.read_text(encoding="utf-8")
         avant = t
         for ligne, repere, epargnees in LIGNES:
-            if f.name in epargnees or ligne in t:
+            motif = _motif(ligne)
+            # Les doublons laissés par les synchronisations passées : on garde
+            # la première occurrence, on retire les suivantes avec leur saut de ligne.
+            trouves = list(motif.finditer(t))
+            for m in reversed(trouves[1:]):
+                debut = m.start() - 1 if m.start() > 0 and t[m.start() - 1] == "\n" else m.start()
+                t = t[:debut] + t[m.end():]
+                retirees += 1
+            if f.name in epargnees or trouves:
                 continue
             i = t.find(repere)
             if i < 0:
@@ -176,7 +194,7 @@ def poser():
             total += 1
         if t != avant:
             f.write_text(t, encoding="utf-8")
-    print("lignes posées :", total)
+    print("lignes posées :", total, "| doublons retirés :", retirees)
     if sans:
         print("SANS REPÈRE, à regarder à la main :", ", ".join(sorted(set(sans))))
         sys.exit(1)
