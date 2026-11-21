@@ -77,7 +77,7 @@ const NOMS = { tec: "TEC (direction)", lea: "Léa", "?": "inconnu" };
 const PAGES = {
   index: "Accueil", gerer: "Gérer", auditer: "Audit (catalogue)", audit: "Audit",
   documents: "Documents produits", "mes-documents": "Mes documents",
-  questions: "Mes questions", agenda: "Agenda social", registre: "Registre du personnel",
+  questions: "Mes 5 questions à poser", agenda: "Agenda social", registre: "Registre du personnel",
   flotte: "Flotte", "conformite-transport": "Tachygraphe et cartes conducteurs",
   "controle-urssaf": "Contrôle URSSAF", "contrats-transport": "Contrats transport",
   forfait: "Forfait en jours", heures: "Heures", visites: "Visites médicales",
@@ -118,7 +118,20 @@ function cadre(corps) {
     '.vide{color:#777;padding:14px 0}' +
     'a.retour{display:inline-block;margin-top:18px;color:#e4324a;' +
     'text-decoration:none;font-size:15px;font-weight:600}' +
-    '</style></head><body><div class="boite">' + corps +
+    /* LE RETOUR EST EN HAUT, ET IL RESTE À L'ÉCRAN.
+
+       Relevé le 21 novembre 2026 : le seul lien de retour était au pied de la
+       page, sous plus de deux cents lignes. Dans l'application installée, sans
+       barre de navigateur, on restait coincé sur le journal et il fallait
+       quitter l'application. Le bouton est donc posé au-dessus du titre, et
+       il suit le défilement. Celui du bas est gardé. */
+    '.haut{position:sticky;top:0;z-index:2;background:#f5f5f6;margin:-24px -16px 14px;padding:12px 16px}' +
+    '.haut a{display:block;max-width:760px;margin:0 auto;box-sizing:border-box;padding:13px 16px;' +
+    'background:#fff;border:1px solid #d5d5da;border-radius:10px;color:#1a1a1a;' +
+    'text-decoration:none;font-size:16px;font-weight:600}' +
+    '</style></head><body>' +
+    '<div class="haut"><a href="/">&larr; Retour à l\'application</a></div>' +
+    '<div class="boite">' + corps +
     '<a class="retour" href="/">&larr; Retour à l\'application</a>' +
     '</div></body></html>';
 }
