@@ -10,8 +10,8 @@
 <meta name="theme-color" content="#16181d">
 <link rel="icon" href="icons-tec/icon-180.png">
 <title>Suivi tachygraphe</title>
-<link rel="stylesheet" href="style.css?v=dc331296">
-<script src="barre.js?v=6f9a48dc"></script>
+<link rel="stylesheet" href="style.css?v=f53b7146">
+<script src="barre.js?v=2e493c05"></script>
 
 <!--
   LE MODULE CONFORMITÉ TRANSPORT ET CONTRÔLE DRIEAT.
@@ -251,7 +251,7 @@
 <script src="lecture-carte.js?v=f01b5158"></script>
 <script src="lecture-vehicule.js?v=02d6ab80"></script>
 <script src="lecture-rapport.js?v=4244d96d"></script>
-<script src="conformite-transport.js?v=ab79ef62"></script>
+<script src="conformite-transport.js?v=6bdee062"></script>
 <script src="suivi-tachygraphe.js?v=2c12cc75"></script>
 <script>
 "use strict";
@@ -619,6 +619,16 @@
   });
   function peindreConducteurs() { ST.peindre(); }
   function reouvrir(id) { ST.choisir(id); }
+  /* ARRIVER SUR UN CONDUCTEUR DONNÉ. La page des salariés ouvre le suivi de
+     la personne choisie par « ?c=identifiant » : on ne lui fait pas rechercher
+     son conducteur une seconde fois. */
+  (function () {
+    var c = null;
+    try { c = new URLSearchParams(location.search).get("c"); } catch (e) { c = null; }
+    if (!c) return;
+    var connu = (window.ConformiteTransport.salaries() || []).some(function (x) { return x.id === c; });
+    if (connu) { ST.choisir(c); ST.peindre(); }
+  })();
   function aujourdhuiIso() { var d = new Date(); return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
   peindreConducteurs();
   /* Un rapport multi-conducteurs (correspondance, infractions) porte le nom du
