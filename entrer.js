@@ -238,11 +238,21 @@
   }
 
   var DOSSIER = null;
+  /* Demandé sur la porte : après le mot de passe, proposer de repartir du
+     dossier d'origine au lieu d'entrer. */
+  var REPARTIR = false;
 
   function demarrer() {
     var vers = destination();
     Array.prototype.forEach.call(document.querySelectorAll("a.entrer"), function (a) {
       a.setAttribute("href", vers);
+    });
+
+    var rp = $("repartir");
+    if (rp) rp.addEventListener("click", function () {
+      REPARTIR = true;
+      $("repartir-dit").hidden = false;
+      $("mot").focus();
     });
 
     $("recharger").addEventListener("click", function () {
@@ -309,6 +319,14 @@
                10 novembre 2026 : une fois son code validé, il entre droit sur
                le parc, sans la page qui récapitule les données de la société. */
             if (role === "parc") { window.location.replace("parc-tableau.html"); return; }
+            /* PLUS D'ÉCRAN INTERMÉDIAIRE POUR PERSONNE. Relevé le 22 novembre
+               2026 : après le mot de passe venait « Votre dossier est là », un
+               écran de texte avec un bouton pour entrer, puis la fiche de
+               l'entreprise, avant d'arriver à l'accueil. Le mot de passe
+               accepté mène droit là où l'on allait. L'écran reste pour le seul
+               cas où l'on a demandé, sur la porte, à repartir du dossier
+               d'origine. */
+            if (!(REPARTIR && n === null)) { window.location.replace(destination()); return; }
             $("patiente").hidden = true;
             $("e-ouvrir").hidden = true;
             if (n === null) {

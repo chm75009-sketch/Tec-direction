@@ -108,6 +108,13 @@
     min-height:52px;border-radius:12px}
 
   .pied{margin:30px 0 0;font-size:13px;line-height:1.7;color:var(--texte-3)}
+  details.plus{margin:26px 0 0;text-align:center;border:0;padding:0;background:none}
+  details.plus>summary{display:inline-block;cursor:pointer;font:400 14px/1.3 system-ui;color:var(--texte-2);text-decoration:underline;list-style:none;padding:8px 4px;min-height:0}
+  details.plus>summary::before{display:none;content:none}
+  details.plus>summary::-webkit-details-marker{display:none}
+  details.plus .pied{margin-top:14px;text-align:left}
+  details.plus .repartir{display:block;margin:16px auto 0;background:none;border:1px solid #d5d9e0;border-radius:10px;padding:11px 16px;
+    font:600 14px/1.2 system-ui;color:var(--texte-2);cursor:pointer}
   .pied b{color:var(--texte-2);font-weight:600}
   .pied .sep{display:block;height:1px;background:#e6e9ee;margin:18px 0}
   /* LIEN DISCRET VERS LE JOURNAL. Il mène à la page des accès, elle-meme
@@ -144,9 +151,6 @@
                aria-label="Mot de passe">
       </label>
       <button type="button" id="ouvrir">Ouvrir mon dossier</button>
-      <p class="aide">Il est demandé à chaque ouverture de l'application, une seule fois, et
-        non à chaque page. L'ouverture demande une seconde : la clé se fabrique sur votre
-        appareil, elle n'est conservée nulle part.</p>
       <div class="dit mal" id="erreur" hidden></div>
       <div class="dit attend" id="patiente" hidden>Ouverture en cours...</div>
       <button type="button" class="rafraichir" id="rafraichir">Rafraîchir la page</button>
@@ -183,17 +187,36 @@
     </div>
   </section>
 
-  <p class="pied">
-    <b>Où sont vos données.</b> Sur cet appareil, dans ce navigateur, et nulle part ailleurs.
-    Ce qui se trouve en ligne est un bloc chiffré que votre mot de passe seul déchiffre, ici.
-    Ni nous ni l'hébergeur ne pouvons le lire.
-    <span class="sep"></span>
-    <b>Sur un autre appareil.</b> Le même lien et le même mot de passe rouvrent le dossier
-    d'origine, sans les modifications faites ici.
-    <span class="sep"></span>
-    <b>Effacer.</b> Vider les données de site de ce navigateur efface tout, sans retour.
-    Exportez d'abord ce que vous tenez à garder.
-  </p>
+  <!-- LA PORTE NE MONTRE QUE LE MOT DE PASSE.
+
+       Relevé le 22 novembre 2026 : quatre paragraphes d'explication entouraient
+       le champ, et deux écrans de texte suivaient avant l'accueil. Les
+       explications sont repliées sous un seul lien ; le mot de passe accepté
+       mène droit à l'application. « Repartir du dossier d'origine », qui se
+       trouvait sur l'écran intermédiaire, est rangé ici. -->
+  <details class="plus">
+    <summary>Où sont mes données ?</summary>
+    <p class="pied">
+      <b>Le mot de passe.</b> Il est demandé à chaque ouverture de l'application, une seule fois,
+      et non à chaque page. L'ouverture demande une seconde : la clé se fabrique sur votre
+      appareil, elle n'est conservée nulle part.
+      <span class="sep"></span>
+      <b>Où sont vos données.</b> Sur cet appareil, dans ce navigateur, et nulle part ailleurs.
+      Ce qui se trouve en ligne est un bloc chiffré que votre mot de passe seul déchiffre, ici.
+      Ni nous ni l'hébergeur ne pouvons le lire.
+      <span class="sep"></span>
+      <b>Sur un autre appareil.</b> Le même lien et le même mot de passe rouvrent le dossier
+      d'origine, sans les modifications faites ici.
+      <span class="sep"></span>
+      <b>Effacer.</b> Vider les données de site de ce navigateur efface tout, sans retour.
+      Exportez d'abord ce que vous tenez à garder.
+      <span class="sep"></span>
+      <b>Repartir du dossier d'origine.</b> Pour remplacer ce qui a été saisi ici par le dossier
+      tel qu'il vous a été remis.
+    </p>
+    <button type="button" class="repartir" id="repartir">Repartir du dossier d'origine</button>
+    <p class="pied" id="repartir-dit" hidden style="margin-top:10px">Tapez votre mot de passe : le choix vous sera proposé juste après, avec une confirmation.</p>
+  </details>
 
   <p class="lien-journal"><a href="journal">Journal des accès</a></p>
 
@@ -202,7 +225,7 @@
 <script src="base-documents.js?v=6d57384f"></script>
 <script src="dossier-tec.js?v=c860b74a"></script>
 <script src="dossier-parc.js?v=71454258"></script>
-<script src="entrer.js?v=6f7258dc"></script>
+<script src="entrer.js?v=9f7f7d0b"></script>
 <script src="rappel-urssaf.js?v=7c7f7cfd" defer></script>
 <script>
 /* LE BOUTON RAFRAÎCHIR.
