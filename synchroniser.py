@@ -43,7 +43,9 @@ PROPRES = {"entrer.html", "entrer.js", "dossier-tec.js", "verrou.js",
            "favicon.ico", "fiche-tec.js", "journal-page.js",
            # L'accès du chef de parc : la page qui le crée, et le fichier
            # chiffré qu'elle produit. Tous deux propres à ce site.
-           "generer-acces-parc.html", "dossier-parc.js"}
+           "generer-acces-parc.html", "dossier-parc.js",
+           # Le partage entre le cabinet et T.E.C (24 novembre 2026).
+           "synchro.js"}
 
 # La page qui crée le code du chef de parc ne reçoit pas le verrou : elle doit
 # s'ouvrir sans séance, pour faire son travail avec le mot de passe maître.
@@ -123,6 +125,9 @@ LIGNES = [
     ('<script src="fiche-tec.js"></script>', '<meta name="viewport"', {PORTE, GENERATEUR}),
     # Le journal des pages : chaque page ouverte s'inscrit au journal.
     ('<script src="journal-page.js"></script>', '<meta name="viewport"', {PORTE, GENERATEUR}),
+    # Le partage : posé en dernier, il se retrouve donc en tête, avant les
+    # scripts de la page, pour voir passer chacune de leurs écritures.
+    ('<script src="synchro.js"></script>', '<meta name="viewport"', {PORTE, GENERATEUR}),
 ]
 
 ici = pathlib.Path(__file__).resolve().parent

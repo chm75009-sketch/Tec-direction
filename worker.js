@@ -1,4 +1,4 @@
-/* LE WORKER DU SITE TEC. (v2)
+/* LE WORKER DU SITE TEC. (v3, avec le partage : voir plus bas, /synchro)
 
    Les fichiers du site sont servis tels quels par la liaison ASSETS : pour
    toutes les pages, rien ne change. Ce Worker n'ajoute qu'une seule porte,
@@ -214,10 +214,98 @@ async function journal(request, env) {
   return new Response(pageMot(""), { headers: HTML });
 }
 
+/* LE PARTAGE ENTRE LE CABINET ET T.E.C. (ajouté le 24 novembre 2026)
+
+   synchro.js, sur chaque page, envoie ici les données de l'application et les
+   documents, chiffrés sur l'appareil avec la clé du dossier. Ce Worker ne fait
+   que les garder : il ne peut pas les lire.
+
+   GET|PUT /synchro/etat          l'état commun (toutes les données, un bloc)
+   GET|PUT|DELETE /synchro/doc/X  un document
+
+   L'accès. Chaque appel porte un jeton tiré de la clé du dossier : seul un
+   appareil qui a ouvert le dossier avec le mot de passe peut le calculer. Le
+   premier jeton reçu est retenu (son empreinte seule est gardée, sous
+   synchro:empreinte) ; tout autre est ensuite refusé. Le dépôt étant public,
+   aucun secret n'est écrit dans ce fichier.
+
+   Les refus de Cloudflare (espace plein, limite d'enregistrements du jour)
+   sont rendus avec un message clair, que synchro.js affiche à l'écran.     */
+
+const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" };
+function erreurSynchro(statut, code, message) {
+  return new Response(JSON.stringify({ erreur: code, message: message }), { status: statut, headers: JSONH });
+}
+
+async function empreinte(texte) {
+  const h = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(texte));
+  return Array.from(new Uint8Array(h)).map(function (x) { return x.toString(16).padStart(2, "0"); }).join("");
+}
+
+function refusCloudflare(e) {
+  const m = String((e && e.message) || e || "");
+  if (/limit|quota|exceed|429/i.test(m)) {
+    return erreurSynchro(507, "limite", "limite d'enregistrements du jour atteinte chez Cloudflare (" + m.slice(0, 120) + ")");
+  }
+  if (/too large|size|storage/i.test(m)) {
+    return erreurSynchro(507, "plein", "espace de partage plein ou fichier trop lourd (" + m.slice(0, 120) + ")");
+  }
+  return erreurSynchro(502, "kv", "enregistrement impossible (" + m.slice(0, 120) + ")");
+}
+
+async function synchro(request, env, chemin) {
+  if (!env.JOURNAL) return erreurSynchro(503, "absent", "l'espace de partage n'est pas configuré");
+  const origine = request.headers.get("Origin") || "";
+  const hote = new URL(request.url).host;
+  if (origine && new URL(origine).host !== hote) return erreurSynchro(403, "origine", "origine refusée");
+
+  const jeton = request.headers.get("x-synchro-jeton") || "";
+  if (!/^[0-9a-f]{64}$/.test(jeton)) return erreurSynchro(403, "jeton", "accès refusé");
+  const recu = await empreinte(jeton);
+  let garde = null;
+  try { garde = await env.JOURNAL.get("synchro:empreinte"); } catch (e) { return refusCloudflare(e); }
+  if (!garde) {
+    try { await env.JOURNAL.put("synchro:empreinte", recu); } catch (e) { return refusCloudflare(e); }
+  } else if (!egal(garde, recu)) {
+    return erreurSynchro(403, "jeton", "accès refusé");
+  }
+
+  let cle;
+  if (chemin === "etat") cle = "synchro:etat";
+  else {
+    const m = /^doc\/([0-9a-f]{32})$/.exec(chemin);
+    if (!m) return erreurSynchro(404, "chemin", "adresse inconnue");
+    cle = "synchro:doc:" + m[1];
+  }
+
+  const methode = request.method;
+  try {
+    if (methode === "GET") {
+      const v = await env.JOURNAL.get(cle, { type: "arrayBuffer" });
+      if (!v) return new Response(null, { status: 404, headers: { "cache-control": "no-store" } });
+      return new Response(v, { headers: { "content-type": "application/octet-stream", "cache-control": "no-store" } });
+    }
+    if (methode === "PUT") {
+      const corps = await request.arrayBuffer();
+      if (corps.byteLength > 25 * 1024 * 1024) return erreurSynchro(413, "plein", "fichier trop lourd pour l'espace de partage (25 Mo au plus)");
+      await env.JOURNAL.put(cle, corps, { metadata: { taille: corps.byteLength, quand: new Date().toISOString() } });
+      return new Response(null, { status: 204 });
+    }
+    if (methode === "DELETE" && cle !== "synchro:etat") {
+      await env.JOURNAL.delete(cle);
+      return new Response(null, { status: 204 });
+    }
+  } catch (e) {
+    return refusCloudflare(e);
+  }
+  return erreurSynchro(405, "methode", "méthode refusée");
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname === "/journal") return journal(request, env);
+    if (url.pathname.indexOf("/synchro/") === 0) return synchro(request, env, url.pathname.slice(9));
     return env.ASSETS.fetch(request);
   },
 };

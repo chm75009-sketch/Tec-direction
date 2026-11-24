@@ -22,15 +22,33 @@
 
   /* La clé ne vient pas du mot de passe tel quel : six cent mille tours de
      PBKDF2 la fabriquent, ce qui rend l'essai systématique hors de portée. */
-  function clef(mot, sel, tours) {
+  function clef(mot, sel, tours, exportable) {
     var enc = new TextEncoder();
     return window.crypto.subtle
       .importKey("raw", enc.encode(mot), { name: "PBKDF2" }, false, ["deriveKey"])
       .then(function (base) {
         return window.crypto.subtle.deriveKey(
           { name: "PBKDF2", salt: sel, iterations: tours, hash: "SHA-256" },
-          base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+          base, { name: "AES-GCM", length: 256 }, !!exportable, ["decrypt"]);
       });
+  }
+
+  /* LA CLÉ DU PARTAGE (24 novembre 2026). La clé qui ouvre le dossier sert
+     aussi à chiffrer ce que synchro.js envoie dans l'espace commun. Le mot de
+     passe de T.E.C la dérive, celui du cabinet l'ouvre dans sa petite boite :
+     c'est la même clé des deux côtés, donc les deux appareils lisent ce que
+     l'autre a envoyé. Elle est gardée sur l'appareil, comme les données qu'elle
+     protège déjà. Le chef de parc ne la reçoit jamais. */
+  function enBase64(octets) {
+    var t = new Uint8Array(octets), s = "";
+    for (var i = 0; i < t.length; i++) s += String.fromCharCode(t[i]);
+    return window.btoa(s);
+  }
+  function garderClePartage(brut) {
+    try {
+      if (brut) window.localStorage.setItem("synchro-cle", enBase64(brut));
+      else window.localStorage.removeItem("synchro-cle");
+    } catch (e) {}
   }
 
   function dechiffrer(k, p) {
@@ -48,10 +66,14 @@
      aucun des deux ne marche, c'est que le mot de passe est faux. */
   function ouvrir(mot) {
     var p = window.DOSSIER_CHIFFRE;
-    return clef(mot, deBase64(p.sel), p.tours).then(function (k) {
+    var kTec = null;
+    return clef(mot, deBase64(p.sel), p.tours, true).then(function (k) {
+      kTec = k;
       return dechiffrer(k, p);
     }).then(function (clair) {
-      return { dossier: JSON.parse(new TextDecoder().decode(clair)), qui: "tec" };
+      return window.crypto.subtle.exportKey("raw", kTec).then(function (brut) {
+        return { dossier: JSON.parse(new TextDecoder().decode(clair)), qui: "tec", cle: brut };
+      });
     }).catch(function () {
       var w = window.DOSSIER_CLE_2;
       if (!w) throw new Error("mauvais mot de passe");
@@ -60,11 +82,11 @@
           { name: "AES-GCM", iv: deBase64(w.vecteur) }, kw, deBase64(w.contenu));
       }).then(function (brut) {
         return window.crypto.subtle.importKey(
-          "raw", brut, { name: "AES-GCM" }, false, ["decrypt"]);
-      }).then(function (kd) {
-        return dechiffrer(kd, p);
-      }).then(function (clair) {
-        return { dossier: JSON.parse(new TextDecoder().decode(clair)), qui: "lea" };
+          "raw", brut, { name: "AES-GCM" }, false, ["decrypt"]).then(function (kd) {
+          return dechiffrer(kd, p);
+        }).then(function (clair) {
+          return { dossier: JSON.parse(new TextDecoder().decode(clair)), qui: "lea", cle: brut };
+        });
       });
     });
   }
@@ -302,6 +324,7 @@
           var dossier = res.dossier;
           DOSSIER = dossier;
           var role = res.role || "tec";
+          garderClePartage(role === "parc" ? null : res.cle);
           journaliser(res.qui);
           ouvrirSeance(role);
           /* Le chef de parc entre directement sur la flotte, jamais sur
