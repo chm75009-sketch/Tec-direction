@@ -14,7 +14,7 @@
 
   Le chef de parc n'a accès qu'à la gestion du parc. Son code n'ouvre pas le
   dossier complet : il ouvre un fichier à part qui ne contient que les
-  véhicules, les fiches conducteur et le nom de la société.
+  véhicules, les noms des salariés et le nom de la société.
 
   Cette page se lance une fois, sur le téléphone de la société. Le mot de passe
   maître y déchiffre le dossier, sur l'appareil, sans en partir ; on en extrait
@@ -84,8 +84,8 @@
     <div class="etape"><span class="n">1</span><span class="t">Vous tapez votre mot de passe
       habituel, celui qui ouvre le dossier. Il reste sur ce téléphone, il n'en sort pas.</span></div>
     <div class="etape"><span class="n">2</span><span class="t">La page extrait le parc (véhicules,
-      fiches conducteur, nom de la société) et le referme sous le code du chef de parc. Le reste,
-      registre du personnel, dossier de l'affaire, audits, n'y entre jamais.</span></div>
+      noms des salariés, nom de la société) et le referme sous le code du chef de parc. Le reste,
+      fiches conducteur, registre du personnel, dossier de l'affaire, audits, n'y entre jamais.</span></div>
     <div class="etape"><span class="n">3</span><span class="t">Vous récupérez un fichier,
       dossier-parc.js, et vous nous le renvoyez. Nous le mettons en ligne, et le code du chef de
       parc est actif.</span></div>
@@ -199,7 +199,8 @@
     return {
       "profil-entreprise": { denomination: prof.denomination || "SARL TEC" },
       "flotte-vehicules": d["flotte-vehicules"] || [],
-      "flotte-conducteurs": d["flotte-conducteurs"] || {},
+      /* Pas de fiches conducteur : le chef de parc ne les a pas, demande du
+         10 novembre 2026. */
       "registre-personnel": { salaries: noms },
     };
   }

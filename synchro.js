@@ -71,7 +71,9 @@
     return JAMAIS.indexOf(k) < 0;
   }
   /* Le parc : ce que le chef de parc partage avec tout le monde. */
-  function cleDuParc(k) { return /^(flotte|parc)-/.test(String(k)); }
+  /* Les fiches conducteur n'en font pas partie : depuis le 10 novembre 2026,
+     le chef de parc ne les a pas. Elles restent dans l'espace commun. */
+  function cleDuParc(k) { k = String(k); return /^(flotte|parc)-/.test(k) && k !== "flotte-conducteurs"; }
   function docDuParc(d) { var r = String((d && d.rubrique) || ""); return r === "flotte" || r.indexOf("parc") === 0; }
 
   var setOrig = Storage.prototype.setItem;
