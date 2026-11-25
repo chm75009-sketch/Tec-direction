@@ -111,7 +111,16 @@
       return window.crypto.subtle.decrypt(
         { name: "AES-GCM", iv: deBase64(p.vecteur) }, k, deBase64(p.contenu));
     }).then(function (clair) {
-      return { dossier: JSON.parse(new TextDecoder().decode(clair)), qui: "parc", role: "parc" };
+      var d = JSON.parse(new TextDecoder().decode(clair));
+      /* La clé du partage du parc, posée dans son accès depuis le 25 novembre
+         2026. Un accès plus ancien ne la porte pas : le parc ne se partage
+         alors pas, jusqu'à ce que T.E.C refasse le code. */
+      try {
+        if (d.cleParc) window.localStorage.setItem("synchro-cle-parc", d.cleParc);
+        else window.localStorage.removeItem("synchro-cle-parc");
+      } catch (e) {}
+      delete d.cleParc;
+      return { dossier: d, qui: "parc", role: "parc" };
     });
   }
 

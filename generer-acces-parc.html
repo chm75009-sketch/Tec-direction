@@ -134,31 +134,49 @@
     for (var i = 0; i < u.length; i++) s += String.fromCharCode(u[i]);
     return window.btoa(s);
   }
-  function clef(mot, sel, tours, usage) {
+  function clef(mot, sel, tours, usage, exportable) {
     var enc = new TextEncoder();
     return window.crypto.subtle
       .importKey("raw", enc.encode(mot), { name: "PBKDF2" }, false, ["deriveKey"])
       .then(function (base) {
         return window.crypto.subtle.deriveKey(
           { name: "PBKDF2", salt: sel, iterations: tours, hash: "SHA-256" },
-          base, { name: "AES-GCM", length: 256 }, false, [usage]);
+          base, { name: "AES-GCM", length: 256 }, !!exportable, [usage]);
       });
+  }
+
+  /* LA CLÉ DU PARTAGE DU PARC (25 novembre 2026). Tirée de la clé du dossier,
+     elle est la même sur les appareils de T.E.C et du cabinet. Elle est posée
+     dans l'accès du chef de parc : il partage ainsi le parc avec tout le monde,
+     sans recevoir la clé du dossier. */
+  var CLE_DOSSIER = null;
+  function cleParc() {
+    if (!CLE_DOSSIER) return Promise.resolve(null);
+    return window.crypto.subtle.importKey("raw", CLE_DOSSIER, { name: "HMAC", hash: "SHA-256" }, false, ["sign"])
+      .then(function (k) { return window.crypto.subtle.sign("HMAC", k, new TextEncoder().encode("partage-parc")); })
+      .then(function (m) { return enBase64(new Uint8Array(m)); });
   }
 
   /* Déchiffrer le dossier complet, par les deux chemins du mot de passe, comme
      à la porte : le mot de passe direct, ou la petite boîte qui garde la clé. */
   function ouvrirDossier(mot) {
     var p = window.DOSSIER_CHIFFRE;
-    return clef(mot, deBase64(p.sel), p.tours, "decrypt").then(function (k) {
+    var kTec = null;
+    return clef(mot, deBase64(p.sel), p.tours, "decrypt", true).then(function (k) {
+      kTec = k;
       return window.crypto.subtle.decrypt({ name: "AES-GCM", iv: deBase64(p.vecteur) }, k, deBase64(p.contenu));
     }).then(function (clair) {
-      return JSON.parse(new TextDecoder().decode(clair));
+      return window.crypto.subtle.exportKey("raw", kTec).then(function (brut) {
+        CLE_DOSSIER = new Uint8Array(brut);
+        return JSON.parse(new TextDecoder().decode(clair));
+      });
     }).catch(function () {
       var w = window.DOSSIER_CLE_2;
       if (!w) throw new Error("mauvais mot de passe");
       return clef(mot, deBase64(w.sel), w.tours, "decrypt").then(function (kw) {
         return window.crypto.subtle.decrypt({ name: "AES-GCM", iv: deBase64(w.vecteur) }, kw, deBase64(w.contenu));
       }).then(function (brut) {
+        CLE_DOSSIER = new Uint8Array(brut);
         return window.crypto.subtle.importKey("raw", brut, { name: "AES-GCM" }, false, ["decrypt"]);
       }).then(function (kd) {
         return window.crypto.subtle.decrypt({ name: "AES-GCM", iv: deBase64(p.vecteur) }, kd, deBase64(p.contenu));
@@ -210,7 +228,11 @@
       $("go").disabled = true;
       window.setTimeout(function () {
         ouvrirDossier(mot).then(function (d) {
-          return chiffrerParc(extraireParc(d), code);
+          var parc = extraireParc(d);
+          return cleParc().then(function (cp) {
+            if (cp) parc.cleParc = cp;
+            return chiffrerParc(parc, code);
+          });
         }).then(function (bloc) {
           var texte = "/* Accès du chef de parc, limité à la gestion du parc. Créé le " +
             new Date().toISOString().slice(0, 10) + ". */\n" +

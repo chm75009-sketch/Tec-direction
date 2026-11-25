@@ -259,23 +259,32 @@ async function synchro(request, env, chemin) {
   const hote = new URL(request.url).host;
   if (origine && new URL(origine).host !== hote) return erreurSynchro(403, "origine", "origine refusée");
 
+  /* Deux espaces : le commun, et celui du parc (/synchro/parc/...), que le
+     chef de parc partage avec T.E.C et le cabinet. Chacun a son jeton. */
+  let prefixe = "synchro:", garde_cle = "synchro:empreinte";
+  if (chemin.indexOf("parc/") === 0) {
+    chemin = chemin.slice(5);
+    prefixe = "synchro:parc:";
+    garde_cle = "synchro:empreinte-parc";
+  }
+
   const jeton = request.headers.get("x-synchro-jeton") || "";
   if (!/^[0-9a-f]{64}$/.test(jeton)) return erreurSynchro(403, "jeton", "accès refusé");
   const recu = await empreinte(jeton);
   let garde = null;
-  try { garde = await env.JOURNAL.get("synchro:empreinte"); } catch (e) { return refusCloudflare(e); }
+  try { garde = await env.JOURNAL.get(garde_cle); } catch (e) { return refusCloudflare(e); }
   if (!garde) {
-    try { await env.JOURNAL.put("synchro:empreinte", recu); } catch (e) { return refusCloudflare(e); }
+    try { await env.JOURNAL.put(garde_cle, recu); } catch (e) { return refusCloudflare(e); }
   } else if (!egal(garde, recu)) {
     return erreurSynchro(403, "jeton", "accès refusé");
   }
 
   let cle;
-  if (chemin === "etat") cle = "synchro:etat";
+  if (chemin === "etat") cle = prefixe + "etat";
   else {
     const m = /^doc\/([0-9a-f]{32})$/.exec(chemin);
     if (!m) return erreurSynchro(404, "chemin", "adresse inconnue");
-    cle = "synchro:doc:" + m[1];
+    cle = prefixe + "doc:" + m[1];
   }
 
   const methode = request.method;
@@ -291,7 +300,7 @@ async function synchro(request, env, chemin) {
       await env.JOURNAL.put(cle, corps, { metadata: { taille: corps.byteLength, quand: new Date().toISOString() } });
       return new Response(null, { status: 204 });
     }
-    if (methode === "DELETE" && cle !== "synchro:etat") {
+    if (methode === "DELETE" && !/etat$/.test(cle)) {
       await env.JOURNAL.delete(cle);
       return new Response(null, { status: 204 });
     }

@@ -37,7 +37,14 @@
    La séance et le mot de passe, la clé d'accès à l'assistant (elle est
    personnelle), et tout ce qui ne vaut que pour l'appareil.
 
-   Le chef de parc ne partage rien : son code n'ouvre pas la clé du dossier.  */
+   LE CHEF DE PARC (25 novembre 2026)
+
+   Il partage le parc, et le parc seulement : véhicules, fiches conducteur,
+   paramètres, sinistres, et les documents de la flotte. Ces données vivent
+   dans un second espace, chiffré avec une clé propre au parc, tirée de celle
+   du dossier. T.E.C et le cabinet l'ont donc ; le chef de parc la reçoit dans
+   son accès (dossier-parc.js), sans jamais recevoir la clé du dossier : il ne
+   peut pas lire le reste, registre du personnel compris.                    */
 
 (function (window, document) {
   "use strict";
@@ -46,6 +53,7 @@
   if (!ls || !window.crypto || !window.crypto.subtle || !window.fetch) return;
 
   var CLE_CLE = "synchro-cle";
+  var CLE_CLE_PARC = "synchro-cle-parc";
   var CLE_T = "synchro-t";          /* l'heure de chaque donnée, telle que partagée */
   var CLE_SALES = "synchro-sales";  /* les données modifiées ici, pas encore envoyées */
   var CLE_DOCS = "synchro-docs";    /* les documents déjà partagés : uid -> oui */
@@ -62,6 +70,9 @@
     if (k.indexOf("synchro-") === 0) return false;
     return JAMAIS.indexOf(k) < 0;
   }
+  /* Le parc : ce que le chef de parc partage avec tout le monde. */
+  function cleDuParc(k) { return /^(flotte|parc)-/.test(String(k)); }
+  function docDuParc(d) { var r = String((d && d.rubrique) || ""); return r === "flotte" || r.indexOf("parc") === 0; }
 
   var setOrig = Storage.prototype.setItem;
   var removeOrig = Storage.prototype.removeItem;
@@ -77,8 +88,6 @@
       return window.sessionStorage.getItem("seance-role") || ls.getItem("seance-role") || "tec";
     } catch (e) { return "tec"; }
   }
-  /* Le chef de parc n'a pas la clé : rien ne part, rien ne vient. */
-  if (role() === "parc") return;
 
   /* QUAND ON APPLIQUE CE QUI VIENT D'AILLEURS, ON NE LE RENVOIE PAS. */
   var applique = false;
@@ -121,39 +130,64 @@
       return ("0" + x.toString(16)).slice(-2);
     }).join("");
   }
-  var cleBrute = null, cle = null, jeton = null, tailleEtat = 0;
-  function preparer() {
-    if (cle) return Promise.resolve(true);
-    var b64 = ls.getItem(CLE_CLE);
-    if (!b64) return Promise.resolve(false);
-    try { cleBrute = deBase64(b64); } catch (e) { return Promise.resolve(false); }
-    var enc = new TextEncoder().encode("synchro-tec|");
-    var tout = new Uint8Array(enc.length + cleBrute.length);
-    tout.set(enc); tout.set(cleBrute, enc.length);
-    return Promise.all([
-      window.crypto.subtle.importKey("raw", cleBrute, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]),
-      window.crypto.subtle.digest("SHA-256", tout),
-    ]).then(function (r) { cle = r[0]; jeton = hex(r[1]); return true; })
-      .catch(function () { return false; });
+  /* DEUX ESPACES. Le commun, pour tout sauf le parc, chiffré avec la clé du
+     dossier ; celui du parc, chiffré avec la clé du parc. */
+  function concat(a, b) {
+    var t = new Uint8Array(a.length + b.length); t.set(a); t.set(b, a.length); return t;
   }
-  function chiffrer(octets) {
+  function espace(nom, chemin, brut, etiquette, garde, gardeDoc, cleDocs) {
+    var e = { nom: nom, chemin: chemin, garde: garde, gardeDoc: gardeDoc, cleDocs: cleDocs, taille: 0, poids: 0 };
+    return Promise.all([
+      window.crypto.subtle.importKey("raw", brut, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]),
+      window.crypto.subtle.digest("SHA-256", concat(new TextEncoder().encode(etiquette), brut)),
+    ]).then(function (r) { e.cle = r[0]; e.jeton = hex(r[1]); return e; });
+  }
+  /* La clé du parc se tire de celle du dossier : la même partout. */
+  function cleParcDepuis(brut) {
+    return window.crypto.subtle.importKey("raw", brut, { name: "HMAC", hash: "SHA-256" }, false, ["sign"])
+      .then(function (k) {
+        return window.crypto.subtle.sign("HMAC", k, new TextEncoder().encode("partage-parc"));
+      }).then(function (m) { return new Uint8Array(m); });
+  }
+  var ESPACES = null;
+  function preparer() {
+    if (ESPACES) return Promise.resolve(ESPACES.length > 0);
+    var parc = role() === "parc";
+    var b64 = ls.getItem(parc ? CLE_CLE_PARC : CLE_CLE);
+    if (!b64) { ESPACES = []; return Promise.resolve(false); }
+    var brut;
+    try { brut = deBase64(b64); } catch (e) { ESPACES = []; return Promise.resolve(false); }
+    var tout = function (k) { return !cleDuParc(k); };
+    var toutDoc = function (d) { return !docDuParc(d); };
+    var p = parc
+      ? espace("parc", "parc/", brut, "synchro-parc|", cleDuParc, docDuParc, "synchro-docs-parc").then(function (e) { return [e]; })
+      : cleParcDepuis(brut).then(function (bp) {
+          return Promise.all([
+            espace("commun", "", brut, "synchro-tec|", tout, toutDoc, "synchro-docs"),
+            espace("parc", "parc/", bp, "synchro-parc|", cleDuParc, docDuParc, "synchro-docs-parc"),
+          ]);
+        });
+    return p.then(function (L) { ESPACES = L; return true; })
+      .catch(function () { ESPACES = []; return false; });
+  }
+  function chiffrer(E, octets) {
     var iv = window.crypto.getRandomValues(new Uint8Array(12));
-    return window.crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, cle, octets).then(function (c) {
+    return window.crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, E.cle, octets).then(function (c) {
       var out = new Uint8Array(12 + c.byteLength);
       out.set(iv); out.set(new Uint8Array(c), 12);
       return out;
     });
   }
-  function dechiffrer(buf) {
+  function dechiffrer(E, buf) {
     var t = new Uint8Array(buf);
-    return window.crypto.subtle.decrypt({ name: "AES-GCM", iv: t.slice(0, 12) }, cle, t.slice(12));
+    return window.crypto.subtle.decrypt({ name: "AES-GCM", iv: t.slice(0, 12) }, E.cle, t.slice(12));
   }
 
   /* LES ÉCHANGES AVEC LE WORKER. */
-  function appel(methode, chemin, corps) {
-    var o = { method: methode, headers: { "x-synchro-jeton": jeton }, cache: "no-store" };
+  function appel(E, methode, chemin, corps) {
+    var o = { method: methode, headers: { "x-synchro-jeton": E.jeton }, cache: "no-store" };
     if (corps) { o.body = corps; o.headers["content-type"] = "application/octet-stream"; }
-    return window.fetch("/synchro/" + chemin, o).then(function (r) {
+    return window.fetch("/synchro/" + E.chemin + chemin, o).then(function (r) {
       if (r.status === 404 && methode === "GET") return null;
       if (!r.ok) {
         return r.json().catch(function () { return {}; }).then(function (j) {
@@ -166,21 +200,21 @@
     });
   }
 
-  function lireEtat() {
-    return appel("GET", "etat").then(function (buf) {
+  function lireEtat(E) {
+    return appel(E, "GET", "etat").then(function (buf) {
       if (!buf) return { v: 1, cles: {}, docs: {} };
-      tailleEtat = buf.byteLength;
-      return dechiffrer(buf).then(function (c) {
+      E.taille = buf.byteLength;
+      return dechiffrer(E, buf).then(function (c) {
         var e = JSON.parse(new TextDecoder().decode(c));
         e.cles = e.cles || {}; e.docs = e.docs || {};
         return e;
       });
     });
   }
-  function ecrireEtat(etat) {
-    return chiffrer(new TextEncoder().encode(JSON.stringify(etat))).then(function (b) {
-      tailleEtat = b.length;
-      return appel("PUT", "etat", b);
+  function ecrireEtat(E, etat) {
+    return chiffrer(E, new TextEncoder().encode(JSON.stringify(etat))).then(function (b) {
+      E.taille = b.length;
+      return appel(E, "PUT", "etat", b);
     });
   }
 
@@ -191,19 +225,19 @@
     if (t[k]) return t[k];
     var qui = "";
     try { qui = ls.getItem("journal-qui") || ""; } catch (e) {}
-    return qui === "lea" ? 1 : 2;
+    return qui === "lea" ? 1 : (qui === "parc" ? 0.5 : 2);
   }
 
-  function fusionnerCles(etat) {
+  function fusionnerCles(E, etat) {
     var t = lireJ(CLE_T, {});
     var sales = lireJ(CLE_SALES, {});
     var change = false, venus = [];
     var locales = {};
     for (var i = 0; i < ls.length; i++) {
       var k = ls.key(i);
-      if (partageable(k)) locales[k] = 1;
+      if (partageable(k) && E.garde(k)) locales[k] = 1;
     }
-    Object.keys(sales).forEach(function (k) { if (partageable(k)) locales[k] = 1; });
+    Object.keys(sales).forEach(function (k) { if (partageable(k) && E.garde(k)) locales[k] = 1; });
     /* Ce qui part d'ici. */
     Object.keys(locales).forEach(function (k) {
       var hl = heureLocale(k, t);
@@ -218,7 +252,7 @@
     applique = true;
     try {
       Object.keys(etat.cles).forEach(function (k) {
-        if (!partageable(k)) return;
+        if (!partageable(k) || !E.garde(k)) return;
         var s = etat.cles[k];
         var hl = locales[k] ? heureLocale(k, t) : 0;
         if (s.t >= hl) {
@@ -280,7 +314,7 @@
       f.readAsArrayBuffer(contenu);
     });
   }
-  function envoyerDoc(uid, d) {
+  function envoyerDoc(E, uid, d) {
     return octetsDe(d.contenu).then(function (o) {
       if (o.octets.length > TAILLE_MAX_DOC) {
         var e = new Error("Le document « " + d.nom + " » dépasse 24 Mo : il reste sur cet appareil.");
@@ -290,13 +324,13 @@
       var tout = new Uint8Array(4 + meta.length + o.octets.length);
       new DataView(tout.buffer).setUint32(0, meta.length);
       tout.set(meta, 4); tout.set(o.octets, 4 + meta.length);
-      return chiffrer(tout);
-    }).then(function (b) { return appel("PUT", "doc/" + uid, b).then(function () { return b.length; }); });
+      return chiffrer(E, tout);
+    }).then(function (b) { return appel(E, "PUT", "doc/" + uid, b).then(function () { return b.length; }); });
   }
-  function recevoirDoc(uid, info) {
-    return appel("GET", "doc/" + uid).then(function (buf) {
+  function recevoirDoc(E, uid, info) {
+    return appel(E, "GET", "doc/" + uid).then(function (buf) {
       if (!buf) return false;
-      return dechiffrer(buf).then(function (c) {
+      return dechiffrer(E, buf).then(function (c) {
         var t = new Uint8Array(c);
         var n = new DataView(t.buffer).getUint32(0);
         var meta = JSON.parse(new TextDecoder().decode(t.slice(4, 4 + n)));
@@ -317,11 +351,11 @@
     }).catch(function () {});
   }
 
-  function reconcilierDocs(etat) {
-    var connus = lireJ(CLE_DOCS, {});
+  function reconcilierDocs(E, etat) {
+    var connus = lireJ(E.cleDocs, {});
     var change = false, recus = 0;
     return tousLesDocs().then(function (locaux) {
-      return Promise.all(locaux.map(function (d) {
+      return Promise.all(locaux.filter(E.gardeDoc).map(function (d) {
         return uidDe(d).then(function (u) { return { uid: u, d: d }; });
       }));
     }).then(function (L) {
@@ -337,7 +371,7 @@
         } else if (!s) {
           /* Nouveau ici (ou absent de l'espace commun) : il part. */
           suite = suite.then(function () {
-            return envoyerDoc(u, d).then(function (n) {
+            return envoyerDoc(E, u, d).then(function (n) {
               etat.docs[u] = { t: Date.now(), rubrique: d.rubrique, sorte: d.sorte, nom: d.nom,
                 type: d.type, taille: d.taille, date: d.date, note: d.note || "", poids: n };
               connus[u] = 1; change = true;
@@ -354,20 +388,20 @@
         if (connus[u]) {
           /* Partagé, puis retiré ici : on le retire de l'espace commun. */
           suite = suite.then(function () {
-            return appel("DELETE", "doc/" + u).catch(function () {}).then(function () {
+            return appel(E, "DELETE", "doc/" + u).catch(function () {}).then(function () {
               etat.docs[u] = { t: Date.now(), supprime: true };
               delete connus[u]; change = true;
             });
           });
         } else {
           suite = suite.then(function () {
-            return recevoirDoc(u, s).then(function (ok) { if (ok) { connus[u] = 1; recus++; } });
+            return recevoirDoc(E, u, s).then(function (ok) { if (ok) { connus[u] = 1; recus++; } });
           });
         }
       });
       return suite;
     }).then(function () {
-      ecrireJ(CLE_DOCS, connus);
+      ecrireJ(E.cleDocs, connus);
       return { change: change, recus: recus };
     });
   }
@@ -402,9 +436,14 @@
     b.querySelector(".t").textContent = texte;
   }
 
-  function surveillerPlace(etat) {
-    var total = tailleEtat || 0;
-    Object.keys(etat.docs).forEach(function (u) { total += (etat.docs[u].poids || 0); });
+  function poidsDocs(etat) {
+    var n = 0;
+    Object.keys(etat.docs).forEach(function (u) { n += (etat.docs[u].poids || 0); });
+    return n;
+  }
+  function surveillerPlace() {
+    var total = 0;
+    ESPACES.forEach(function (E) { total += (E.taille || 0) + (E.poids || 0); });
     var p = total / PLAFOND;
     if (p >= ALERTE) {
       bandeau("Espace de partage rempli à " + Math.round(p * 100) + " % (" +
@@ -433,17 +472,23 @@
     if (enCours) return enCours;
     enCours = preparer().then(function (pret) {
       if (!pret) return null;
-      return lireEtat().then(function (etat) {
-        var r = fusionnerCles(etat);
-        return reconcilierDocs(etat).then(function (rd) {
-          var aEcrire = r.change || rd.change;
-          var fin = aEcrire ? ecrireEtat(etat) : Promise.resolve();
-          return fin.then(function () {
-            ecrireJ(CLE_SALES, {});
-            surveillerPlace(etat);
-            return { venus: r.venus, recus: rd.recus };
+      var bilan = { venus: [], recus: 0 };
+      return ESPACES.reduce(function (avant, E) {
+        return avant.then(function () {
+          return lireEtat(E).then(function (etat) {
+            var r = fusionnerCles(E, etat);
+            return reconcilierDocs(E, etat).then(function (rd) {
+              E.poids = poidsDocs(etat);
+              bilan.venus = bilan.venus.concat(r.venus);
+              bilan.recus += rd.recus;
+              return (r.change || rd.change) ? ecrireEtat(E, etat) : null;
+            });
           });
         });
+      }, Promise.resolve()).then(function () {
+        ecrireJ(CLE_SALES, {});
+        surveillerPlace();
+        return bilan;
       });
     }).then(function (res) {
       enCours = null;
