@@ -71,9 +71,19 @@
     return JAMAIS.indexOf(k) < 0;
   }
   /* Le parc : ce que le chef de parc partage avec tout le monde. */
-  /* Les fiches conducteur n'en font pas partie : depuis le 10 novembre 2026,
-     le chef de parc ne les a pas. Elles restent dans l'espace commun. */
-  function cleDuParc(k) { k = String(k); return /^(flotte|parc)-/.test(k) && k !== "flotte-conducteurs"; }
+  /* Les fiches conducteur restent cachées au chef de parc (10 novembre 2026).
+     T.E.C peut décider de les lui montrer : l'interrupteur de la page flotte
+     écrit « parc-conducteurs-visibles », qui voyage avec le parc. Tant qu'il
+     n'est pas sur « oui », les fiches restent dans l'espace commun et
+     n'arrivent pas chez lui. */
+  function conducteursVisibles() {
+    try { return ls.getItem("parc-conducteurs-visibles") === "oui"; } catch (e) { return false; }
+  }
+  function cleDuParc(k) {
+    k = String(k);
+    if (k === "flotte-conducteurs") return conducteursVisibles();
+    return /^(flotte|parc)-/.test(k);
+  }
   function docDuParc(d) { var r = String((d && d.rubrique) || ""); return r === "flotte" || r.indexOf("parc") === 0; }
 
   var setOrig = Storage.prototype.setItem;
@@ -250,10 +260,13 @@
         else s.t = hl;
       }
     });
-    /* Ce qui vient d'ailleurs. */
+    /* Ce qui vient d'ailleurs. Le réglage des fiches conducteur passe en
+       premier : il décide de ce que l'espace du parc porte. */
     applique = true;
     try {
-      Object.keys(etat.cles).forEach(function (k) {
+      Object.keys(etat.cles).sort(function (a, b) {
+        return (a === "parc-conducteurs-visibles" ? -1 : 0) - (b === "parc-conducteurs-visibles" ? -1 : 0);
+      }).forEach(function (k) {
         if (!partageable(k) || !E.garde(k)) return;
         var s = etat.cles[k];
         var hl = locales[k] ? heureLocale(k, t) : 0;
@@ -267,6 +280,18 @@
           t[k] = s.t;
         }
       });
+      /* Fiches conducteur cachées : l'espace du parc n'en garde aucune copie,
+         et l'appareil du chef de parc efface la sienne. La marque d'effacement
+         porte l'heure 0 : elle ne l'emporte jamais sur une vraie donnée, si
+         bien que les fiches reviennent dès que T.E.C les montre de nouveau. */
+      if (E.nom === "parc" && !conducteursVisibles()) {
+        var fc = etat.cles["flotte-conducteurs"];
+        if (role() === "parc") {
+          if (ls.getItem("flotte-conducteurs") !== null) { ls.removeItem("flotte-conducteurs"); venus.push("flotte-conducteurs"); }
+        } else if (fc && fc.v !== null) {
+          etat.cles["flotte-conducteurs"] = { v: null, t: 0 }; change = true;
+        }
+      }
     } finally { applique = false; }
     ecrireJ(CLE_T, t);
     return { change: change, venus: venus };
