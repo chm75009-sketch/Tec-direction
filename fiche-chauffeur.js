@@ -56,6 +56,10 @@
     var L = [
       { k: "permisRecto", t: "Permis de conduire, recto", o: true },
       { k: "permisVerso", t: "Permis de conduire, verso", o: true },
+      /* La pièce d'identité, recto et verso, pour tous : demande du
+         25 novembre 2026. */
+      { k: "identiteRecto", t: "Pièce d'identité, recto", o: true },
+      { k: "identiteVerso", t: "Pièce d'identité, verso", o: true },
     ];
     if (R.profil === "pl") {
       L.push({ k: "carteQualif", t: "Carte de qualification de conducteur, recto", s: "Si vous l'avez" });
