@@ -310,11 +310,97 @@ async function synchro(request, env, chemin) {
   return erreurSynchro(405, "methode", "méthode refusée");
 }
 
+/* LES FICHES DES SALARIÉS (25 novembre 2026).
+
+   Demande : un lien envoyé dans les groupes WhatsApp, le salarié remplit sa
+   fiche sur son téléphone, photos et signature comprises, et T.E.C la reçoit
+   dans l'application.
+
+   Le chiffrement se fait dans le téléphone du salarié, avec la clé publique
+   que l'application a déposée ici. Seuls T.E.C et le cabinet, qui ont la clé
+   privée dans leur dossier, peuvent lire une fiche. Ce Worker ne garde que des
+   blocs illisibles.
+
+   GET    /fiches/cle            public : la clé publique (sans le code)
+   PUT    /fiches/cle            jeton du dossier : dépose la clé publique et
+                                 l'empreinte du code donné aux salariés
+   POST   /fiches/depot          public, avec le code : dépose une fiche
+   GET    /fiches/liste          jeton : la liste des fiches reçues
+   GET    /fiches/depot/ID       jeton : une fiche
+   DELETE /fiches/depot/ID       jeton : supprime une fiche                  */
+async function jetonDossier(request, env) {
+  const jeton = request.headers.get("x-synchro-jeton") || "";
+  if (!/^[0-9a-f]{64}$/.test(jeton)) return false;
+  const garde = await env.JOURNAL.get("synchro:empreinte");
+  return !!garde && egal(garde, await empreinte(jeton));
+}
+async function fiches(request, env, chemin) {
+  if (!env.JOURNAL) return erreurSynchro(503, "absent", "l'espace de partage n'est pas configuré");
+  const origine = request.headers.get("Origin") || "";
+  const hote = new URL(request.url).host;
+  if (origine && new URL(origine).host !== hote) return erreurSynchro(403, "origine", "origine refusée");
+  const methode = request.method;
+  try {
+    if (chemin === "cle" && methode === "GET") {
+      const pub = await env.JOURNAL.get("fiches:pub");
+      if (!pub) return erreurSynchro(404, "pas-de-cle", "le lien n'a pas encore été activé par l'entreprise");
+      return new Response(pub, { headers: JSONH });
+    }
+    if (chemin === "cle" && methode === "PUT") {
+      if (!(await jetonDossier(request, env))) return erreurSynchro(403, "jeton", "accès refusé");
+      const o = await request.json();
+      if (!o || !o.pub || !/^[0-9a-f]{64}$/.test(o.code || "")) return erreurSynchro(400, "requete", "requête invalide");
+      await env.JOURNAL.put("fiches:pub", JSON.stringify({ pub: o.pub }));
+      await env.JOURNAL.put("fiches:code", o.code);
+      return new Response(null, { status: 204 });
+    }
+    if (chemin === "depot" && methode === "POST") {
+      const code = request.headers.get("x-fiche-code") || "";
+      const garde = await env.JOURNAL.get("fiches:code");
+      if (!garde || !code || !egal(garde, await empreinte(code.trim().toUpperCase()))) {
+        return erreurSynchro(403, "code", "le code n'est pas le bon");
+      }
+      const corps = await request.arrayBuffer();
+      if (corps.byteLength > 20 * 1024 * 1024) return erreurSynchro(413, "plein", "fiche trop lourde (20 Mo au plus)");
+      const id = Date.now().toString(36) + "-" + Array.from(crypto.getRandomValues(new Uint8Array(6)))
+        .map(function (x) { return x.toString(16).padStart(2, "0"); }).join("");
+      /* Le résumé (nom, prénom, profil), chiffré lui aussi, voyage dans les
+         métadonnées : la liste s'affiche sans télécharger chaque fiche. */
+      let resume = request.headers.get("x-fiche-resume") || "";
+      if (resume.length > 900 || !/^[A-Za-z0-9+/=]*$/.test(resume)) resume = "";
+      await env.JOURNAL.put("fiches:depot:" + id, corps, { metadata: { quand: new Date().toISOString(), taille: corps.byteLength, resume: resume } });
+      return new Response(JSON.stringify({ ok: true }), { headers: JSONH });
+    }
+    if (!(await jetonDossier(request, env))) return erreurSynchro(403, "jeton", "accès refusé");
+    if (chemin === "liste" && methode === "GET") {
+      const L = await env.JOURNAL.list({ prefix: "fiches:depot:" });
+      return new Response(JSON.stringify(L.keys.map(function (k) {
+        const md = k.metadata || {};
+        return { id: k.name.slice(13), quand: md.quand || "", taille: md.taille || 0, resume: md.resume || "" };
+      })), { headers: JSONH });
+    }
+    const m = /^depot\/([0-9a-z]+-[0-9a-f]{12})$/.exec(chemin);
+    if (m && methode === "GET") {
+      const v = await env.JOURNAL.get("fiches:depot:" + m[1], { type: "arrayBuffer" });
+      if (!v) return new Response(null, { status: 404, headers: { "cache-control": "no-store" } });
+      return new Response(v, { headers: { "content-type": "application/octet-stream", "cache-control": "no-store" } });
+    }
+    if (m && methode === "DELETE") {
+      await env.JOURNAL.delete("fiches:depot:" + m[1]);
+      return new Response(null, { status: 204 });
+    }
+  } catch (e) {
+    return refusCloudflare(e);
+  }
+  return erreurSynchro(404, "chemin", "adresse inconnue");
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname === "/journal") return journal(request, env);
     if (url.pathname.indexOf("/synchro/") === 0) return synchro(request, env, url.pathname.slice(9));
+    if (url.pathname.indexOf("/fiches/") === 0) return fiches(request, env, url.pathname.slice(8));
     return env.ASSETS.fetch(request);
   },
 };
