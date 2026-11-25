@@ -56,7 +56,6 @@
     var L = [
       { k: "permisRecto", t: "Permis de conduire, recto", o: true },
       { k: "permisVerso", t: "Permis de conduire, verso", o: true },
-      { k: "vitale", t: "Carte Vitale, recto", o: true },
     ];
     if (R.profil === "pl") {
       L.push({ k: "carteQualif", t: "Carte de qualification de conducteur, recto", s: "Si vous l'avez" });
@@ -68,6 +67,9 @@
       L.push({ k: "titreVerso", t: "Titre de séjour, verso", o: true });
       if (R.inter === "oui") L.push({ k: "attestation", t: "Attestation de conducteur", s: "Si vous l'avez" });
     }
+    /* La carte Vitale en dernier, demande du 25 novembre 2026 : les papiers
+       de conduite d'abord, puis le reste. */
+    L.push({ k: "vitale", t: "Carte Vitale, recto", o: true });
     return L;
   }
   function dessinerPhotos() {
