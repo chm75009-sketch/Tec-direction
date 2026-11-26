@@ -30,6 +30,58 @@
   $("date-jour").textContent = (auj.getDate() === 1 ? "1er" : auj.getDate()) + " " + MOIS[auj.getMonth()] + " " + auj.getFullYear();
   function iso(d) { return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
 
+  /* ─── les catégories du permis, à cocher (26 novembre 2026) ───
+     Un permis en porte souvent plusieurs : des cases, pas une liste. Ce sont
+     les catégories de l'article R. 221-10 du code de la route
+     (LEGIARTI000051682550), lu à la source le 25 novembre 2026. */
+  var CATS = ["B", "BE", "C1", "C1E", "C", "CE", "D1", "D1E", "D", "DE", "A1", "A2", "A"];
+  $("cats").innerHTML = CATS.map(function (c) {
+    return '<label data-cat="' + c + '"><input type="checkbox" value="' + c + '">' + c + "</label>";
+  }).join("");
+  Array.prototype.forEach.call($("cats").querySelectorAll("input"), function (i) {
+    i.addEventListener("change", function () { i.parentNode.classList.toggle("on", i.checked); });
+  });
+  function categories() {
+    return Array.prototype.filter.call($("cats").querySelectorAll("input"), function (i) { return i.checked; })
+      .map(function (i) { return i.value; }).join(", ");
+  }
+
+  /* ─── les numéros, mis en forme pendant la saisie ─── */
+  function chiffres(v) { return String(v || "").replace(/[^0-9]/g, ""); }
+  function formeTel(v) {
+    var d = chiffres(v);
+    if (d.indexOf("33") === 0 && d.length === 11) d = "0" + d.slice(2);
+    return d.slice(0, 10).replace(/(\d{2})(?=\d)/g, "$1 ");
+  }
+  /* Le numéro de sécurité sociale : 1 85 03 75 123 456 78. Le département
+     peut s'écrire 2A ou 2B pour la Corse. */
+  function nirBrut(v) { return String(v || "").toUpperCase().replace(/[^0-9AB]/g, "").slice(0, 15); }
+  function formeNir(v) {
+    var n = nirBrut(v), parts = [1, 2, 2, 2, 3, 3, 2], out = [], i = 0;
+    parts.forEach(function (l) { if (i < n.length) { out.push(n.substr(i, l)); i += l; } });
+    return out.join(" ");
+  }
+  function nirValide(v) {
+    var n = nirBrut(v);
+    if (!/^[12378]\d{4}(\d{2}|2A|2B)\d{6}\d{2}$/.test(n)) return false;
+    var corps = n.slice(0, 13), cle = parseInt(n.slice(13), 10);
+    var num = corps.replace("2A", "19").replace("2B", "18");
+    var reste = 0;
+    for (var k = 0; k < num.length; k++) reste = (reste * 10 + parseInt(num.charAt(k), 10)) % 97;
+    if (/2A/.test(corps)) reste = (reste + 97 - 1000000 % 97) % 97;
+    if (/2B/.test(corps)) reste = (reste + 97 - 2000000 % 97) % 97;
+    return 97 - reste === cle;
+  }
+  function brancherForme(id, f) {
+    $(id).addEventListener("input", function () {
+      var e = $(id), avant = e.value, v = f(avant);
+      if (v !== avant) { e.value = v; try { e.setSelectionRange(v.length, v.length); } catch (x) {} }
+    });
+  }
+  brancherForme("tel", formeTel);
+  brancherForme("nir", formeNir);
+  brancherForme("permisNum", function (v) { return String(v || "").toUpperCase().replace(/[^0-9A-Z]/g, ""); });
+
   /* ─── les choix par boutons ─── */
   Array.prototype.forEach.call(document.querySelectorAll("[data-choix]"), function (g) {
     var nom = g.getAttribute("data-choix");
@@ -153,6 +205,8 @@
       if (!code && !val("code")) M.push("le code donné par T.E.C");
       if (!val("nom")) M.push("votre nom");
       if (!val("prenom")) M.push("votre prénom");
+      if (val("tel") && chiffres(val("tel")).length !== 10) M.push("un numéro de téléphone à 10 chiffres");
+      if (val("nir") && !nirValide(val("nir"))) M.push("un numéro de sécurité sociale exact (15 chiffres, vérifiez la clé, les 2 derniers)");
       if (!R.profil) M.push("votre profil (poids lourd ou pas)");
       if (!R.ue) M.push("votre nationalité (oui ou non)");
       if (R.ue === "non") {
@@ -163,7 +217,7 @@
       }
     }
     if (E === 2) {
-      if (!val("permisCat")) M.push("les catégories de votre permis");
+      if (!categories()) M.push("les catégories de votre permis (cochez-les)");
       if (!val("permisFin") || !dateOk("permisFin", true)) M.push("la date de fin de validité de votre permis");
       if (!R.suspendu) M.push("si votre permis est suspendu (oui ou non)");
       ["visiteTravail", "visitePermisFin", "fco", "carteQualif", "carteCond", "carteCondLeger"].forEach(function (id) {
@@ -225,14 +279,14 @@
   /* ─── l'envoi chiffré ─── */
   function fiche() {
     var f = {
-      nom: val("nom").toUpperCase(), prenom: val("prenom"), tel: val("tel"),
+      nom: val("nom").toUpperCase(), prenom: val("prenom"), tel: formeTel(val("tel")), nir: formeNir(val("nir")),
       profil: R.profil, ue: R.ue,
       titreFin: R.ue === "non" ? val("titreFin") : "",
       permisOrigine: R.ue === "non" ? (R.permisOrigine || "") : "fr",
       permisPays: R.ue === "non" && R.permisOrigine === "etr" ? val("permisPays") : "",
       arrivee: R.ue === "non" && R.permisOrigine === "etr" ? val("arrivee") : "",
       inter: R.ue === "non" ? (R.inter || "") : "",
-      permisNum: val("permisNum").toUpperCase(), permisCat: val("permisCat").toUpperCase(), permisFin: val("permisFin"),
+      permisNum: val("permisNum").toUpperCase(), permisCat: categories(), permisFin: val("permisFin"),
       suspendu: R.suspendu || "", visiteTravail: val("visiteTravail"),
     };
     if (R.profil === "pl") {
