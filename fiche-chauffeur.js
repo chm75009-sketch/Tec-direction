@@ -199,9 +199,21 @@
     erreur(null);
     window.scrollTo(0, 0);
   }
+  /* LE RETOUR NE BLOQUE JAMAIS (26 novembre 2026). Ouverte dans
+     l'application installée, la fiche restait l'écran de reprise et le retour
+     ne menait nulle part. Sur l'appareil de T.E.C ou du cabinet (le dossier y
+     est), le retour ramène à l'accueil ; pour un salarié, il revient à la
+     page précédente quand il y en a une. */
+  var poste = false;
+  try { poste = !!window.localStorage.getItem("synchro-cle"); } catch (e) {}
+  if (poste) $("vers-appli").hidden = false;
+  function sortir() {
+    if (poste) location.href = "index.html";
+    else if (history.length > 1) history.back();
+  }
   $("retour").addEventListener("click", function () {
-    if (!$("fini").hidden) return;
-    if (E > 1) aller(E - 1); else if (history.length > 1) history.back();
+    if (!$("fini").hidden || E === 1) { sortir(); return; }
+    aller(E - 1);
   });
   $("suivant").addEventListener("click", function () {
     var M = controle();
