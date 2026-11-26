@@ -292,7 +292,7 @@
   /* ─── l'envoi chiffré ─── */
   function fiche() {
     var f = {
-      nom: val("nom").toUpperCase(), prenom: val("prenom"), tel: formeTel(val("tel")), nir: formeNir(val("nir")),
+      nom: val("nom").toUpperCase(), prenom: val("prenom"), adresse: val("adresse"), tel: formeTel(val("tel")), nir: formeNir(val("nir")),
       roulant: R.roulant, profil: roulant() ? R.profil : "", ue: R.ue,
       titreFin: R.ue === "non" ? val("titreFin") : "",
       permisOrigine: !roulant() ? "" : (R.ue === "non" ? (R.permisOrigine || "") : "fr"),
