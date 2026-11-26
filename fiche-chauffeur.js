@@ -369,5 +369,10 @@
     });
   }
 
+  /* Par défaut, personnel roulant : demande du 26 novembre 2026. */
+  (function () {
+    var b = document.querySelector('[data-choix="roulant"] [data-v="oui"]');
+    if (b) b.click();
+  })();
   aller(1);
 })();
