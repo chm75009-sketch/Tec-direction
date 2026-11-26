@@ -39,7 +39,14 @@
     return '<label data-cat="' + c + '"><input type="checkbox" value="' + c + '">' + c + "</label>";
   }).join("");
   Array.prototype.forEach.call($("cats").querySelectorAll("input"), function (i) {
-    i.addEventListener("change", function () { i.parentNode.classList.toggle("on", i.checked); });
+    i.addEventListener("change", function () {
+      i.parentNode.classList.toggle("on", i.checked);
+      /* Poids lourd ou pas : ce sont les catégories cochées qui le disent
+         (26 novembre 2026), la question n'est plus posée à part. */
+      var c = categories();
+      R.profil = !c ? "" : (/(^|[^A-Z0-9])C1?E?([^A-Z0-9]|$)/.test(c) ? "pl" : "leger");
+      montrer();
+    });
   });
   function categories() {
     return Array.prototype.filter.call($("cats").querySelectorAll("input"), function (i) { return i.checked; })
@@ -103,7 +110,7 @@
   function roulant() { return R.roulant === "oui"; }
   function etapes() { return R.roulant === "non" ? [1, 3, 4] : [1, 2, 3, 4]; }
   function montrer() {
-    $("bloc-profil").hidden = !roulant();
+    $("bloc-profil").hidden = true;
     $("etr-roulant").hidden = !roulant();
     $("etranger").hidden = R.ue !== "non";
     $("permis-etr").hidden = !(roulant() && R.ue === "non" && R.permisOrigine === "etr");
@@ -219,7 +226,6 @@
       if (val("tel") && chiffres(val("tel")).length !== 10) M.push("un numéro de téléphone à 10 chiffres");
       if (val("nir") && !nirValide(val("nir"))) M.push("un numéro de sécurité sociale exact (15 chiffres, vérifiez la clé, les 2 derniers)");
       if (!R.roulant) M.push("si vous êtes personnel roulant ou non roulant");
-      if (roulant() && !R.profil) M.push("votre profil (poids lourd ou pas)");
       if (!R.ue) M.push("votre nationalité (oui ou non)");
       if (R.ue === "non") {
         if (!val("titreFin") || !dateOk("titreFin", true)) M.push("la date de fin de votre titre de séjour");
