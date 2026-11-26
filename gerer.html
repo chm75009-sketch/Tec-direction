@@ -335,7 +335,7 @@
 <script src="apercu.js?v=0d8afe7c"></script>
 <script src="audit-export.js?v=890d7345"></script>
 <script src="base-documents.js?v=6d57384f"></script>
-<script src="fiches-recues.js?v=4f3f493c" defer></script>
+<script src="fiches-recues.js?v=03f5ee32" defer></script>
 <script src="tableur-export.js?v=c41750d9"></script>
 <script src="feuille-doc.js?v=a92f127a"></script>
 <script src="profil.js?v=a87b9bf8"></script>
@@ -5332,8 +5332,10 @@
       /* Transport : les véhicules et les titres des conducteurs ont les mêmes
          échéances à surveiller que les visites médicales, et la même alerte.
          Demande du 15 septembre 2026. */
-      ligne("flotte.html", "Flotte et conducteurs",
-        "contrôle technique, assurance, permis, FCO, cartes, visites médicales") +
+      ligne("flotte.html", "La flotte",
+        "contrôle technique, assurance, chronotachygraphe, limiteur, papiers à bord") +
+      ligne("salaries.html?g=roulant", "Les chauffeurs",
+        "permis, FCO, cartes, visites médicales, papiers à avoir sur eux") +
       /* LE SUIVI MÉDICAL, SALARIÉ PAR SALARIÉ. L'échéancier des visites, et
          les deux courriers qui en sortent : la demande au service de santé
          au travail et la convocation. Relevé le 26 septembre 2026. */
@@ -6374,6 +6376,6 @@
   $("btn-maj").addEventListener("click", function () { location.reload(); });
 })();
 </script>
-<script src="recherche-rapide.js?v=16a7649e" defer></script>
+<script src="recherche-rapide.js?v=092f8331" defer></script>
 </body>
 </html>
