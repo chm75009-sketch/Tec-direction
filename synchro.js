@@ -392,6 +392,11 @@
       /* Ce qui est ici. */
       Object.keys(ici).forEach(function (u) {
         var s = etat.docs[u], d = ici[u];
+        /* Un document recréé après son retrait (même nom, même taille, donc
+           même identifiant) est un nouveau document, pas l'ancien : relevé le
+           26 novembre 2026, quand une photo reprend son nom après
+           l'annulation d'une mise à jour. On compare les dates. */
+        if (s && s.supprime && Date.parse(d.date || "") > (s.t || 0)) s = null;
         if (s && s.supprime) {
           /* Retiré ailleurs : on le retire ici aussi. */
           suite = suite.then(function () { delete connus[u]; return effacerLocal(d.id); });
