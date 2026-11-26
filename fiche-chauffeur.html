@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script src="sans-cache.js?v=950dcf6c"></script>
-<title>Fiche chauffeur, T.E.C</title>
+<title>Fiche salarié, T.E.C</title>
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#1F3864">
 
@@ -95,7 +95,7 @@
 <div class="haut">
   <button type="button" id="retour" aria-label="Retour">‹ Retour</button>
   <img src="icons-tec/icon-192.png" alt="">
-  <div class="t">Fiche chauffeur<small id="etape">Étape 1 sur 4</small></div>
+  <div class="t">Fiche salarié<small id="etape">Étape 1 sur 4</small></div>
 </div>
 <div class="barre"><i id="avance" style="width:25%"></i></div>
 
@@ -105,7 +105,15 @@
   <!-- ÉCRAN 1 -->
   <section data-e="1">
     <h1>Vos informations</h1>
-    <p class="chapo">Remplissez cette fiche pour T.E.C. Il faut environ cinq minutes. Gardez votre permis et vos cartes à portée de main.</p>
+    <p class="chapo">Remplissez cette fiche pour T.E.C. Il faut environ cinq minutes. Gardez vos papiers à portée de main : pièce d'identité, carte Vitale, et pour les chauffeurs, permis et cartes.</p>
+
+    <div class="bloc">
+      <h2>Vous êtes <em style="color:var(--rouge);font-style:normal">*</em></h2>
+      <div class="choix" data-choix="roulant">
+        <button type="button" data-v="oui">Personnel roulant<small>je conduis pour T.E.C</small></button>
+        <button type="button" data-v="non">Personnel non roulant<small>bureau, atelier, entrepôt</small></button>
+      </div>
+    </div>
 
     <div class="bloc" id="bloc-code" hidden>
       <h2>Code d'accès</h2>
@@ -121,9 +129,10 @@
         <input type="tel" id="tel" autocomplete="tel" inputmode="tel" maxlength="14" placeholder="06 12 34 56 78"></label>
       <label class="ch"><span>Numéro de sécurité sociale</span><small>15 chiffres, comme sur la carte Vitale</small>
         <input type="text" id="nir" inputmode="numeric" autocomplete="off" maxlength="21" placeholder="1 85 03 75 123 456 78"></label>
+      <label class="ch"><span>Dernière visite avec le médecin du travail</span><input type="date" id="visiteTravail"></label>
     </div>
 
-    <div class="bloc">
+    <div class="bloc" id="bloc-profil" hidden>
       <h2>Votre profil <em style="color:var(--rouge);font-style:normal">*</em></h2>
       <div class="choix" data-choix="profil">
         <button type="button" data-v="pl">Poids lourd<small>permis C ou CE</small></button>
@@ -140,6 +149,7 @@
       </div>
       <div id="etranger" hidden>
         <label class="ch"><span>Titre de séjour, valable jusqu'au <em>*</em></span><input type="date" id="titreFin"></label>
+        <div id="etr-roulant">
         <p class="q">Votre permis est : <em>*</em></p>
         <div class="choix" data-choix="permisOrigine">
           <button type="button" data-v="fr">Français</button>
@@ -153,6 +163,7 @@
         <div class="choix" data-choix="inter">
           <button type="button" data-v="oui">Oui</button>
           <button type="button" data-v="non">Non</button>
+        </div>
         </div>
       </div>
     </div>
@@ -175,7 +186,6 @@
         <button type="button" data-v="oui">Oui</button>
         <button type="button" data-v="non">Non</button>
       </div>
-      <label class="ch"><span>Dernière visite avec le médecin du travail</span><input type="date" id="visiteTravail"></label>
     </div>
 
     <div class="bloc" id="bloc-pl" hidden>
@@ -238,6 +248,6 @@
 
 <div class="pied" id="pied"><div class="in"><button type="button" id="suivant">Continuer</button></div></div>
 
-<script src="fiche-chauffeur.js?v=1556c572"></script>
+<script src="fiche-chauffeur.js?v=5b2b48a3"></script>
 </body>
 </html>

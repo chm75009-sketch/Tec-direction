@@ -95,9 +95,18 @@
       });
     });
   });
+  /* ROULANT OU NON ROULANT (26 novembre 2026). Une seule fiche pour tout le
+     personnel : le salarié dit d'abord s'il conduit pour T.E.C. S'il ne
+     conduit pas, tout ce qui touche au permis et aux cartes disparaît, écran
+     du permis compris ; il ne reste que son identité, sa nationalité, ses
+     photos et sa signature. */
+  function roulant() { return R.roulant === "oui"; }
+  function etapes() { return R.roulant === "non" ? [1, 3, 4] : [1, 2, 3, 4]; }
   function montrer() {
+    $("bloc-profil").hidden = !roulant();
+    $("etr-roulant").hidden = !roulant();
     $("etranger").hidden = R.ue !== "non";
-    $("permis-etr").hidden = !(R.ue === "non" && R.permisOrigine === "etr");
+    $("permis-etr").hidden = !(roulant() && R.ue === "non" && R.permisOrigine === "etr");
     $("bloc-pl").hidden = R.profil !== "pl";
     $("bloc-leger").hidden = R.profil !== "leger";
     $("lib-carte-leger").hidden = !(R.profil === "leger" && R.aCarte === "oui");
@@ -105,14 +114,16 @@
 
   /* ─── les photos demandées, selon les réponses ─── */
   function photosDemandees() {
-    var L = [
+    var L = !roulant() ? [] : [
       { k: "permisRecto", t: "Permis de conduire, recto", o: true },
       { k: "permisVerso", t: "Permis de conduire, verso", o: true },
+    ];
+    L = L.concat([
       /* La pièce d'identité, recto et verso, pour tous : demande du
          25 novembre 2026. */
       { k: "identiteRecto", t: "Pièce d'identité, recto", o: true },
       { k: "identiteVerso", t: "Pièce d'identité, verso", o: true },
-    ];
+    ]);
     if (R.profil === "pl") {
       L.push({ k: "carteQualif", t: "Carte de qualification de conducteur, recto", s: "Si vous l'avez" });
       L.push({ k: "carteCond", t: "Carte conducteur (chronotachygraphe), recto", s: "Si vous l'avez" });
@@ -121,7 +132,7 @@
     if (R.ue === "non") {
       L.push({ k: "titreRecto", t: "Titre de séjour, recto", o: true });
       L.push({ k: "titreVerso", t: "Titre de séjour, verso", o: true });
-      if (R.inter === "oui") L.push({ k: "attestation", t: "Attestation de conducteur", s: "Si vous l'avez" });
+      if (roulant() && R.inter === "oui") L.push({ k: "attestation", t: "Attestation de conducteur", s: "Si vous l'avez" });
     }
     /* La carte Vitale en dernier, demande du 25 novembre 2026 : les papiers
        de conduite d'abord, puis le reste. */
@@ -207,11 +218,12 @@
       if (!val("prenom")) M.push("votre prénom");
       if (val("tel") && chiffres(val("tel")).length !== 10) M.push("un numéro de téléphone à 10 chiffres");
       if (val("nir") && !nirValide(val("nir"))) M.push("un numéro de sécurité sociale exact (15 chiffres, vérifiez la clé, les 2 derniers)");
-      if (!R.profil) M.push("votre profil (poids lourd ou pas)");
+      if (!R.roulant) M.push("si vous êtes personnel roulant ou non roulant");
+      if (roulant() && !R.profil) M.push("votre profil (poids lourd ou pas)");
       if (!R.ue) M.push("votre nationalité (oui ou non)");
       if (R.ue === "non") {
         if (!val("titreFin") || !dateOk("titreFin", true)) M.push("la date de fin de votre titre de séjour");
-        if (!R.permisOrigine) M.push("si votre permis est français ou étranger");
+        if (roulant() && !R.permisOrigine) M.push("si votre permis est français ou étranger");
         if (R.permisOrigine === "etr" && !val("permisPays")) M.push("le pays de votre permis");
         if (R.permisOrigine === "etr" && (!val("arrivee") || !dateOk("arrivee", true))) M.push("votre date d'arrivée en France");
       }
@@ -245,8 +257,9 @@
     Array.prototype.forEach.call(document.querySelectorAll("section[data-e]"), function (s) {
       s.hidden = parseInt(s.getAttribute("data-e"), 10) !== n;
     });
-    $("etape").textContent = "Étape " + n + " sur " + NB;
-    $("avance").style.width = (n / NB * 100) + "%";
+    var L = etapes(), rang = L.indexOf(n) + 1;
+    $("etape").textContent = "Étape " + rang + " sur " + L.length;
+    $("avance").style.width = (rang / L.length * 100) + "%";
     $("suivant").textContent = n === NB ? "Envoyer ma fiche" : "Continuer";
     if (n === 3) dessinerPhotos();
     if (n === 4) setTimeout(function () { if (!signe) prepSig(); }, 30);
@@ -267,12 +280,12 @@
   }
   $("retour").addEventListener("click", function () {
     if (!$("fini").hidden || E === 1) { sortir(); return; }
-    aller(E - 1);
+    var L = etapes(); aller(L[Math.max(0, L.indexOf(E) - 1)]);
   });
   $("suivant").addEventListener("click", function () {
     var M = controle();
     if (M.length) { erreur(M); return; }
-    if (E < NB) { aller(E + 1); return; }
+    if (E < NB) { var L = etapes(); aller(L[L.indexOf(E) + 1]); return; }
     envoyer();
   });
 
@@ -280,16 +293,21 @@
   function fiche() {
     var f = {
       nom: val("nom").toUpperCase(), prenom: val("prenom"), tel: formeTel(val("tel")), nir: formeNir(val("nir")),
-      profil: R.profil, ue: R.ue,
+      roulant: R.roulant, profil: roulant() ? R.profil : "", ue: R.ue,
       titreFin: R.ue === "non" ? val("titreFin") : "",
-      permisOrigine: R.ue === "non" ? (R.permisOrigine || "") : "fr",
+      permisOrigine: !roulant() ? "" : (R.ue === "non" ? (R.permisOrigine || "") : "fr"),
       permisPays: R.ue === "non" && R.permisOrigine === "etr" ? val("permisPays") : "",
       arrivee: R.ue === "non" && R.permisOrigine === "etr" ? val("arrivee") : "",
       inter: R.ue === "non" ? (R.inter || "") : "",
-      permisNum: val("permisNum").toUpperCase(), permisCat: categories(), permisFin: val("permisFin"),
-      suspendu: R.suspendu || "", visiteTravail: val("visiteTravail"),
+      visiteTravail: val("visiteTravail"),
     };
-    if (R.profil === "pl") {
+    if (roulant()) {
+      f.permisNum = val("permisNum").toUpperCase(); f.permisCat = categories(); f.permisFin = val("permisFin");
+      f.suspendu = R.suspendu || "";
+    }
+    if (!roulant()) {
+      /* rien du permis ni des cartes */
+    } else if (R.profil === "pl") {
       f.visitePermisFin = val("visitePermisFin"); f.fco = val("fco"); f.carteQualif = val("carteQualif");
       f.code95 = R.code95 || ""; f.carteCond = val("carteCond");
     } else {
