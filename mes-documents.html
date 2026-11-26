@@ -29,7 +29,7 @@
 -->
 
 <link rel="stylesheet" href="style.css?v=f53b7146">
-<script src="barre.js?v=1e3a13b2"></script>
+<script src="barre.js?v=00798ea1"></script>
 <script src="installer.js?v=9fa48eb1"></script>
 <style>
   main.wrap{max-width:640px;padding-bottom:var(--e7)}
@@ -152,7 +152,7 @@
   </div>
 </main>
 
-<script src="droits.js?v=0c756e52"></script>
+<script src="droits.js?v=9e3215c6"></script>
 <script src="base-documents.js?v=6d57384f"></script>
 <script src="fiches-recues.js?v=4f3f493c" defer></script>
 <script src="exporter-dossier.js?v=1665e7db" defer></script>
@@ -534,8 +534,11 @@
   });
   $("tout-voir").addEventListener("click", function () { VUE = null; rendre(); });
   /* Le retour ramène d'une vue à la liste entière ; sinon, il quitte la page. */
+  /* Venu de la page d'un salarié (?r=) : le retour y ramène directement,
+     sans s'arrêter sur la vue d'ensemble des documents. */
+  var VIENT_DU_SALARIE = /[?&]r=salarie-/.test(location.search);
   if (window.Barre && window.Barre.avant) window.Barre.avant(function () {
-    if (!VUE) return false;
+    if (!VUE || VIENT_DU_SALARIE) return false;
     VUE = null; rendre(); return true;
   });
 
