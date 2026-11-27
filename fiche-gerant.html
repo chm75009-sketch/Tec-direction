@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="sans-cache.js?v=950dcf6c"></script>
+<title>Fiche du gérant, T.E.C</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#1F3864">
+
+<!--
+  LA FICHE QUE REMPLIT LE GÉRANT (27 novembre 2026).
+
+  Même principe que la fiche des salariés : un lien sans compte ni mot de
+  passe, la fiche chiffrée dans le téléphone avant de partir, lisible par
+  T.E.C et son conseil seulement. Ce que T.E.C connaît déjà est pré-rempli et
+  se vérifie ; le gérant complète sa naissance, son adresse, son attestation de
+  capacité professionnelle et, s'il l'a, la carte entreprise du
+  chronotachygraphe. Reçue, elle se range sous « Direction de l'entreprise ».
+-->
+
+<style>
+  :root{
+    --encre:#1F3864; --encre-2:#3d4b63; --gris:#5f6874; --gris-2:#8a919b;
+    --filet:#dcdfe4; --papier:#f5f6f8; --blanc:#fff; --rouge:#b42318; --rouge-clair:#fdecea;
+    --vert:#1e7a46; --vert-clair:#e7f5ec; --or:#8a6d3b; --or-clair:#f3ede1;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--papier);color:#16181d;font:400 16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    -webkit-text-size-adjust:100%}
+  .haut{position:sticky;top:0;z-index:5;background:var(--encre);color:#fff;
+    padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;display:flex;align-items:center;gap:12px}
+  .haut button{background:rgba(255,255,255,.14);color:#fff;border:0;border-radius:10px;
+    font:600 15px/1 system-ui;padding:10px 12px;min-height:40px;cursor:pointer}
+  .haut .t{font:600 16px/1.2 system-ui;flex:1;min-width:0}
+  .haut .t small{display:block;font:400 13px/1.2 system-ui;opacity:.8;margin-top:2px}
+  .haut img{width:34px;height:34px;border-radius:8px;background:#fff;object-fit:contain}
+  .barre{height:4px;background:rgba(31,56,100,.12)}
+  .barre i{display:block;height:100%;background:var(--or);transition:width .3s}
+  main{max-width:560px;margin:0 auto;padding:16px 16px 120px}
+  h1{font:700 22px/1.25 system-ui;color:var(--encre);margin:6px 0 4px}
+  .chapo{color:var(--gris);margin:0 0 16px;font-size:15px}
+  .bloc{background:var(--blanc);border:1px solid var(--filet);border-radius:14px;padding:16px;margin:0 0 14px}
+  .bloc h2{font:700 13px/1.2 system-ui;letter-spacing:.06em;text-transform:uppercase;color:var(--gris);margin:0 0 12px}
+  label.ch{display:block;margin:0 0 14px}
+  label.ch > span{display:block;font:600 15px/1.3 system-ui;margin:0 0 6px}
+  label.ch > span em{font-style:normal;color:var(--rouge)}
+  label.ch small{display:block;color:var(--gris-2);font-size:13px;margin:-2px 0 6px}
+  input[type=text],input[type=tel],input[type=date],input[type=email],input[type=number],select{width:100%;font-size:17px;min-height:50px;padding:11px 13px;
+    border:1px solid #c9ced6;border-radius:11px;background:#fff;color:#16181d;-webkit-appearance:none;appearance:none}
+  input:focus{outline:2px solid var(--encre);outline-offset:1px}
+  .choix{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 14px}
+  .choix button{min-height:58px;border:2px solid #c9ced6;border-radius:12px;background:#fff;color:#16181d;
+    font:700 16px/1.2 system-ui;padding:8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .choix button small{font:400 13px/1.2 system-ui;color:var(--gris);margin-top:3px}
+  .choix button[aria-pressed=true]{border-color:var(--encre);background:#eaf0f9;color:var(--encre)}
+  .q{font:600 15px/1.3 system-ui;margin:0 0 8px}
+  .q em{font-style:normal;color:var(--rouge)}
+  .photo{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--filet)}
+  .photo:first-of-type{border-top:0}
+  .photo .v{width:74px;height:54px;flex:0 0 auto;border-radius:9px;background:#eef1f5;display:flex;align-items:center;
+    justify-content:center;overflow:hidden;color:var(--gris-2);font-size:22px}
+  .photo .v img{width:100%;height:100%;object-fit:cover}
+  .photo .n{flex:1;min-width:0;font:600 15px/1.3 system-ui}
+  .photo .n small{display:block;font:400 13px/1.3 system-ui;color:var(--gris)}
+  .photo .n small.ok{color:var(--vert)}
+  .photo label.b{flex:0 0 auto;background:var(--encre);color:#fff;border-radius:10px;padding:11px 13px;
+    font:600 14px/1 system-ui;cursor:pointer}
+  .photo label.b.refaire{background:#fff;color:var(--encre);border:1px solid var(--encre)}
+  .photo input{position:absolute;width:1px;height:1px;opacity:0}
+  .cats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0 0 16px}
+  .cats label{display:flex;align-items:center;justify-content:center;gap:6px;min-height:48px;border:2px solid #c9ced6;
+    border-radius:11px;background:#fff;font:700 16px/1 system-ui;cursor:pointer;-webkit-user-select:none;user-select:none}
+  .cats input{position:absolute;opacity:0;width:1px;height:1px}
+  .cats label.on{border-color:var(--encre);background:#eaf0f9;color:var(--encre)}
+  .sig{border:2px dashed #b9c0ca;border-radius:12px;background:#fff;touch-action:none;width:100%;height:180px;display:block}
+  .lien{background:none;border:0;color:var(--encre);font:600 14px system-ui;text-decoration:underline;padding:8px 0;cursor:pointer}
+  .coche{display:flex;gap:12px;align-items:flex-start;font:600 15px/1.4 system-ui;margin:0 0 14px;cursor:pointer}
+  .coche input{width:24px;height:24px;flex:0 0 auto;margin:0;accent-color:var(--encre)}
+  .erreur{background:var(--rouge-clair);color:var(--rouge);border-radius:11px;padding:11px 13px;font:600 14px/1.4 system-ui;margin:0 0 14px}
+  .avis{background:var(--or-clair);border:1px solid #e2d6bd;border-radius:12px;padding:13px;margin:0 0 14px}
+  .avis p{margin:0 0 12px;font:600 15px/1.4 system-ui;color:#16181d}
+  .avis-b{display:flex;gap:10px}
+  .avis-b button{flex:1;min-height:48px;border-radius:11px;font:700 15px/1.2 system-ui;padding:8px 10px;cursor:pointer}
+  .avis-b .garder{background:var(--encre);color:#fff;border:0}
+  .avis-b .partir{background:#fff;color:var(--rouge);border:1px solid var(--rouge)}
+  .pied{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--filet);
+    padding:12px 16px calc(env(safe-area-inset-bottom) + 12px)}
+  .pied .in{max-width:560px;margin:0 auto}
+  .pied button{width:100%;min-height:54px;border:0;border-radius:13px;background:var(--encre);color:#fff;
+    font:700 17px/1 system-ui;cursor:pointer}
+  .pied button[disabled]{opacity:.6}
+  .fin{text-align:center;padding:40px 10px}
+  .fin .rond{width:72px;height:72px;border-radius:50%;background:var(--vert-clair);color:var(--vert);
+    display:flex;align-items:center;justify-content:center;font-size:38px;margin:0 auto 16px}
+  .rgpd{background:var(--blanc);border:1px solid var(--filet);border-radius:14px;margin:0 0 14px}
+  .rgpd summary{list-style:none;cursor:pointer;padding:14px 16px;display:flex;gap:12px;align-items:flex-start}
+  .rgpd summary::-webkit-details-marker{display:none}
+  .rgpd summary .ic{flex:0 0 auto;width:32px;height:32px;border-radius:50%;background:#eaf0f9;color:var(--encre);
+    display:flex;align-items:center;justify-content:center;font:700 16px/1 system-ui}
+  .rgpd summary .tx{flex:1;min-width:0;font:600 15px/1.35 system-ui;color:#16181d}
+  .rgpd summary .tx small{display:block;font:400 13px/1.35 system-ui;color:var(--gris);margin-top:3px}
+  .rgpd summary .fl{flex:0 0 auto;color:var(--encre);font:700 18px/32px system-ui;transition:transform .2s}
+  .rgpd[open] summary .fl{transform:rotate(90deg)}
+  .rgpd .corps-r{padding:0 16px 14px;border-top:1px solid var(--filet)}
+  .rgpd h3{font:700 14px/1.3 system-ui;color:var(--encre);margin:14px 0 4px}
+  .rgpd p{margin:0;font:400 14px/1.5 system-ui;color:#2b3038}
+  .rgpd a{color:var(--encre)}
+  /* À lire avant de remplir : en rouge tant que la case n'est pas cochée,
+     en vert ensuite (27 novembre 2026). */
+  .rgpd.alire{border:2px solid var(--rouge)}
+  .rgpd.alire summary{background:var(--rouge-clair);border-radius:12px 12px 0 0}
+  .rgpd.alire summary .tx{color:var(--rouge)}
+  .rgpd.alire summary .ic{background:var(--rouge);color:#fff}
+  .rgpd.lu{border:1px solid #b7dcc4}
+  .rgpd.lu summary .ic{background:var(--vert-clair);color:var(--vert)}
+  .rgpd .coche{margin:16px 0 0;padding:12px;border-radius:11px;background:var(--rouge-clair);color:var(--rouge)}
+  .rgpd.lu .coche{background:var(--vert-clair);color:var(--vert)}
+  .passe{background:var(--or-clair);border:1px solid #e2d6bd;color:#6b4e16;border-radius:10px;
+    padding:9px 11px;margin:8px 0 0;font:600 14px/1.4 system-ui}
+  [hidden]{display:none !important}
+</style>
+</head>
+<body>
+
+<div class="haut">
+  <button type="button" id="retour" aria-label="Retour">‹ Retour</button>
+  <img src="icons-tec/icon-192.png" alt="">
+  <div class="t">Fiche du gérant<small id="etape">Étape 1 sur 3</small></div>
+</div>
+<div class="barre"><i id="avance" style="width:33%"></i></div>
+
+<main id="corps">
+  <div class="erreur" id="err" hidden></div>
+  <div class="avis" id="quitter" hidden role="alertdialog" aria-labelledby="quitter-t">
+    <p id="quitter-t"></p>
+    <div class="avis-b">
+      <button type="button" id="quitter-non" class="garder">Rester sur la fiche</button>
+      <button type="button" id="quitter-oui" class="partir">Quitter</button>
+    </div>
+  </div>
+
+  <!-- ÉCRAN 1 -->
+  <section data-e="1">
+    <h1>Fiche du gérant</h1>
+    <p class="chapo">Monsieur EL SAFADI, vérifiez vos informations et complétez ce qui manque. Il faut environ trois minutes. Gardez à portée de main votre pièce d'identité et votre attestation de capacité professionnelle.</p>
+
+    <!-- L'information sur les données, ouverte en rouge, et la case « J'ai lu »
+         obligatoire et datée, comme pour les salariés. La base légale : le
+         gestionnaire de transport « satisfait aux exigences d'honorabilité et
+         de capacité professionnelles » (code des transports, R. 3211-43,
+         LEGIARTI000033450051) ; la capacité est satisfaite par « une
+         attestation de capacité professionnelle en transport routier de
+         marchandises » (R. 3211-36, LEGIARTI000033450035). Lus au relais le
+         27 novembre 2026, deux lectures concordantes. -->
+    <details class="rgpd alire" id="rgpd" open>
+      <summary><span class="ic">!</span>
+        <span class="tx"><span id="rgpd-titre">À lire avant de remplir : vos données personnelles</span><small id="rgpd-aide">Lisez jusqu'en bas, puis cochez la case.</small></span>
+        <span class="fl">›</span></summary>
+      <div class="corps-r">
+        <h3>Responsable</h3>
+        <p>SARL T.E.C, 23 avenue du Château, 95100 Argenteuil. Contact : <a href="mailto:tec.contact@yahoo.fr">tec.contact@yahoo.fr</a>, <a href="tel:+33603671315">+33 6 03 67 13 15</a>.</p>
+        <h3>Pourquoi</h3>
+        <p>Tenir à jour les informations sur la direction de l'entreprise et sur son gestionnaire de transport, et les reporter sur les documents de l'entreprise.</p>
+        <h3>Base légale</h3>
+        <p>Les obligations de l'entreprise de transport : elle désigne un gestionnaire de transport qui satisfait aux exigences d'honorabilité et de capacité professionnelles, et la capacité se prouve par l'attestation de capacité professionnelle (articles R. 3211-43 et R. 3211-36 du code des transports). Les questions marquées d'une étoile sont obligatoires.</p>
+        <h3>Qui y a accès</h3>
+        <p>Seulement la direction de T.E.C et son conseil. La fiche est chiffrée dans votre téléphone avant de partir. L'hébergeur du site, Cloudflare, Inc. (États-Unis), ne la garde que sous une forme illisible, jusqu'à ce que T.E.C la range. Ce transfert est encadré par le Data Privacy Framework, auquel Cloudflare a adhéré, et par les clauses contractuelles types de la Commission européenne.</p>
+        <h3>Combien de temps</h3>
+        <p>Pendant vos fonctions, puis jusqu'à trois ans.</p>
+        <h3>Vos droits</h3>
+        <p>Accès, rectification, effacement, limitation, opposition et portabilité, par e-mail à <a href="mailto:tec.contact@yahoo.fr">tec.contact@yahoo.fr</a>, au <a href="tel:+33603671315">+33 6 03 67 13 15</a> ou par courrier à la SARL T.E.C, 23 avenue du Château, 95100 Argenteuil (réponse sous un mois). En cas de désaccord, vous pouvez saisir la CNIL (<a href="https://www.cnil.fr" target="_blank" rel="noopener">www.cnil.fr</a>).</p>
+        <label class="coche"><input type="checkbox" id="rgpdLu"> J'ai lu l'information sur mes données personnelles.</label>
+      </div>
+    </details>
+
+    <div class="bloc" id="bloc-code" hidden>
+      <h2>Code d'accès</h2>
+      <label class="ch"><span>Code donné par T.E.C <em>*</em></span>
+        <input type="text" id="code" autocomplete="off" autocapitalize="characters"></label>
+    </div>
+
+    <div class="bloc">
+      <h2>Vous</h2>
+      <p class="chapo" style="margin:-4px 0 12px;font-size:13px">Déjà rempli par T.E.C. Corrigez si quelque chose est faux.</p>
+      <label class="ch"><span>Nom <em>*</em></span><input type="text" id="nom" value="EL SAFADI" autocomplete="family-name" autocapitalize="characters"></label>
+      <label class="ch"><span>Prénoms <em>*</em></span><small>Tous vos prénoms, comme sur votre pièce d'identité</small>
+        <input type="text" id="prenom" value="Chadi" autocomplete="given-name"></label>
+      <p class="q">Vous êtes <em>*</em></p>
+      <div class="choix" data-choix="sexe">
+        <button type="button" data-v="F">Une femme</button>
+        <button type="button" data-v="M" aria-pressed="true">Un homme</button>
+      </div>
+      <label class="ch"><span>Nationalité <em>*</em></span><input type="text" id="nat" value="française" autocomplete="off"></label>
+      <label class="ch"><span>Téléphone <em>*</em></span><input type="tel" id="tel" value="+33 6 03 67 13 15" autocomplete="tel" inputmode="tel" maxlength="24"></label>
+      <label class="ch"><span>Adresse e-mail <em>*</em></span><input type="email" id="courriel" value="tec.contact@yahoo.fr" autocomplete="email" inputmode="email" autocapitalize="off"></label>
+    </div>
+
+    <div class="bloc">
+      <h2>À compléter</h2>
+      <label class="ch"><span>Date de naissance <em>*</em></span><input type="date" id="nais" autocomplete="bday"></label>
+      <label class="ch"><span>Lieu de naissance <em>*</em></span><small>Ville, et pays si ce n'est pas la France</small>
+        <input type="text" id="naisLieu" autocomplete="off"></label>
+      <label class="ch"><span>Adresse personnelle <em>*</em></span><small>Numéro, rue, code postal et ville</small>
+        <input type="text" id="adresse" autocomplete="street-address"></label>
+    </div>
+
+    <div class="bloc">
+      <h2>Votre fonction</h2>
+      <p class="chapo" style="margin:0 0 6px;font-size:15px;color:#16181d"><b>Gérant</b> de la SARL T.E.C</p>
+      <p class="chapo" style="margin:0 0 14px;font-size:15px;color:#16181d"><b>Gestionnaire de transport</b>, titulaire de l'attestation de capacité professionnelle</p>
+      <label class="ch"><span>Numéro de l'attestation de capacité professionnelle <em>*</em></span>
+        <input type="text" id="attNum" autocapitalize="characters" autocomplete="off" maxlength="30"></label>
+      <label class="ch"><span>Date de délivrance de l'attestation <em>*</em></span><input type="date" id="attDate"></label>
+      <p class="q">Avez-vous la carte entreprise du chronotachygraphe ? <em>*</em></p>
+      <p class="chapo" style="margin:-4px 0 8px;font-size:13px">La carte au nom de T.E.C qui sert à télécharger les données des camions.</p>
+      <div class="choix" data-choix="carteEnt">
+        <button type="button" data-v="oui">Oui</button>
+        <button type="button" data-v="non">Non</button>
+      </div>
+      <div id="bloc-carte" hidden>
+        <label class="ch"><span>Numéro de la carte entreprise <em>*</em></span><small>Les caractères imprimés sur la carte</small>
+          <input type="text" id="carteEntNum" autocapitalize="characters" autocomplete="off" maxlength="20"></label>
+        <label class="ch"><span>Carte entreprise valable jusqu'au <em>*</em></span><input type="date" id="carteEntFin"></label>
+      </div>
+    </div>
+  </section>
+
+  <!-- ÉCRAN 2 -->
+  <section data-e="2" hidden>
+    <h1>Vos photos</h1>
+    <p class="chapo">Touchez « Photo » : l'appareil photo s'ouvre. Posez le document à plat, bien éclairé, en entier dans l'image.</p>
+    <div class="bloc" id="photos"></div>
+  </section>
+
+  <!-- ÉCRAN 3 -->
+  <section data-e="3" hidden>
+    <h1>Signature</h1>
+    <p class="chapo">Vérifiez vos réponses avec « Retour » si besoin, puis signez.</p>
+    <div class="bloc">
+      <label class="coche"><input type="checkbox" id="certifie"> Je certifie que ces informations sont exactes.</label>
+      <p class="q">Signez avec le doigt dans le cadre <em>*</em></p>
+      <canvas class="sig" id="sig"></canvas>
+      <button type="button" class="lien" id="effacer">Effacer la signature</button>
+      <p class="chapo" style="margin:10px 0 0">Fait le <b id="date-jour"></b></p>
+    </div>
+  </section>
+
+  <section id="fini" class="fin" hidden>
+    <div class="rond">✓</div>
+    <h1>Bien reçu, merci</h1>
+    <p class="chapo">Votre fiche a été transmise. Vous pouvez fermer cette page.</p>
+  </section>
+</main>
+
+<div class="pied" id="pied"><div class="in"><button type="button" id="suivant">Continuer</button></div></div>
+
+<script src="fiche-gerant.js?v=11f346de"></script>
+</body>
+</html>

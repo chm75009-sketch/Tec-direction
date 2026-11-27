@@ -48,7 +48,9 @@ PROPRES = {"entrer.html", "entrer.js", "dossier-tec.js", "verrou.js",
            "synchro.js",
            # La fiche que remplissent les salariés, ouverte sans mot de passe
            # depuis le lien des groupes WhatsApp (25 novembre 2026).
-           "fiche-chauffeur.html", "fiche-chauffeur.js"}
+           "fiche-chauffeur.html", "fiche-chauffeur.js",
+           # La fiche que remplit le gérant, sur le même principe (27 novembre 2026).
+           "fiche-gerant.html", "fiche-gerant.js"}
 
 # La page qui crée le code du chef de parc ne reçoit pas le verrou : elle doit
 # s'ouvrir sans séance, pour faire son travail avec le mot de passe maître.
@@ -57,6 +59,7 @@ GENERATEUR = "generer-acces-parc.html"
 # La fiche des salariés s'ouvre depuis WhatsApp, sans séance ni dossier : ni
 # verrou, ni partage, ni journal (25 novembre 2026).
 FICHE = "fiche-chauffeur.html"
+FICHE_GERANT = "fiche-gerant.html"
 
 # L'IDENTITÉ DU CLIENT, ET NON CELLE DE L'APPLICATION.
 #
@@ -126,15 +129,15 @@ TITRES = [
 
 LIGNES = [
     # (ligne à poser, repère après lequel l'insérer, pages à épargner)
-    ('<script src="verrou.js"></script>', '<meta name="viewport"', {PORTE, GENERATEUR, FICHE}),
+    ('<script src="verrou.js"></script>', '<meta name="viewport"', {PORTE, GENERATEUR, FICHE, FICHE_GERANT}),
     ('<script src="sans-cache.js"></script>', '<meta name="viewport"', set()),
     # Le nom du gérant, corrigé dans la fiche gardée par le navigateur.
-    ('<script src="fiche-tec.js"></script>', '<meta name="viewport"', {PORTE, GENERATEUR, FICHE}),
+    ('<script src="fiche-tec.js"></script>', '<meta name="viewport"', {PORTE, GENERATEUR, FICHE, FICHE_GERANT}),
     # Le journal des pages : chaque page ouverte s'inscrit au journal.
-    ('<script src="journal-page.js"></script>', '<meta name="viewport"', {PORTE, GENERATEUR, FICHE}),
+    ('<script src="journal-page.js"></script>', '<meta name="viewport"', {PORTE, GENERATEUR, FICHE, FICHE_GERANT}),
     # Le partage : posé en dernier, il se retrouve donc en tête, avant les
     # scripts de la page, pour voir passer chacune de leurs écritures.
-    ('<script src="synchro.js"></script>', '<meta name="viewport"', {PORTE, GENERATEUR, FICHE}),
+    ('<script src="synchro.js"></script>', '<meta name="viewport"', {PORTE, GENERATEUR, FICHE, FICHE_GERANT}),
 ]
 
 ici = pathlib.Path(__file__).resolve().parent
