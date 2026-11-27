@@ -46,7 +46,7 @@
   label.ch > span{display:block;font:600 15px/1.3 system-ui;margin:0 0 6px}
   label.ch > span em{font-style:normal;color:var(--rouge)}
   label.ch small{display:block;color:var(--gris-2);font-size:13px;margin:-2px 0 6px}
-  input[type=text],input[type=tel],input[type=date]{width:100%;font-size:17px;min-height:50px;padding:11px 13px;
+  input[type=text],input[type=tel],input[type=date],input[type=email],input[type=number],select{width:100%;font-size:17px;min-height:50px;padding:11px 13px;
     border:1px solid #c9ced6;border-radius:11px;background:#fff;color:#16181d;-webkit-appearance:none;appearance:none}
   input:focus{outline:2px solid var(--encre);outline-offset:1px}
   .choix{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 14px}
@@ -135,46 +135,78 @@
         <input type="text" id="code" autocomplete="off" autocapitalize="characters"></label>
     </div>
 
+    <!-- L'IDENTITÉ QUE LE REGISTRE ET L'EMBAUCHE DEMANDENT (27 novembre 2026).
+         Le registre unique du personnel porte la nationalité, la date de
+         naissance et le sexe (D. 1221-23, 1° à 3°), la déclaration préalable à
+         l'embauche le sexe, la date et le lieu de naissance et le numéro de
+         sécurité sociale (R. 1221-1, 2°). Ils ne se lisaient que sur la photo
+         de la pièce d'identité : il aurait fallu les redemander. -->
     <div class="bloc">
       <h2>Vous</h2>
       <label class="ch"><span>Nom <em>*</em></span><input type="text" id="nom" autocomplete="family-name" autocapitalize="characters"></label>
-      <label class="ch"><span>Prénom <em>*</em></span><input type="text" id="prenom" autocomplete="given-name"></label>
-      <label class="ch"><span>Adresse</span><small>Numéro, rue, code postal et ville</small>
+      <label class="ch"><span>Prénoms <em>*</em></span><small>Tous vos prénoms, comme sur votre pièce d'identité</small>
+        <input type="text" id="prenom" autocomplete="given-name"></label>
+      <p class="q">Vous êtes <em>*</em></p>
+      <div class="choix" data-choix="sexe">
+        <button type="button" data-v="F">Une femme</button>
+        <button type="button" data-v="M">Un homme</button>
+      </div>
+      <label class="ch"><span>Date de naissance <em>*</em></span><input type="date" id="nais" autocomplete="bday"></label>
+      <label class="ch"><span>Lieu de naissance <em>*</em></span><small>Ville, et pays si ce n'est pas la France. Par exemple : Évry, ou Oran (Algérie)</small>
+        <input type="text" id="naisLieu" autocomplete="off"></label>
+      <label class="ch"><span>Adresse <em>*</em></span><small>Numéro, rue, code postal et ville</small>
         <input type="text" id="adresse" autocomplete="street-address"></label>
-      <label class="ch"><span>Téléphone</span><small>10 chiffres, par exemple 06 12 34 56 78</small>
+      <label class="ch"><span>Téléphone <em>*</em></span><small>10 chiffres, par exemple 06 12 34 56 78</small>
         <input type="tel" id="tel" autocomplete="tel" inputmode="tel" maxlength="24"></label>
-      <label class="ch"><span>Numéro de sécurité sociale</span><small>15 chiffres, comme sur la carte Vitale</small>
+      <label class="ch"><span>Adresse e-mail</span><small>Pour recevoir vos relevés d'heures. Laissez vide si vous n'en avez pas.</small>
+        <input type="email" id="courriel" autocomplete="email" inputmode="email" autocapitalize="off"></label>
+      <label class="ch"><span>Numéro de sécurité sociale <em>*</em></span><small>15 chiffres, comme sur la carte Vitale</small>
         <input type="text" id="nir" inputmode="numeric" autocomplete="off" maxlength="21"></label>
-      <label class="ch"><span>Dernière visite avec le médecin du travail</span><input type="date" id="visiteTravail"></label>
+      <label class="coche"><input type="checkbox" id="sansNir"> Je n'ai pas encore de numéro de sécurité sociale</label>
+      <label class="ch"><span>Dernière visite à la médecine du travail</span><small>Médecin ou infirmier du service de santé au travail. Laissez vide si vous ne savez pas.</small>
+        <input type="date" id="visiteTravail"></label>
     </div>
 
     <div class="bloc" id="bloc-profil" hidden>
       <h2>Votre profil <em style="color:var(--rouge);font-style:normal">*</em></h2>
       <div class="choix" data-choix="profil">
-        <button type="button" data-v="pl">Poids lourd<small>permis C ou CE</small></button>
-        <button type="button" data-v="leger">Pas poids lourd<small>permis B</small></button>
+        <button type="button" data-v="pl">Poids lourd<small>plus de 3,5 t : permis C1, C1E, C ou CE</small></button>
+        <button type="button" data-v="leger">Pas poids lourd<small>3,5 t au plus : permis B</small></button>
       </div>
     </div>
 
+    <!-- LA NATIONALITÉ EXACTE, ET LA SUISSE (27 novembre 2026). Le registre
+         porte la nationalité elle-même (D. 1221-23, 1°), pas seulement « Union
+         européenne, oui ou non ». Et le ressortissant suisse n'a pas besoin
+         d'autorisation de travail (R. 5221-2, 1°) : il répondait « non » et se
+         voyait demander un titre de séjour. Pour un titre, le registre porte
+         son type et son numéro d'ordre (D. 1221-23, 8°). -->
     <div class="bloc">
       <h2>Nationalité</h2>
-      <p class="q">Êtes-vous ressortissant d'un pays de l'Union européenne ou de l'Espace économique européen ? <em>*</em></p>
+      <label class="ch"><span>Votre nationalité <em>*</em></span><small>Par exemple : française, marocaine, portugaise</small>
+        <input type="text" id="nat" list="liste-nat" autocomplete="off"></label>
+      <datalist id="liste-nat"></datalist>
+      <p class="q">Êtes-vous ressortissant de l'Union européenne, de l'Espace économique européen ou de la Suisse ? <em>*</em></p>
       <div class="choix" data-choix="ue">
         <button type="button" data-v="oui">Oui</button>
         <button type="button" data-v="non">Non</button>
       </div>
       <div id="etranger" hidden>
-        <label class="ch"><span>Titre de séjour, valable jusqu'au <em>*</em></span><input type="date" id="titreFin"></label>
+        <label class="ch"><span>Votre titre de séjour ou de travail <em>*</em></span>
+          <select id="titreType">
+            <option value="">- choisir -</option>
+            <option>Carte de séjour temporaire</option>
+            <option>Carte de séjour pluriannuelle</option>
+            <option>Carte de résident</option>
+            <option>Carte de résident de longue durée-UE</option>
+            <option>Récépissé de demande de titre de séjour</option>
+            <option>Autorisation provisoire de séjour</option>
+            <option>Autre titre</option>
+          </select></label>
+        <label class="ch"><span>Numéro du titre <em>*</em></span><small>Le numéro imprimé sur le titre</small>
+          <input type="text" id="titreNum" autocapitalize="characters" autocomplete="off" maxlength="30"></label>
+        <label class="ch"><span>Titre valable jusqu'au <em>*</em></span><input type="date" id="titreFin"></label>
         <div id="etr-roulant">
-        <p class="q">Votre permis est : <em>*</em></p>
-        <div class="choix" data-choix="permisOrigine">
-          <button type="button" data-v="fr">Français</button>
-          <button type="button" data-v="etr">Étranger</button>
-        </div>
-        <div id="permis-etr" hidden>
-          <label class="ch"><span>Pays qui a délivré le permis <em>*</em></span><input type="text" id="permisPays"></label>
-          <label class="ch"><span>Date d'arrivée en France <em>*</em></span><input type="date" id="arrivee"></label>
-        </div>
         <p class="q">Faites-vous de l'international ou du cabotage ?</p>
         <div class="choix" data-choix="inter">
           <button type="button" data-v="oui">Oui</button>
@@ -191,45 +223,93 @@
     <p class="chapo">Recopiez les dates telles qu'elles figurent sur vos documents.</p>
     <div class="bloc">
       <h2>Votre permis</h2>
-      <label class="ch"><span>Numéro du permis</span><small>Lettres et chiffres, sans espace</small>
+      <label class="ch"><span>Numéro du permis <em>*</em></span><small>Lettres et chiffres, sans espace</small>
         <input type="text" id="permisNum" autocapitalize="characters" autocomplete="off" maxlength="20"></label>
+      <!-- LE PERMIS ÉTRANGER, QUELLE QUE SOIT LA NATIONALITÉ (27 novembre 2026).
+           Un permis délivré hors de l'Union européenne n'est plus reconnu un an
+           après l'installation en France (code de la route, R. 222-3), que son
+           titulaire soit français, européen ou non. La question n'était posée
+           qu'aux non-Européens. -->
+      <p class="q">Votre permis a été délivré <em>*</em></p>
+      <div class="choix" data-choix="permisOrigine" style="grid-template-columns:1fr">
+        <button type="button" data-v="fr">En France</button>
+        <button type="button" data-v="ue">Dans un autre pays de l'Union européenne ou de l'EEE</button>
+        <button type="button" data-v="etr">Dans un autre pays</button>
+      </div>
+      <div id="permis-etr" hidden>
+        <label class="ch"><span>Pays qui a délivré le permis <em>*</em></span><input type="text" id="permisPays"></label>
+        <label class="ch"><span>Date d'arrivée en France <em>*</em></span><small>La date à laquelle vous vous êtes installé en France</small>
+          <input type="date" id="arrivee"></label>
+        <p class="q">Avez-vous demandé l'échange de ce permis contre un permis français ? <em>*</em></p>
+        <div class="choix" data-choix="permisEchange">
+          <button type="button" data-v="oui">Oui</button>
+          <button type="button" data-v="non">Non</button>
+        </div>
+      </div>
       <p class="q">Catégories de votre permis <em>*</em></p>
       <p class="chapo" style="margin:-4px 0 8px;font-size:13px">Cochez toutes celles qui figurent sur votre permis.</p>
       <div class="cats" id="cats"></div>
       <label class="ch"><span>Valable jusqu'au <em>*</em></span><input type="date" id="permisFin"></label>
+      <label class="ch"><span>Nombre de points restants</span><small>Si vous le connaissez (de 0 à 12)</small>
+        <input type="number" id="points" inputmode="numeric" min="0" max="12" step="1"></label>
       <p class="q">Permis suspendu ou retiré en ce moment ? <em>*</em></p>
       <div class="choix" data-choix="suspendu">
         <button type="button" data-v="oui">Oui</button>
         <button type="button" data-v="non">Non</button>
       </div>
+      <div id="retrait" hidden>
+        <label class="ch"><span>Suspendu ou retiré depuis le <em>*</em></span><input type="date" id="retraitLe"></label>
+        <label class="ch"><span>Jusqu'au</span><small>Si une date de fin vous a été donnée</small><input type="date" id="retraitFin"></label>
+        <label class="ch"><span>Pour quelle raison ?</span><small>Par exemple : excès de vitesse, perte de tous les points</small>
+          <input type="text" id="retraitMotif" autocomplete="off"></label>
+      </div>
     </div>
 
     <div class="bloc" id="bloc-pl" hidden>
       <h2>Poids lourd</h2>
-      <label class="ch"><span>Visite médicale du permis, valable jusqu'au</span><input type="date" id="visitePermisFin"></label>
-      <label class="ch"><span>Dernière FIMO ou FCO, le</span><input type="date" id="fco"></label>
-      <label class="ch"><span>Carte de qualification de conducteur, valable jusqu'au</span><input type="date" id="carteQualif"></label>
-      <p class="q">Votre permis porte-t-il le code 95 ?</p>
+      <!-- LA PREUVE DU CODE 95 (27 novembre 2026). L'employeur doit pouvoir
+           produire, pour chaque conducteur, la copie d'un document portant le
+           code 95 (code des transports, R. 3315-1 et R. 3315-2) : la carte de
+           qualification, ou le permis quand il porte ce code. Tout était
+           facultatif ; la fiche pouvait partir sans aucune preuve. -->
+      <label class="ch"><span>Visite médicale du permis, valable jusqu'au <em>*</em></span><small>La date de fin de l'avis médical pour les catégories C1 à CE</small>
+        <input type="date" id="visitePermisFin"></label>
+      <p class="q">Votre dernière formation <em>*</em></p>
+      <div class="choix" data-choix="fcoType">
+        <button type="button" data-v="FIMO">FIMO<small>formation initiale</small></button>
+        <button type="button" data-v="FCO">FCO<small>formation continue</small></button>
+      </div>
+      <label class="ch"><span>Date de cette formation <em>*</em></span><input type="date" id="fco"></label>
+      <p class="q">Votre permis porte-t-il le code 95 ? <em>*</em></p>
       <div class="choix" data-choix="code95">
         <button type="button" data-v="oui">Oui</button>
         <button type="button" data-v="non">Non</button>
       </div>
-      <label class="ch"><span>Carte conducteur (chronotachygraphe), valable jusqu'au</span><input type="date" id="carteCond"></label>
+      <label class="ch"><span>Carte de qualification de conducteur, valable jusqu'au <span id="qualif-oblig" hidden><em>*</em></span></span>
+        <small id="qualif-aide">Obligatoire si votre permis ne porte pas le code 95</small>
+        <input type="date" id="carteQualif"></label>
+      <label class="ch"><span>Numéro de la carte conducteur (chronotachygraphe) <em>*</em></span><small>Les 16 caractères imprimés sur la carte</small>
+        <input type="text" id="carteNum" autocapitalize="characters" autocomplete="off" maxlength="20"></label>
+      <label class="ch"><span>Carte conducteur, valable jusqu'au <em>*</em></span><input type="date" id="carteCond"></label>
     </div>
 
     <div class="bloc" id="bloc-leger" hidden>
       <h2>Pas poids lourd</h2>
-      <p class="q">Avez-vous votre livret individuel de contrôle ?</p>
+      <p class="q">Avez-vous votre livret individuel de contrôle ? <em>*</em></p>
       <div class="choix" data-choix="livret">
         <button type="button" data-v="oui">Oui</button>
         <button type="button" data-v="non">Non</button>
       </div>
-      <p class="q">Avez-vous une carte conducteur (chronotachygraphe) ?</p>
+      <p class="q">Avez-vous une carte conducteur (chronotachygraphe) ? <em>*</em></p>
       <div class="choix" data-choix="aCarte">
         <button type="button" data-v="oui">Oui</button>
         <button type="button" data-v="non">Non</button>
       </div>
-      <label class="ch" id="lib-carte-leger" hidden><span>Carte conducteur, valable jusqu'au</span><input type="date" id="carteCondLeger"></label>
+      <div id="lib-carte-leger" hidden>
+        <label class="ch"><span>Numéro de la carte conducteur <em>*</em></span><small>Les 16 caractères imprimés sur la carte</small>
+          <input type="text" id="carteNumLeger" autocapitalize="characters" autocomplete="off" maxlength="20"></label>
+        <label class="ch"><span>Carte conducteur, valable jusqu'au <em>*</em></span><input type="date" id="carteCondLeger"></label>
+      </div>
     </div>
   </section>
 
@@ -264,6 +344,7 @@
 
 <div class="pied" id="pied"><div class="in"><button type="button" id="suivant">Continuer</button></div></div>
 
-<script src="fiche-chauffeur.js?v=dba73695"></script>
+<script src="listes-valeurs.js?v=86b8eae2"></script>
+<script src="fiche-chauffeur.js?v=ed3ab245"></script>
 </body>
 </html>

@@ -106,6 +106,23 @@
   brancherForme("tel", formeTel);
   brancherForme("nir", formeNir);
   brancherForme("permisNum", function (v) { return String(v || "").toUpperCase().replace(/[^0-9A-Z]/g, ""); });
+  /* Les numéros de carte conducteur et de titre : lettres et chiffres en
+     majuscules, sans espace (27 novembre 2026). */
+  ["carteNum", "carteNumLeger"].forEach(function (id) {
+    brancherForme(id, function (v) { return String(v || "").toUpperCase().replace(/[^0-9A-Z]/g, ""); });
+  });
+  brancherForme("titreNum", function (v) { return String(v || "").toUpperCase().replace(/[^0-9A-Z]/g, ""); });
+  /* Les nationalités proposées en tapant, celles que l'application sait
+     accorder dans les contrats. */
+  try {
+    var NAT = (window.ListesValeurs && window.ListesValeurs.nationalite) || [];
+    $("liste-nat").innerHTML = NAT.map(function (n) { return '<option value="' + String(n).replace(/"/g, "&quot;") + '">'; }).join("");
+  } catch (e) {}
+  /* Sans numéro de sécurité sociale, la case se vide et ne s'exige plus. */
+  $("sansNir").addEventListener("change", function () {
+    $("nir").disabled = $("sansNir").checked;
+    if ($("sansNir").checked) $("nir").value = "";
+  });
 
   /* ─── les choix par boutons ─── */
   Array.prototype.forEach.call(document.querySelectorAll("[data-choix]"), function (g) {
@@ -134,7 +151,7 @@
      poids lourd restaient demandées en photo. Les réponses du roulant ne
      comptent donc que pour un roulant, ici, et partout où elles servent. */
   function profil() { return roulant() ? (R.profil || "") : ""; }
-  function permisEtr() { return roulant() && R.ue === "non" && R.permisOrigine === "etr"; }
+  function permisEtr() { return roulant() && R.permisOrigine === "etr"; }
   function compteur() {
     var L = etapes(), rang = L.indexOf(E) + 1;
     if (!rang) return;
@@ -149,6 +166,8 @@
     $("bloc-pl").hidden = profil() !== "pl";
     $("bloc-leger").hidden = profil() !== "leger";
     $("lib-carte-leger").hidden = !(profil() === "leger" && R.aCarte === "oui");
+    $("retrait").hidden = !(roulant() && R.suspendu === "oui");
+    $("qualif-oblig").hidden = R.code95 !== "non";
     /* Le compteur suit tout de suite le choix roulant ou non roulant (trois
        écrans au lieu de quatre), sans attendre « Continuer ». */
     compteur();
@@ -167,11 +186,16 @@
       { k: "identiteRecto", t: "Pièce d'identité, recto", o: true },
       { k: "identiteVerso", t: "Pièce d'identité, verso", o: true },
     ]);
+    /* La carte de qualification est la preuve du code 95 quand le permis ne
+       le porte pas : elle est alors exigée (R. 3315-1 et R. 3315-2 du code
+       des transports). La carte conducteur d'un poids lourd aussi. */
     if (profil() === "pl") {
-      L.push({ k: "carteQualif", t: "Carte de qualification de conducteur, recto", s: "Si vous l'avez" });
-      L.push({ k: "carteCond", t: "Carte conducteur (chronotachygraphe), recto", s: "Si vous l'avez" });
+      L.push(R.code95 === "non"
+        ? { k: "carteQualif", t: "Carte de qualification de conducteur, recto", o: true }
+        : { k: "carteQualif", t: "Carte de qualification de conducteur, recto", s: "Si vous l'avez" });
+      L.push({ k: "carteCond", t: "Carte conducteur (chronotachygraphe), recto", o: true });
     }
-    if (profil() === "leger" && R.aCarte === "oui") L.push({ k: "carteCond", t: "Carte conducteur (chronotachygraphe), recto" });
+    if (profil() === "leger" && R.aCarte === "oui") L.push({ k: "carteCond", t: "Carte conducteur (chronotachygraphe), recto", o: true });
     if (R.ue === "non") {
       L.push({ k: "titreRecto", t: "Titre de séjour, recto", o: true });
       L.push({ k: "titreVerso", t: "Titre de séjour, verso", o: true });
@@ -259,38 +283,82 @@
     for (var e = $(id); e && e !== document.body; e = e.parentNode) if (e.hidden) return false;
     return true;
   }
+  /* La date de naissance : une vraie date, et quelqu'un d'au moins
+     quatorze ans. */
+  function naissanceOk() {
+    var v = val("nais"); if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+    var y = parseInt(v.slice(0, 4), 10);
+    return y >= 1930 && v <= (auj.getFullYear() - 14) + iso(auj).slice(4);
+  }
   function controle() {
     var M = [];
     if (E === 1) {
       if (!code && !val("code")) M.push("le code donné par T.E.C");
       if (!val("nom")) M.push("votre nom");
-      if (!val("prenom")) M.push("votre prénom");
-      if (val("tel")) {
+      if (!val("prenom")) M.push("vos prénoms");
+      if (!R.sexe) M.push("si vous êtes une femme ou un homme");
+      if (!val("nais")) M.push("votre date de naissance");
+      else if (!naissanceOk()) M.push("votre date de naissance (elle paraît impossible)");
+      if (!val("naisLieu")) M.push("votre lieu de naissance");
+      if (!val("adresse")) M.push("votre adresse");
+      if (!val("tel")) M.push("votre numéro de téléphone");
+      else {
         var t = formeTel(val("tel")), nc = chiffres(t).length;
         if (t.charAt(0) === "+" ? (nc < 8 || nc > 15) : nc !== 10) M.push("un numéro de téléphone complet (10 chiffres, ou l'indicatif du pays précédé de +)");
       }
-      if (val("nir") && !nirValide(val("nir"))) M.push("un numéro de sécurité sociale exact (15 chiffres, vérifiez la clé, les 2 derniers)");
+      if (val("courriel") && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val("courriel"))) M.push("une adresse e-mail complète, ou laissez la case vide");
+      if (!$("sansNir").checked && !val("nir")) M.push("votre numéro de sécurité sociale, ou cochez « Je n'ai pas encore de numéro »");
+      if (!$("sansNir").checked && val("nir") && !nirValide(val("nir"))) M.push("un numéro de sécurité sociale exact (15 chiffres, vérifiez la clé, les 2 derniers)");
       /* La dernière visite chez le médecin du travail est sur ce premier
          écran : elle se contrôle ici, roulant ou non, comme les autres dates
          (27 novembre 2026). Une année 0202 passait sans rien dire. */
       if (!dateOk("visiteTravail", false)) M.push("la date de votre dernière visite chez le médecin du travail (l'année paraît impossible)");
       if (!R.roulant) M.push("si vous êtes personnel roulant ou non roulant");
       if (roulant() && !R.profil) M.push("votre profil (poids lourd ou pas)");
-      if (!R.ue) M.push("votre nationalité (oui ou non)");
+      if (!val("nat")) M.push("votre nationalité");
+      if (!R.ue) M.push("si vous êtes ressortissant de l'Union européenne, de l'EEE ou de la Suisse (oui ou non)");
       if (R.ue === "non") {
+        if (!val("titreType")) M.push("le type de votre titre de séjour");
+        if (!val("titreNum")) M.push("le numéro de votre titre de séjour");
         if (!val("titreFin") || !dateOk("titreFin", true)) M.push("la date de fin de votre titre de séjour");
-        if (roulant() && !R.permisOrigine) M.push("si votre permis est français ou étranger");
-        if (permisEtr() && !val("permisPays")) M.push("le pays de votre permis");
-        if (permisEtr() && (!val("arrivee") || !dateOk("arrivee", true))) M.push("votre date d'arrivée en France");
       }
     }
     if (E === 2) {
-      if (!categories()) M.push("les catégories de votre permis (cochez-les)");
+      if (!val("permisNum")) M.push("le numéro de votre permis");
+      var cats = categories();
+      if (!cats) M.push("les catégories de votre permis (cochez-les)");
+      else if (profil() === "pl" && !/(^|, )C1?E?(,|$)/.test(cats)) M.push("une catégorie poids lourd (C1, C1E, C ou CE), ou choisissez « Pas poids lourd » à l'étape 1");
       if (!val("permisFin") || !dateOk("permisFin", true)) M.push("la date de fin de validité de votre permis");
+      if (!R.permisOrigine) M.push("le pays où votre permis a été délivré");
+      if (permisEtr()) {
+        if (!val("permisPays")) M.push("le pays de votre permis");
+        if (!val("arrivee") || !dateOk("arrivee", true)) M.push("votre date d'arrivée en France");
+        if (!R.permisEchange) M.push("si vous avez demandé l'échange de votre permis (oui ou non)");
+      }
+      if (val("points") !== "") {
+        var pts = Number(val("points"));
+        if (!(pts >= 0 && pts <= 12 && Math.floor(pts) === pts)) M.push("un nombre de points entre 0 et 12");
+      }
       if (!R.suspendu) M.push("si votre permis est suspendu (oui ou non)");
+      if (R.suspendu === "oui" && (!val("retraitLe") || !dateOk("retraitLe", true))) M.push("la date de la suspension ou du retrait");
+      if (profil() === "pl") {
+        if (!val("visitePermisFin")) M.push("la date de fin de la visite médicale du permis");
+        if (!R.fcoType) M.push("votre dernière formation (FIMO ou FCO)");
+        if (!val("fco")) M.push("la date de votre FIMO ou FCO");
+        if (!R.code95) M.push("si votre permis porte le code 95 (oui ou non)");
+        if (R.code95 === "non" && !val("carteQualif")) M.push("la date de fin de votre carte de qualification (votre permis ne porte pas le code 95)");
+        if (!val("carteNum")) M.push("le numéro de votre carte conducteur");
+        if (!val("carteCond")) M.push("la date de fin de votre carte conducteur");
+      }
+      if (profil() === "leger") {
+        if (!R.livret) M.push("si vous avez votre livret individuel de contrôle (oui ou non)");
+        if (!R.aCarte) M.push("si vous avez une carte conducteur (oui ou non)");
+        if (R.aCarte === "oui" && !val("carteNumLeger")) M.push("le numéro de votre carte conducteur");
+        if (R.aCarte === "oui" && !val("carteCondLeger")) M.push("la date de fin de votre carte conducteur");
+      }
       /* Seules les dates qu'on voit se contrôlent : celles du bloc poids lourd
          ne doivent pas bloquer un « pas poids lourd », ni l'inverse. */
-      ["visitePermisFin", "fco", "carteQualif", "carteCond", "carteCondLeger"].forEach(function (id) {
+      ["visitePermisFin", "fco", "carteQualif", "carteCond", "carteCondLeger", "arrivee", "retraitLe", "retraitFin"].forEach(function (id) {
         if (visible(id) && !dateOk(id, false)) M.push("une date à corriger (l'année paraît impossible)");
       });
     }
@@ -356,7 +424,7 @@
      avant de quitter ; s'il n'y a nulle part où revenir, on le dit, au lieu
      d'un bouton qui semble mort. */
   function saisi() {
-    var champs = document.querySelectorAll("main input[type=text], main input[type=tel], main input[type=date]");
+    var champs = document.querySelectorAll("main input[type=text], main input[type=tel], main input[type=date], main input[type=email], main input[type=number], main select");
     for (var i = 0; i < champs.length; i++) if ((champs[i].value || "").trim()) return true;
     if (categories() || $("certifie").checked || signe) return true;
     for (var k in PH) if (PH[k]) return true;
@@ -401,27 +469,36 @@
   /* ─── l'envoi chiffré ─── */
   function fiche() {
     var f = {
-      nom: val("nom").toUpperCase(), prenom: val("prenom"), adresse: val("adresse"), tel: formeTel(val("tel")), nir: formeNir(val("nir")),
+      nom: val("nom").toUpperCase(), prenom: val("prenom"), adresse: val("adresse"), tel: formeTel(val("tel")),
+      nir: $("sansNir").checked ? "" : formeNir(val("nir")), sansNir: $("sansNir").checked ? "oui" : "",
+      /* L'identité du registre et de l'embauche (27 novembre 2026). */
+      sexe: R.sexe || "", nais: val("nais"), naisLieu: val("naisLieu"), nat: val("nat"), courriel: val("courriel"),
       roulant: R.roulant, profil: profil(), ue: R.ue,
+      titreType: R.ue === "non" ? val("titreType") : "",
+      titreNum: R.ue === "non" ? val("titreNum") : "",
       titreFin: R.ue === "non" ? val("titreFin") : "",
-      permisOrigine: !roulant() ? "" : (R.ue === "non" ? (R.permisOrigine || "") : "fr"),
+      permisOrigine: roulant() ? (R.permisOrigine || "") : "",
       /* Ce qui n'est plus demandé ne part pas (27 novembre 2026). */
       permisPays: permisEtr() ? val("permisPays") : "",
       arrivee: permisEtr() ? val("arrivee") : "",
+      permisEchange: permisEtr() ? (R.permisEchange || "") : "",
       inter: roulant() && R.ue === "non" ? (R.inter || "") : "",
       visiteTravail: val("visiteTravail"),
     };
     if (roulant()) {
       f.permisNum = val("permisNum").toUpperCase(); f.permisCat = categories(); f.permisFin = val("permisFin");
+      f.points = val("points");
       f.suspendu = R.suspendu || "";
+      if (R.suspendu === "oui") { f.retraitLe = val("retraitLe"); f.retraitFin = val("retraitFin"); f.retraitMotif = val("retraitMotif"); }
     }
     if (!roulant()) {
       /* rien du permis ni des cartes */
     } else if (profil() === "pl") {
-      f.visitePermisFin = val("visitePermisFin"); f.fco = val("fco"); f.carteQualif = val("carteQualif");
-      f.code95 = R.code95 || ""; f.carteCond = val("carteCond");
+      f.visitePermisFin = val("visitePermisFin"); f.fcoType = R.fcoType || ""; f.fco = val("fco"); f.carteQualif = val("carteQualif");
+      f.code95 = R.code95 || ""; f.carteNum = val("carteNum"); f.carteCond = val("carteCond");
     } else {
       f.livret = R.livret || ""; f.aCarte = R.aCarte || "";
+      f.carteNum = R.aCarte === "oui" ? val("carteNumLeger") : "";
       f.carteCond = R.aCarte === "oui" ? val("carteCondLeger") : "";
     }
     var P = {};
