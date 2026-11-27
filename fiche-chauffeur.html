@@ -106,6 +106,16 @@
   .rgpd h3{font:700 14px/1.3 system-ui;color:var(--encre);margin:14px 0 4px}
   .rgpd p{margin:0;font:400 14px/1.5 system-ui;color:#2b3038}
   .rgpd a{color:var(--encre)}
+  /* À lire avant de remplir : en rouge tant que la case n'est pas cochée,
+     en vert ensuite (27 novembre 2026). */
+  .rgpd.alire{border:2px solid var(--rouge)}
+  .rgpd.alire summary{background:var(--rouge-clair);border-radius:12px 12px 0 0}
+  .rgpd.alire summary .tx{color:var(--rouge)}
+  .rgpd.alire summary .ic{background:var(--rouge);color:#fff}
+  .rgpd.lu{border:1px solid #b7dcc4}
+  .rgpd.lu summary .ic{background:var(--vert-clair);color:var(--vert)}
+  .rgpd .coche{margin:16px 0 0;padding:12px;border-radius:11px;background:var(--rouge-clair);color:var(--rouge)}
+  .rgpd.lu .coche{background:var(--vert-clair);color:var(--vert)}
   .passe{background:var(--or-clair);border:1px solid #e2d6bd;color:#6b4e16;border-radius:10px;
     padding:9px 11px;margin:8px 0 0;font:600 14px/1.4 system-ui}
   [hidden]{display:none !important}
@@ -141,9 +151,14 @@
          question sont obtenues » (RGPD, article 13) : elles sont donc en tête
          du premier écran, avant la première question, sur le modèle de la
          page de confidentialité de Nomos. -->
-    <details class="rgpd" id="rgpd">
-      <summary><span class="ic">i</span>
-        <span class="tx">Vos données personnelles<small>Qui les reçoit, pourquoi, combien de temps, et vos droits. Touchez pour lire.</small></span>
+    <!-- OUVERT D'OFFICE, ET UNE CASE À COCHER (27 novembre 2026). Fermé, le
+         texte n'était pas lu : l'information n'était pas opposable. Il s'ouvre
+         donc en rouge, et la fiche ne continue pas tant que la case du bas,
+         « J'ai lu », n'est pas cochée. La date et l'heure partent avec la
+         fiche et figurent sur la fiche signée. -->
+    <details class="rgpd alire" id="rgpd" open>
+      <summary><span class="ic">!</span>
+        <span class="tx"><span id="rgpd-titre">À lire avant de remplir : vos données personnelles</span><small id="rgpd-aide">Lisez jusqu'en bas, puis cochez la case.</small></span>
         <span class="fl">›</span></summary>
       <div class="corps-r">
         <h3>Responsable</h3>
@@ -158,6 +173,7 @@
         <p>Les mentions du registre du personnel sont conservées cinq ans après votre départ (article R. 1221-26 du code du travail). Les autres données sont conservées pendant votre contrat, puis jusqu'à trois ans.</p>
         <h3>Vos droits</h3>
         <p>Accès, rectification, effacement, limitation, opposition et portabilité, par e-mail à <a href="mailto:tec.contact@yahoo.fr">tec.contact@yahoo.fr</a>, au <a href="tel:+33603671315">+33 6 03 67 13 15</a> ou par courrier à la SARL T.E.C, 23 avenue du Château, 95100 Argenteuil (réponse sous un mois). En cas de désaccord, vous pouvez saisir la CNIL (<a href="https://www.cnil.fr" target="_blank" rel="noopener">www.cnil.fr</a>).</p>
+        <label class="coche"><input type="checkbox" id="rgpdLu"> J'ai lu l'information sur mes données personnelles.</label>
       </div>
     </details>
 
@@ -388,6 +404,6 @@
 <div class="pied" id="pied"><div class="in"><button type="button" id="suivant">Continuer</button></div></div>
 
 <script src="listes-valeurs.js?v=86b8eae2"></script>
-<script src="fiche-chauffeur.js?v=89133cc4"></script>
+<script src="fiche-chauffeur.js?v=0c1312ad"></script>
 </body>
 </html>

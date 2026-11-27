@@ -148,6 +148,23 @@
     ["input", "change", "blur"].forEach(function (t) { $(id).addEventListener(t, function () { signalerPasse(id); }); });
   });
 
+  /* L'INFORMATION LUE (27 novembre 2026). La case cochée garde l'heure, qui
+     part avec la fiche ; l'encadré passe au vert et se referme. */
+  var RGPD_LU = "";
+  function heureFr(d) { return ("0" + d.getHours()).slice(-2) + " h " + ("0" + d.getMinutes()).slice(-2); }
+  $("rgpdLu").addEventListener("change", function () {
+    var c = $("rgpdLu").checked, b = $("rgpd");
+    RGPD_LU = c ? new Date().toISOString() : "";
+    b.classList.toggle("alire", !c); b.classList.toggle("lu", c);
+    b.querySelector(".ic").textContent = c ? "✓" : "!";
+    $("rgpd-titre").textContent = c ? "Vos données personnelles" : "À lire avant de remplir : vos données personnelles";
+    var d = new Date();
+    $("rgpd-aide").textContent = c ? "Information lue le " + (d.getDate() === 1 ? "1er" : d.getDate()) + " " + MOIS[d.getMonth()] + " " + d.getFullYear() + " à " + heureFr(d) + ". Touchez pour la relire."
+      : "Lisez jusqu'en bas, puis cochez la case.";
+    if (c) { b.open = false; window.scrollTo(0, 0); }
+    erreur(null);
+  });
+
   /* ─── les choix par boutons ─── */
   Array.prototype.forEach.call(document.querySelectorAll("[data-choix]"), function (g) {
     var nom = g.getAttribute("data-choix");
@@ -317,6 +334,7 @@
   function controle() {
     var M = [];
     if (E === 1) {
+      if (!$("rgpdLu").checked) { M.push("la case « J'ai lu l'information sur mes données personnelles », en haut de la fiche"); $("rgpd").open = true; }
       if (!code && !val("code")) M.push("le code donné par T.E.C");
       if (!val("nom")) M.push("votre nom");
       if (!val("prenom")) M.push("vos prénoms");
@@ -498,6 +516,7 @@
       nom: val("nom").toUpperCase(), prenom: val("prenom"), adresse: val("adresse"), tel: formeTel(val("tel")),
       nir: $("sansNir").checked ? "" : formeNir(val("nir")), sansNir: $("sansNir").checked ? "oui" : "",
       /* L'identité du registre et de l'embauche (27 novembre 2026). */
+      rgpdLu: RGPD_LU,
       sexe: R.sexe || "", nais: val("nais"), naisLieu: val("naisLieu"), nat: val("nat"), courriel: val("courriel"),
       roulant: R.roulant, profil: profil(), ue: R.ue,
       titreType: R.ue === "non" ? val("titreType") : "",
