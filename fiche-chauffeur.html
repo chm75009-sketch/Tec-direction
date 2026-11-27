@@ -314,12 +314,15 @@
            facultatif ; la fiche pouvait partir sans aucune preuve. -->
       <label class="ch"><span>Visite médicale du permis, valable jusqu'au <em>*</em></span><small>La date de fin de l'avis médical pour les catégories C1 à CE</small>
         <input type="date" id="visitePermisFin"></label>
-      <p class="q">Votre dernière formation <em>*</em></p>
-      <div class="choix" data-choix="fcoType">
-        <button type="button" data-v="FIMO">FIMO<small>formation initiale</small></button>
-        <button type="button" data-v="FCO">FCO<small>formation continue</small></button>
-      </div>
-      <label class="ch"><span>Date de cette formation <em>*</em></span><input type="date" id="fco"></label>
+      <!-- DEUX DATES, PAS UN CHOIX (27 novembre 2026). « Votre dernière
+           formation : FIMO ou FCO », puis « Date de cette formation », laissait
+           croire que celui qui coche FCO n'a pas de formation initiale. La FIMO
+           se fait une fois ; la FCO tous les cinq ans ensuite (code des
+           transports, R. 3314-10). -->
+      <label class="ch"><span>Date de votre FIMO <em>*</em></span><small>Formation initiale minimale obligatoire. Si vous ne la retrouvez pas, indiquez au moins la date de votre dernière FCO.</small>
+        <input type="date" id="fimo"></label>
+      <label class="ch"><span>Date de votre dernière FCO</span><small>Formation continue obligatoire, tous les cinq ans. Si vous en avez fait une.</small>
+        <input type="date" id="fco"></label>
       <p class="q">Votre permis porte-t-il le code 95 ? <em>*</em></p>
       <div class="choix" data-choix="code95">
         <button type="button" data-v="oui">Oui</button>
@@ -385,6 +388,6 @@
 <div class="pied" id="pied"><div class="in"><button type="button" id="suivant">Continuer</button></div></div>
 
 <script src="listes-valeurs.js?v=86b8eae2"></script>
-<script src="fiche-chauffeur.js?v=ed3ab245"></script>
+<script src="fiche-chauffeur.js?v=89133cc4"></script>
 </body>
 </html>

@@ -367,8 +367,10 @@
       if (R.suspendu === "oui" && (!val("retraitLe") || !dateOk("retraitLe", true))) M.push("la date de la suspension ou du retrait");
       if (profil() === "pl") {
         if (!val("visitePermisFin")) M.push("la date de fin de la visite médicale du permis");
-        if (!R.fcoType) M.push("votre dernière formation (FIMO ou FCO)");
-        if (!val("fco")) M.push("la date de votre FIMO ou FCO");
+        /* La FIMO est exigée, sauf si une FCO est datée : la FCO suppose la
+           FIMO faite avant. */
+        if (!val("fimo") && !val("fco")) M.push("la date de votre FIMO (ou, à défaut, de votre dernière FCO)");
+        if (val("fimo") && val("fco") && val("fco") < val("fimo")) M.push("des dates de formation à vérifier (la FCO vient après la FIMO)");
         if (!R.code95) M.push("si votre permis porte le code 95 (oui ou non)");
         if (R.code95 === "non" && !val("carteQualif")) M.push("la date de fin de votre carte de qualification (votre permis ne porte pas le code 95)");
         if (!val("carteNum")) M.push("le numéro de votre carte conducteur");
@@ -382,7 +384,7 @@
       }
       /* Seules les dates qu'on voit se contrôlent : celles du bloc poids lourd
          ne doivent pas bloquer un « pas poids lourd », ni l'inverse. */
-      ["visitePermisFin", "fco", "carteQualif", "carteCond", "carteCondLeger", "arrivee", "retraitLe", "retraitFin"].forEach(function (id) {
+      ["visitePermisFin", "fimo", "fco", "carteQualif", "carteCond", "carteCondLeger", "arrivee", "retraitLe", "retraitFin"].forEach(function (id) {
         if (visible(id) && !dateOk(id, false)) M.push("une date à corriger (l'année paraît impossible)");
       });
     }
@@ -518,7 +520,7 @@
     if (!roulant()) {
       /* rien du permis ni des cartes */
     } else if (profil() === "pl") {
-      f.visitePermisFin = val("visitePermisFin"); f.fcoType = R.fcoType || ""; f.fco = val("fco"); f.carteQualif = val("carteQualif");
+      f.visitePermisFin = val("visitePermisFin"); f.fimo = val("fimo"); f.fco = val("fco"); f.carteQualif = val("carteQualif");
       f.code95 = R.code95 || ""; f.carteNum = val("carteNum"); f.carteCond = val("carteCond");
     } else {
       f.livret = R.livret || ""; f.aCarte = R.aCarte || "";
