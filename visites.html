@@ -659,7 +659,7 @@
   }
 
   /* ──────────────────────────────── les deux courriers ───────────────── */
-  var DOC = null;
+  var DOC = null, DOC_SAL = null;
   function salarieDe(id) {
     var out = null;
     salaries().forEach(function (s) { if (s.id === id) out = s; });
@@ -784,14 +784,38 @@
     var s = salarieDe(id);
     if (!s) return;
     DOC = quoi === "service" ? docService(s) : docSalarie(s);
+    DOC_SAL = id;
     $("feuille").innerHTML = DOC.blocs.map(function (b) {
       if (b.k === "t1") return "<h2>" + ech(b.t) + "</h2>";
       return "<p>" + ech(b.t) + "</p>";
     }).join("");
     $("doc").hidden = false;
-    $("doc").scrollIntoView({ behavior: "smooth", block: "start" });
+    /* Le bandeau du haut reste collé : le courrier se pose juste dessous, son
+       titre visible, au lieu de commencer caché sous lui (27 novembre 2026). */
+    var tete = document.querySelector("header.site");
+    var marge = (tete ? tete.offsetHeight : 0) + 10;
+    window.scrollTo({ top: Math.max(0, $("doc").getBoundingClientRect().top + window.pageYOffset - marge), behavior: "smooth" });
   }
-  $("btn-fermer").addEventListener("click", function () { $("doc").hidden = true; });
+  /* LE RETOUR REFERME LE COURRIER, IL NE QUITTE PAS LA PAGE.
+
+     Relevé le 27 novembre 2026 : un courrier ouvert, le bouton Retour du
+     haut quittait les visites au lieu de le refermer. Le courrier est une
+     étape de la page, comme le volet d'un salarié sur la page des salariés :
+     il se déclare à la barre, et le Retour ramène à la carte du salarié d'où
+     il a été ouvert. */
+  function fermerDoc() {
+    $("doc").hidden = true;
+    var carte = DOC_SAL ? document.querySelector('.sal[data-sal="' + String(DOC_SAL).replace(/"/g, "") + '"]') : null;
+    /* Le bandeau du haut reste collé : la carte se pose juste dessous. */
+    var tete = document.querySelector("header.site");
+    var marge = (tete ? tete.offsetHeight : 0) + 10;
+    if (carte) window.scrollTo(0, Math.max(0, carte.getBoundingClientRect().top + window.pageYOffset - marge));
+  }
+  $("btn-fermer").addEventListener("click", fermerDoc);
+  if (window.Barre && window.Barre.avant) window.Barre.avant(function () {
+    if (!$("doc").hidden) { fermerDoc(); return true; }
+    return false;
+  });
   $("btn-imprimer").addEventListener("click", function () { window.print(); });
   $("btn-word").addEventListener("click", function () {
     if (!DOC || !window.AuditExport) return;
@@ -823,7 +847,29 @@
       ech(TEXTES[c].dit) + "</p>";
   }).join("");
 
+  /* LE « OUI » ET LE « NON » DE L'AUDIT N'OUVRAIENT PAS LA MÊME CHOSE PAR
+     HASARD : ILS OUVRAIENT LA MÊME PAGE (27 novembre 2026). « Non », on n'a
+     pas de suivi : la page construit, en ouvrant la première personne à
+     convoquer et sa convocation. « Oui », on en a un : la page contrôle,
+     tous les salariés affichés avec leurs échéances. */
+  var REP = "";
+  try { REP = new URLSearchParams(window.location.search).get("rep") || ""; } catch (e) {}
+  if (REP === "oui") {
+    FILTRE = "tous";
+    Array.prototype.forEach.call($("filtres").querySelectorAll("button"), function (x) {
+      x.classList.toggle("actif", x.getAttribute("data-f") === "tous");
+    });
+  }
   rendre();
+  if (REP === "non") {
+    var premiere = document.querySelector(".sal[data-sal]");
+    if (premiere) {
+      var pid = premiere.getAttribute("data-sal");
+      ouvert[pid] = true;
+      rendre();
+      ouvrirDoc("salarie", pid);
+    }
+  }
 })();
 </script>
 </body>

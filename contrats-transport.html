@@ -36,6 +36,17 @@
 <style>
   main.wrap{max-width:720px}
   .haut{position:sticky;top:0;z-index:20;background:var(--fond)}
+  /* L'EN-TÊTE TIENT SUR UNE RANGÉE, COMME AILLEURS.
+     Au téléphone, le titre long (« CDI conducteur marchandises PL ou SPL »)
+     refusait de se réduire : le Menu passait seul sur une deuxième ligne, le
+     nom de l'entreprise sur une troisième, et l'en-tête collant mangeait près
+     de deux cents points de l'écran. Relevé le 27 novembre 2026. Le titre
+     prend la place qui reste entre le Retour et le Menu, et passe à la ligne
+     dans cette place au lieu de chasser le Menu. */
+  @media (max-width:520px){
+    main .haut b#titre-haut{flex:1 1 0;min-width:0;white-space:normal;overflow:visible;
+      text-overflow:clip;line-height:1.25}
+  }
   .aide{margin:16px 0 0;font-size:var(--t4);color:var(--texte-2);line-height:1.5}
 
   .profils{display:grid;gap:12px;margin:16px 0 0}
@@ -169,6 +180,10 @@
     letter-spacing:.03em;color:var(--texte-3);background:var(--surface-2)}
   .min-l span:nth-child(3),.min-l span:nth-child(4){text-align:right;
     font-variant-numeric:tabular-nums}
+  /* Les garanties des ouvriers à 169 et 200 heures : trois colonnes, les
+     montants alignés à droite. */
+  .min-l.min-g{grid-template-columns:1fr 1fr 1fr}
+  .min-l.min-g span:nth-child(2){text-align:right;font-variant-numeric:tabular-nums}
   .min-smic{display:block;margin:12px 0;font:600 14px/1.4 system-ui;color:var(--texte-2)}
   .min-smic input{display:block;margin:6px 0 0;font-size:16px;padding:10px 12px;min-height:44px;
     width:100%;max-width:220px;box-sizing:border-box;border-radius:10px;
@@ -331,11 +346,11 @@
 <script src="listes-auto.js?v=cc647c6a"></script>
 <script src="apercu.js?v=0d8afe7c"></script>
 <script src="audit-export.js?v=890d7345"></script>
-<script src="base-documents.js?v=6d57384f"></script>
+<script src="base-documents.js?v=5415ac0e"></script>
 <script src="profil.js?v=a87b9bf8"></script>
-<script src="echeances-salaries.js?v=352698b5"></script>
+<script src="echeances-salaries.js?v=00ef72d0"></script>
 <script src="ccn-vigueur.js?v=3e5b426d"></script>
 <script src="contrats-transport.js?v=9d01c82e"></script>
-<script src="contrats-transport-ecran.js?v=83b9de5e"></script>
+<script src="contrats-transport-ecran.js?v=be35c726"></script>
 </body>
 </html>

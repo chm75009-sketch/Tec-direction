@@ -147,6 +147,15 @@
       if (principal) b.className = "pri"; b.onclick = action; ma.appendChild(b); return b;
     }
     function dire(m) { bulle.textContent = m; bulle.classList.add("on"); setTimeout(function () { bulle.classList.remove("on"); }, 2600); }
+    /* FAIRE DÉFILER SOUS L'EN-TÊTE. Depuis le 27 novembre 2026, la rangée du
+       Retour reste collée en haut de l'écran : ce vers quoi on fait défiler
+       s'arrête juste dessous, au lieu de passer derrière elle. */
+    function defilerVers(el, marge) {
+      if (!el) return;
+      var haut = document.querySelector(".haut"), dessus = 0;
+      if (haut && window.getComputedStyle(haut).position === "sticky") dessus = haut.getBoundingClientRect().height;
+      window.scrollTo(0, Math.max(0, el.getBoundingClientRect().top + window.pageYOffset - dessus - (marge == null ? 12 : marge)));
+    }
     function prevenirPage() { if (opts.apresChangement) opts.apresChangement(); }
 
     /* ─────────────────────── ce que la fiche sait ───────────────────────── */
@@ -417,7 +426,7 @@
       h += '<div class="st-carte"><h2 class="st-h2">Anomalies relevées</h2>' + (G.length ? G.map(ligneGroupe).join("") : '<p class="st-vide">Aucune anomalie : rien à faire.</p>') + '</div>';
       return h;
     }
-    function versReaction(msg) { S.etape = 2; peindre(); prevenirPage(); window.scrollTo(0, cont.getBoundingClientRect().top + window.pageYOffset - 12); dire(msg + " : à vous de réagir"); }
+    function versReaction(msg) { S.etape = 2; peindre(); prevenirPage(); defilerVers(cont); dire(msg + " : à vous de réagir"); }
 
     /* La date du téléchargement de la carte. Le nom du fichier la donne quand il
        suit la convention courante (il finit par AAMMJJHHMM). Sinon on prend le
@@ -899,7 +908,7 @@
       CT.ajouterAnomalie(ID, { date: J(70), type: "dépassement de la conduite journalière", detail: "Véhicule " + IMMAT + " : 10 h 40 de conduite relevées au contrôle.", src: "procès-verbal reçu", connu: J(50) });
       CT.ajouterControle(ID, { quand: H(50, 16), lib: "Procès-verbal reçu", resume: "Dépassement de la conduite journalière du " + jj(J(70)) + ", connu le " + jj(J(50)) + "." });
       S.id = ID; S.etape = 0; S.decoches = {}; S.reac = { cle: null, penal: false, entretien: "" };
-      peindre(); prevenirPage(); window.scrollTo(0, cont.getBoundingClientRect().top + window.pageYOffset - 12);
+      peindre(); prevenirPage(); defilerVers(cont);
       dire("Démonstration chargée : parcourez les quatre étapes");
     }
 
@@ -908,7 +917,7 @@
     cont.addEventListener("click", function (e) {
       var b = e.target.closest("[data-st]"); if (!b || !cont.contains(b)) return;
       var a = b.getAttribute("data-st"), v = b.getAttribute("data-v");
-      if (a === "etape" || a === "aller") { S.etape = +v; peindre(); if (a === "aller") window.scrollTo(0, cont.getBoundingClientRect().top + window.pageYOffset - 12); return; }
+      if (a === "etape" || a === "aller") { S.etape = +v; peindre(); if (a === "aller") defilerVers(cont); return; }
       if (a === "fiche") { if (!CT.enWordSuivi(S.id)) dire("Le générateur Word n'est pas disponible."); return; }
       if (a === "essai") return proposerEssai();
       if (a === "essai-annuler") return finEssai(false);
@@ -970,6 +979,16 @@
       /* Ouvrir directement un volet : la page du salarié mène à chacun des
          quatre (26 novembre 2026). */
       aller: function (n) { n = parseInt(n, 10); if (n >= 0 && n <= 3) S.etape = n; },
+      /* Amener à l'écran la rangée des quatre étapes et le volet ouvert :
+         arrivé de la page du salarié, son contenu commençait au bas de
+         l'écran du téléphone (27 novembre 2026). */
+      versVolet: function () {
+        /* L'écart laissé au-dessus est celui qui sépare la rangée du bloc
+           précédent : le bas d'un bandeau d'alerte ne dépasse pas sous l'en-tête. */
+        var b = cont.querySelector(".st-etapes"), av = b && b.previousElementSibling;
+        var g = av ? Math.min(12, Math.max(0, b.getBoundingClientRect().top - av.getBoundingClientRect().bottom)) : 12;
+        defilerVers(b, g);
+      },
     };
   }
 

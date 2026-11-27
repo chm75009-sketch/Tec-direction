@@ -283,8 +283,17 @@
      médicales : ce sont des données du personnel, étrangères à la seule
      gestion du parc. Pour une séance de role « parc », l'onglet disparaît et
      la flotte occupe toute la largeur. */
+  /* Sans les conducteurs, il ne reste qu'un onglet : un bouton « Véhicules »
+     seul ne mène nulle part, et le titre ne parle que de la flotte
+     (27 novembre 2026). */
   :root[data-role="parc"]:not([data-conducteurs="oui"]) #o-con{display:none}
-  :root[data-role="parc"]:not([data-conducteurs="oui"]) .onglets{grid-template-columns:1fr}
+  :root[data-role="parc"]:not([data-conducteurs="oui"]) .onglets{display:none}
+  :root[data-role="parc"]:not([data-conducteurs="oui"]) #t-flotte-c{display:none}
+  /* LE BOUTON ROND DE L'ASSISTANT NE CACHE RIEN (27 novembre 2026). Il flotte
+     au-dessus de la barre du bas et recouvrait la fin des lignes « À bord »
+     et le bouton « Valider l'importation ». La page garde en bas assez de
+     place pour que tout puisse remonter au-dessus de lui. */
+  body.avec-bas{padding-bottom:calc(160px + env(safe-area-inset-bottom))}
   /* L'INTERRUPTEUR DE T.E.C (25 novembre 2026). Les fiches conducteur restent
      cachées au chef de parc ; T.E.C, ou le cabinet, peut décider de les lui
      montrer. L'interrupteur n'apparaît qu'à eux, jamais au chef de parc. */
@@ -474,14 +483,14 @@
 
 <script>window.RUBRIQUE_DOCS = "flotte";</script>
 <script src="apercu.js?v=0d8afe7c"></script>
-<script src="base-documents.js?v=6d57384f"></script>
+<script src="base-documents.js?v=5415ac0e"></script>
 <script src="tableur-export.js?v=c41750d9"></script>
 <script src="lire-classeur.js?v=8eed8dc2"></script>
 <script src="profil.js?v=a87b9bf8"></script>
 <script src="version.js?v=c4e62f6d"></script>
 <script src="parc-parametres.js?v=a1fac9de"></script>
-<script src="flotte.js?v=e48315f9"></script>
-<script src="fiches-recues.js?v=f02e2c6f"></script>
+<script src="flotte.js?v=ee7efb1a"></script>
+<script src="fiches-recues.js?v=d780fb3e"></script>
 <script>
 (function () {
   "use strict";
@@ -494,6 +503,6 @@
   if (b) b.addEventListener("click", function () { location.reload(); });
 })();
 </script>
-<script src="assistant.js?v=b29d04a2" defer></script>
+<script src="assistant.js?v=e0c79611" defer></script>
 </body>
 </html>

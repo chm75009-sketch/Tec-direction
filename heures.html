@@ -512,6 +512,9 @@
       <p class="doux">L'imprimé que le conducteur signe avec son relevé : son permis est valable,
         sans rétention ni suspension, et il préviendra sans délai si cela change. Le numéro et la
         catégorie viennent de sa fiche dans <a href="flotte.html">Flotte et conducteurs</a>.</p>
+      <!-- Une date passée de la fiche se dit ici, avant que la déclaration
+           soit produite (27 novembre 2026). -->
+      <p class="al rouge" id="decl-alerte" hidden></p>
       <div class="barre">
         <button type="button" id="b-decl-imp">Imprimer la déclaration</button>
         <button type="button" class="second" id="b-decl">La déclaration en Word</button>
@@ -570,7 +573,7 @@
 
 <script>window.RUBRIQUE_DOCS = "heures";</script>
 <script src="apercu.js?v=0d8afe7c"></script>
-<script src="base-documents.js?v=6d57384f"></script>
+<script src="base-documents.js?v=5415ac0e"></script>
 <script src="audit-export.js?v=890d7345"></script>
 <script src="tableur-export.js?v=c41750d9"></script>
 <script src="profil.js?v=a87b9bf8"></script>
@@ -579,12 +582,12 @@
 <script src="lire-classeur.js?v=8eed8dc2"></script>
 <script src="lire-ddd.js?v=94f1a2d7"></script>
 <!-- La durée due par le contrat, écrite au moment où le contrat a été fait. -->
-<script src="echeances-salaries.js?v=352698b5"></script>
+<script src="echeances-salaries.js?v=00ef72d0"></script>
 <!-- La convention des transports : ses montants de repas et de découcher, sa
      période de nuit et sa garantie d'amplitude. C'est le même fichier que les
      contrats, avec ses sources et ses dates. -->
 <script src="contrats-transport.js?v=9d01c82e"></script>
-<script src="heures.js?v=469f8ddb"></script>
+<script src="heures.js?v=f60354b4"></script>
 <script>
 (function () {
   "use strict";
@@ -597,6 +600,6 @@
   if (b) b.addEventListener("click", function () { location.reload(); });
 })();
 </script>
-<script src="assistant.js?v=b29d04a2" defer></script>
+<script src="assistant.js?v=e0c79611" defer></script>
 </body>
 </html>

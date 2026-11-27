@@ -606,23 +606,97 @@
      les deux se saisissent séparément, ils finissent par se contredire. Ce
      qui est écrit d'un côté s'écrit de l'autre, et le conducteur qui perd
      son véhicule le perd des deux côtés. */
-  function lierVehiculeConducteur(idVehicule, idSalarie, idSalarieAvant) {
-    if (idSalarieAvant && idSalarieAvant !== idSalarie) {
-      var a = fiche(idSalarieAvant);
-      if (a.vehicule === idVehicule) { a.vehicule = ""; garderFiche(idSalarieAvant, a); }
+  /* UN CAMION, UN SEUL CHAUFFEUR ATTITRÉ (27 novembre 2026). Choisir pour
+     COULIBALY un camion déjà attribué à SOUICI l'écrasait sans rien dire, et
+     la fiche de SOUICI gardait ce camion : deux salariés voyaient le même.
+     Désormais, celui qui perd un camion le perd des deux côtés, sur la fiche
+     du camion comme sur la sienne, et rien ne lui est retiré sans que
+     l'utilisateur l'ait confirmé. Les deux fonctions rendent « false » quand
+     la confirmation est refusée : rien n'a alors été touché, et l'appelant
+     remet le champ comme il était. */
+  function nomSalarie(id) {
+    var n = "";
+    salaries(true).forEach(function (s) { if (s.id === id) n = s.nom; });
+    return n || id;
+  }
+  function immatDe(L, id) {
+    var t = "";
+    L.forEach(function (v) { if (v.id === id) t = net(v.immat); });
+    return t || "un véhicule sans immatriculation";
+  }
+  function retraitsAccepte(pertes) {
+    if (!pertes.length) return true;
+    return window.confirm(pertes.map(function (p) {
+      return p.immat + " est attribué à " + p.nom + " : il le perdra.";
+    }).join("\n") + "\n\nConfirmer ce changement ?");
+  }
+  /* Le salarié qui tient un camion, d'un côté ou de l'autre du lien. */
+  function porteurs(L, idVehicule) {
+    var P = {};
+    L.forEach(function (v) { if (v.id === idVehicule && net(v.conducteur)) P[v.conducteur] = true; });
+    var t = lire(CLE_C, {});
+    Object.keys(t).forEach(function (sid) { if (t[sid] && t[sid].vehicule === idVehicule) P[sid] = true; });
+    return Object.keys(P);
+  }
+
+  function lierVehiculeConducteur(idVehicule, idSalarie, idSalarieAvant, dejaConfirme) {
+    var L = vehicules();
+    /* Ceux qui perdent ce camion : tout autre que le nouveau chauffeur. */
+    var perdV = porteurs(L, idVehicule).filter(function (sid) { return sid !== idSalarie; });
+    if (idSalarieAvant && idSalarieAvant !== idSalarie && perdV.indexOf(idSalarieAvant) < 0) perdV.push(idSalarieAvant);
+    /* Le nouveau chauffeur perd le camion qu'il avait : sa fiche n'en porte qu'un. */
+    var ancienDuNouveau = idSalarie ? net(fiche(idSalarie).vehicule) : "";
+    if (ancienDuNouveau === idVehicule) ancienDuNouveau = "";
+    var pertes = perdV.map(function (sid) { return { nom: nomSalarie(sid), immat: immatDe(L, idVehicule) }; });
+    if (ancienDuNouveau) pertes.push({ nom: nomSalarie(idSalarie), immat: immatDe(L, ancienDuNouveau) });
+    if (!dejaConfirme && !retraitsAccepte(pertes)) return false;
+
+    perdV.forEach(function (sid) {
+      var a = fiche(sid);
+      if (a.vehicule === idVehicule) { a.vehicule = ""; garderFiche(sid, a); }
+    });
+    L = vehicules();
+    L.forEach(function (v) {
+      if (v.id === idVehicule) v.conducteur = idSalarie || "";
+      else if (idSalarie && v.conducteur === idSalarie && v.id === ancienDuNouveau) v.conducteur = "";
+    });
+    garderVehicules(L);
+    if (idSalarie) {
+      var f = fiche(idSalarie);
+      if (f.vehicule !== idVehicule) { f.vehicule = idVehicule; garderFiche(idSalarie, f); }
     }
-    if (!idSalarie) return;
-    var f = fiche(idSalarie);
-    if (f.vehicule !== idVehicule) { f.vehicule = idVehicule; garderFiche(idSalarie, f); }
+    return true;
   }
 
   function lierConducteurVehicule(idSalarie, idVehicule, idVehiculeAvant) {
-    var L = vehicules(), change = false;
-    L.forEach(function (v) {
-      if (v.id === idVehiculeAvant && v.conducteur === idSalarie) { v.conducteur = ""; change = true; }
-      if (idVehicule && v.id === idVehicule && v.conducteur !== idSalarie) { v.conducteur = idSalarie; change = true; }
+    var L = vehicules();
+    var perd = idVehicule ? porteurs(L, idVehicule).filter(function (sid) { return sid !== idSalarie; }) : [];
+    if (!retraitsAccepte(perd.map(function (sid) { return { nom: nomSalarie(sid), immat: immatDe(L, idVehicule) }; })))
+      return false;
+    perd.forEach(function (sid) {
+      var a = fiche(sid);
+      if (a.vehicule === idVehicule) { a.vehicule = ""; garderFiche(sid, a); }
     });
-    if (change) garderVehicules(L);
+    L.forEach(function (v) {
+      if (v.id === idVehiculeAvant && v.conducteur === idSalarie) v.conducteur = "";
+      if (idVehicule && v.id === idVehicule) v.conducteur = idSalarie;
+    });
+    garderVehicules(L);
+    return true;
+  }
+
+  /* LE CHEF DE PARC SANS AUTORISATION NE VOIT RIEN DES CONDUCTEURS
+     (27 novembre 2026). L'onglet était caché, mais le classeur Excel portait
+     encore une feuille « Conducteurs » (permis, points, FCO, suivi médical),
+     et le tableau de bord du parc nommait les permis, cartes et visites de
+     chacun. Une seule question, posée partout où ces données sortent : la
+     séance est-elle celle du chef de parc, et T.E.C lui a-t-elle ouvert les
+     fiches conducteur ? */
+  function conducteursCaches() {
+    try {
+      var r = window.sessionStorage.getItem("seance-role") || window.localStorage.getItem("seance-role");
+      return r === "parc" && window.localStorage.getItem("parc-conducteurs-visibles") !== "oui";
+    } catch (e) { return false; }
   }
 
   /* ─────────────────────────────── les écrans ───────────────────────────── */
@@ -904,9 +978,12 @@
 
   function bordHtml(v) {
     var b = v.bord || {}, c = b.c || {};
-    var f = net(v.conducteur) ? fiche(v.conducteur) : {};
+    /* Sans autorisation, ni les dates du permis et des cartes, ni le nom de
+       celui à qui elles appartiennent : la case seule. */
+    var cache = conducteursCaches();
+    var f = net(v.conducteur) && !cache ? fiche(v.conducteur) : {};
     var nomC = "";
-    if (net(v.conducteur)) salaries(true).forEach(function (s) { if (s.id === v.conducteur) nomC = s.nom; });
+    if (net(v.conducteur) && !cache) salaries(true).forEach(function (s) { if (s.id === v.conducteur) nomC = s.nom; });
     var n = bordManquants(v);
     var tete;
     if (b.le) {
@@ -1105,8 +1182,30 @@
           var T = vehicules();
           garderVehicules(T.map(function (x) { return x.id === o.id ? o : x; }));
         },
-        function (c, val, avant) {
-          if (c === "conducteur") lierVehiculeConducteur(v.id, val, avant);
+        function (c, val, avant, o) {
+          function garderO() {
+            var T = vehicules();
+            garderVehicules(T.map(function (x) { return x.id === o.id ? o : x; }));
+          }
+          if (c === "conducteur" && !lierVehiculeConducteur(v.id, val, avant)) {
+            /* Retrait refusé : le camion garde son chauffeur. */
+            o.conducteur = avant || "";
+            garderO();
+          }
+          /* LA PÉRIODICITÉ DU CONTRÔLE TECHNIQUE SUIT LE GENRE (27 novembre
+             2026). Un véhicule ajouté à la main naissait poids lourd, douze
+             mois, et le restait devenu utilitaire léger. Quand le genre
+             change, la périodicité prend celle du nouveau genre (CT_DEFAUT),
+             sauf si l'utilisateur l'a saisie lui-même. Une valeur égale au
+             défaut de l'ancien genre est celle que l'application avait posée. */
+          if (c === "ctMois") { o.ctMoisSaisi = !!net(val); garderO(); }
+          if (c === "genre") {
+            var defAvant = CT_DEFAUT[avant] || 12;
+            if (!o.ctMoisSaisi && (!net(o.ctMois) || parseInt(o.ctMois, 10) === defAvant)) {
+              o.ctMois = CT_DEFAUT[val] || 12;
+              garderO();
+            }
+          }
         });
       Array.prototype.forEach.call(cadre.querySelectorAll("details.sec[data-sec]"), function (d) {
         d.addEventListener("toggle", function () { secOuverte[d.getAttribute("data-sec")] = d.open; });
@@ -1578,8 +1677,22 @@
   function ficheNette(s, f, conduit) {
     var h = f.recue && f.recue.le ? validationHtml(s, f)
       : '<p class="fn-rien">Il n\'a pas encore rempli sa fiche.</p>';
-    /* Comme dans le questionnaire, la première question : roulant ou non. */
-    h += cadreFiche("Roulant ou non roulant", champsDe(s, f, ["roulant"]));
+    /* Comme dans le questionnaire, la première question : roulant ou non.
+       Tant que personne n'a répondu, la case montre ce que dit le registre
+       du personnel (« conduit »), sans l'enregistrer : elle ne s'écrit que si
+       quelqu'un la change. Relevé le 27 novembre 2026 : elle disait « à
+       préciser » pour un chauffeur que le registre classe roulant. */
+    var caseRoulant = champsDe(s, f, ["roulant"]);
+    if (!net(f.roulant)) {
+      /* Le choix vide prend le libellé du registre ; Oui ou Non l'enregistre. */
+      var chR = {};
+      CHAMPS_C.forEach(function (c) { if (c.c === "roulant") Object.keys(c).forEach(function (k) { chR[k] = c[k]; }); });
+      chR.opts = [["", "D'après le registre : " + (conduit ? "roulant" : "non roulant")]].concat(OUI_NON.slice(1));
+      caseRoulant = '<div class="gr">' + champHtml(chR, "", "c" + s.id).replace(/<\/label>$/,
+        '<small class="aide selon-reg">Déduit de l\'emploi écrit au registre du personnel. ' +
+        "Choisissez Oui ou Non pour l'enregistrer.</small></label>") + "</div>";
+    }
+    h += cadreFiche("Roulant ou non roulant", caseRoulant);
     /* Nom et prénom, comme en tête du questionnaire : ceux du registre du
        personnel, d'où vient le salarié. Ils se corrigent au registre. */
     var r = null;
@@ -1670,8 +1783,12 @@
     brancher(cadre, "c" + s.id,
       function () { return fiche(s.id); },
       function (o) { garderFiche(s.id, o); },
-      function (c, val, avant) {
-        if (c === "vehicule") lierConducteurVehicule(s.id, val, avant);
+      function (c, val, avant, o) {
+        if (c === "vehicule" && !lierConducteurVehicule(s.id, val, avant)) {
+          /* Retrait refusé : la fiche garde son camion d'avant. */
+          o.vehicule = avant || "";
+          garderFiche(s.id, o);
+        }
       });
     brancherPapiers(cadre, s.id);
     Array.prototype.forEach.call(cadre.querySelectorAll("[data-cat]"), function (b) {
@@ -1689,7 +1806,14 @@
     var bz = cadre.querySelector("[data-raz-fiche]");
     if (bz) bz.addEventListener("click", function () {
       if (!confirmerDur("Remettre à zéro la fiche de " + s.nom + " ? Toutes ses cases seront vidées, celles du salarié " +
-        "comme celles de T.E.C, ainsi que ses photos et sa fiche signée. Cette action ne se rattrape pas.", "ZERO")) return;
+        "comme celles de T.E.C, ainsi que ses photos et sa fiche signée, et son camion lui sera retiré. " +
+        "Cette action ne se rattrape pas.", "ZERO")) return;
+      /* Le camion se libère avec la fiche (27 novembre 2026) : il restait au
+         nom du salarié, la case disait « aucun » et le camion s'affichait
+         dessous. */
+      var Tz = vehicules(), libere = false;
+      Tz.forEach(function (x) { if (x.conducteur === s.id) { x.conducteur = ""; libere = true; } });
+      if (libere) garderVehicules(Tz);
       garderFiche(s.id, {});
       try {
         var R = JSON.parse(window.localStorage.getItem("fiches-rangees") || "[]");
@@ -1732,6 +1856,9 @@
     G = G.filter(function (s) { return CONDUIT.test(s.emp); })
       .concat(G.filter(function (s) { return !CONDUIT.test(s.emp); }));
     var hote = $("conducteurs");
+    /* Caché au chef de parc sans autorisation : rien ne s'écrit dans la page,
+       pas même dans un onglet masqué. */
+    if (conducteursCaches()) { hote.innerHTML = ""; $("con-vide").hidden = true; return; }
     $("con-vide").hidden = !!G.length;
     if (!G.length) { hote.innerHTML = ""; return; }
     hote.innerHTML = G.map(function (s) {
@@ -2005,6 +2132,16 @@
   function montrerApercu() {
     var hote = $("i-apercu");
     LU = serrer(LU.filter(function (l) { return l.some(function (c) { return net(c); }); }));
+    /* LA LIGNE D'EN-TÊTE N'EST PAS UN VÉHICULE (27 novembre 2026). Un
+       classeur à six véhicules annonçait « 7 lignes » : son en-tête était
+       compté. Une première ligne sans aucune immatriculation, au-dessus de
+       lignes qui en portent, est un en-tête : elle est écartée. */
+    var entete = false;
+    if (LU.length > 1 && !LU[0].some(function (c) { return IMMAT.test(net(c)); }) &&
+      LU.slice(1).some(function (l) { return l.some(function (c) { return IMMAT.test(net(c)); }); })) {
+      LU = LU.slice(1);
+      entete = true;
+    }
     if (!LU.length) { hote.innerHTML = '<p class="dit mal">Rien de lisible dans ce tableau.</p>'; return; }
     var choix = deviner(LU);
     var nb = choix.length;
@@ -2022,7 +2159,8 @@
     });
     h += "</tbody></table></div>";
     h += '<p class="dit">' + LU.length + " ligne" + (LU.length > 1 ? "s" : "") +
-      " lue" + (LU.length > 1 ? "s" : "") + ". Les quatre premières sont montrées ; " +
+      " lue" + (LU.length > 1 ? "s" : "") + (entete ? ", sans la ligne d'en-tête" : "") +
+      ". Les quatre premières sont montrées ; " +
       "vérifiez l'intitulé de chaque colonne.</p>";
     h += '<div class="barre"><button type="button" id="i-ajouter">Valider l\'importation de ' +
       LU.length + " ligne" + (LU.length > 1 ? "s" : "") + "</button></div>";
@@ -2139,13 +2277,17 @@
     });
     if (V.length === 1) V.push(V[0].map(function () { return ""; }));
 
+    /* Sans autorisation, le chef de parc reçoit le classeur de la flotte
+       seule : ni feuille « Conducteurs », ni échéance d'un conducteur dans
+       « À surveiller » (27 novembre 2026). */
+    var cache = conducteursCaches();
     var C = [["Conducteur", "Emploi", "Permis", "Catégories", "Validité du permis", "Points",
       "Suspension jusqu'au", "Dernière FCO", "Prochaine FCO", "Carte conducteur",
       "Carte de qualification", "Visite du permis", "Attestation de conduite", "Suivi médical",
       "Dernière visite", "Prochaine visite", "Véhicule", "Observations"]];
     var parId = {};
     vehicules().forEach(function (v) { parId[v.id] = v.immat || ""; });
-    salaries().forEach(function (s) {
+    if (!cache) salaries().forEach(function (s) {
       var f = fiche(s.id), suivi = "";
       SUIVIS.forEach(function (o) { if (o[0] === f.suivi) suivi = o[1]; });
       var prochaine = "";
@@ -2188,7 +2330,7 @@
                : ouLonEnEst(rang, e.jours, dit(e.jours))]);
       });
     });
-    salaries().forEach(function (s) {
+    if (!cache) salaries().forEach(function (s) {
       echeancesConducteur(fiche(s.id)).forEach(function (e) {
         if (e.etat !== "passe" && e.etat !== "rouge" && e.etat !== "ambre") return;
         var rangC = alertes.length + 1;
@@ -2219,14 +2361,14 @@
     if (INT.length === 1) INT.push(["", "", "", "Aucune intervention enregistrée", "", "", "", "", "", "", ""]);
     else INT.push(["", "", "", "TOTAL DU PARC", "", "", "", "", "", "", totalParc]);
 
-    var nom = "flotte-et-conducteurs-" + iso(new Date()) + ".xlsx";
-    window.TableurExport.telecharger(window.TableurExport.xlsx([
-      { titre: "Véhicules", lignes: V },
-      { titre: "Conducteurs", lignes: C },
+    var nom = (cache ? "flotte-" : "flotte-et-conducteurs-") + iso(new Date()) + ".xlsx";
+    var feuilles = [{ titre: "Véhicules", lignes: V }];
+    if (!cache) feuilles.push({ titre: "Conducteurs", lignes: C });
+    window.TableurExport.telecharger(window.TableurExport.xlsx(feuilles.concat([
       { titre: "À surveiller", lignes: alertes, largeurs: [28, 30, 22, 26] },
       { titre: "Entretien", lignes: INT, largeurs: [16, 12, 12, 36, 24, 8, 12, 14, 12, 14, 14] },
       { titre: "Mode d'emploi", lignes: [
-        ["Flotte et conducteurs"],
+        [cache ? "Flotte" : "Flotte et conducteurs"],
         ["Entreprise", p.denomination || ""],
         /* UNE DATE ÉCRITE EN TEXTE NE SE TRIE PAS ET NE SE CALCULE PAS : le
          tableur la range au format jour/mois/année quand on lui donne une
@@ -2242,7 +2384,7 @@
          "(R. 4624-16) ; sur un poste à risques particuliers, suivi individuel renforcé tous les quatre " +
          "ans au plus, avec une visite intermédiaire deux ans au plus tard (R. 4624-22, R. 4624-28)."],
       ], largeurs: [26, 80] },
-    ]), nom);
+    ])), nom);
   }
 
   /* ──────────────────────────────── branchements ────────────────────────── */
@@ -2259,7 +2401,9 @@
           date: e.date, etat: e.etat, jours: e.jours, fond: e.fond });
       });
     });
-    salaries().forEach(function (s) {
+    /* Le chef de parc sans autorisation ne reçoit que les véhicules : c'est
+       par ici que le tableau de bord du parc nommait permis et cartes. */
+    if (!conducteursCaches()) salaries().forEach(function (s) {
       echeancesConducteur(fiche(s.id)).forEach(function (e) {
         if (!e.date) return;
         out.push({ quoi: e.quoi, qui: s.nom, date: e.date, etat: e.etat, jours: e.jours, fond: e.fond });
@@ -2276,7 +2420,8 @@
       EMBARQUE = hote ? { hote: hote, sid: sid, conduit: conduit !== false, apres: apres, partie: partie || "fiche" } : null;
       if (EMBARQUE) rendreEmbarque();
     },
-    etatFiche: function (sid) { return etatFiche(fiche(sid)); } };
+    etatFiche: function (sid) { return etatFiche(fiche(sid)); },
+    conducteursCaches: conducteursCaches };
 
   function demarrer() {
     /* Le fichier est aussi chargé par l'agenda, qui n'a aucun de ces écrans :
@@ -2452,7 +2597,7 @@
         L.forEach(function (x) { if (x.id === id) v = x; });
         if (!confirmerDur("Retirer " + ((v && v.immat) || "ce véhicule") + " du fichier ? Son suivi, " +
           "ses échéances et ses interventions seront perdus. Cette action ne se rattrape pas.", "SUPPRIMER")) return;
-        if (v && v.conducteur) lierVehiculeConducteur(id, "", v.conducteur);
+        if (v && v.conducteur) lierVehiculeConducteur(id, "", v.conducteur, true);
         garderVehicules(L.filter(function (x) { return x.id !== id; }));
         delete ouvert["v" + id];
         rendre();

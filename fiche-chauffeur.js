@@ -48,9 +48,32 @@
 
   /* ─── les numéros, mis en forme pendant la saisie ─── */
   function chiffres(v) { return String(v || "").replace(/[^0-9]/g, ""); }
+  /* LE TÉLÉPHONE EN +33 (27 novembre 2026). Un numéro collé depuis les
+     contacts arrive souvent en « +33 6 12 34 56 78 », ou en 0033 : le « + »
+     était effacé et le 33 pris pour les deux premiers chiffres, ce qui donnait
+     « 33 61 23 45 67 ». On reconnaît donc l'indicatif, on le remplace par le
+     0, et on retire le « (0) » que certains y glissent. Pendant la frappe,
+     « + », « +3 » et « +33 » restent tels quels, en attendant la suite. */
   function formeTel(v) {
-    var d = chiffres(v);
-    if (d.indexOf("33") === 0 && d.length === 11) d = "0" + d.slice(2);
+    var s = String(v || "").replace(/[\s.\-()\/]/g, "");
+    if (/^\+(3(3)?)?$/.test(s)) return s;
+    var m = /^(?:\+|00)33(.*)$/.exec(s);
+    var d;
+    if (m) {
+      d = chiffres(m[1]).replace(/^0/, "");
+      if (!d) return "+33";
+      d = "0" + d;
+    } else if (/^(?:\+|00)/.test(s)) {
+      /* UN NUMÉRO ÉTRANGER (27 novembre 2026) : +212, +216, 0039... Il était
+         réduit à ses dix premiers chiffres et le numéro faux qui en sortait
+         passait. On garde le « + » et l'indicatif, jusqu'à quinze chiffres,
+         qui est la longueur la plus grande d'un numéro international. */
+      d = chiffres(s.replace(/^00/, "")).slice(0, 15);
+      return "+" + d;
+    } else {
+      d = chiffres(v);
+      if (d.indexOf("33") === 0 && d.length === 11) d = "0" + d.slice(2);
+    }
     return d.slice(0, 10).replace(/(\d{2})(?=\d)/g, "$1 ");
   }
   /* Le numéro de sécurité sociale : 1 85 03 75 123 456 78. Le département
@@ -61,15 +84,17 @@
     parts.forEach(function (l) { if (i < n.length) { out.push(n.substr(i, l)); i += l; } });
     return out.join(" ");
   }
+  /* LA CLÉ (27 novembre 2026) : 97 moins le reste de la division des treize
+     premiers chiffres par 97. Pour la Corse, 2A se lit 19 et 2B se lit 18, et
+     c'est tout : le code retirait en plus 1 000 000 ou 2 000 000, ce qui
+     faisait refuser tous les numéros corses exacts. */
   function nirValide(v) {
     var n = nirBrut(v);
     if (!/^[12378]\d{4}(\d{2}|2A|2B)\d{6}\d{2}$/.test(n)) return false;
     var corps = n.slice(0, 13), cle = parseInt(n.slice(13), 10);
-    var num = corps.replace("2A", "19").replace("2B", "18");
+    var num = corps.slice(0, 5) + corps.slice(5, 7).replace("2A", "19").replace("2B", "18") + corps.slice(7);
     var reste = 0;
     for (var k = 0; k < num.length; k++) reste = (reste * 10 + parseInt(num.charAt(k), 10)) % 97;
-    if (/2A/.test(corps)) reste = (reste + 97 - 1000000 % 97) % 97;
-    if (/2B/.test(corps)) reste = (reste + 97 - 2000000 % 97) % 97;
     return 97 - reste === cle;
   }
   function brancherForme(id, f) {
@@ -102,14 +127,32 @@
      photos et sa signature. */
   function roulant() { return R.roulant === "oui"; }
   function etapes() { return R.roulant === "non" ? [1, 3, 4] : [1, 2, 3, 4]; }
+  /* CE QUI EST CACHÉ N'EST NI EXIGÉ NI ENVOYÉ (27 novembre 2026). Un roulant
+     qui avait choisi « Poids lourd » ou « Permis étranger » puis passait en
+     non roulant gardait ces réponses en mémoire : le pays du permis et la date
+     d'arrivée restaient exigés alors qu'on ne les voyait plus, et les cartes du
+     poids lourd restaient demandées en photo. Les réponses du roulant ne
+     comptent donc que pour un roulant, ici, et partout où elles servent. */
+  function profil() { return roulant() ? (R.profil || "") : ""; }
+  function permisEtr() { return roulant() && R.ue === "non" && R.permisOrigine === "etr"; }
+  function compteur() {
+    var L = etapes(), rang = L.indexOf(E) + 1;
+    if (!rang) return;
+    $("etape").textContent = "Étape " + rang + " sur " + L.length;
+    $("avance").style.width = (rang / L.length * 100) + "%";
+  }
   function montrer() {
     $("bloc-profil").hidden = !roulant();
     $("etr-roulant").hidden = !roulant();
     $("etranger").hidden = R.ue !== "non";
-    $("permis-etr").hidden = !(roulant() && R.ue === "non" && R.permisOrigine === "etr");
-    $("bloc-pl").hidden = R.profil !== "pl";
-    $("bloc-leger").hidden = R.profil !== "leger";
-    $("lib-carte-leger").hidden = !(R.profil === "leger" && R.aCarte === "oui");
+    $("permis-etr").hidden = !permisEtr();
+    $("bloc-pl").hidden = profil() !== "pl";
+    $("bloc-leger").hidden = profil() !== "leger";
+    $("lib-carte-leger").hidden = !(profil() === "leger" && R.aCarte === "oui");
+    /* Le compteur suit tout de suite le choix roulant ou non roulant (trois
+       écrans au lieu de quatre), sans attendre « Continuer ». */
+    compteur();
+    quitterFermer();
   }
 
   /* ─── les photos demandées, selon les réponses ─── */
@@ -124,11 +167,11 @@
       { k: "identiteRecto", t: "Pièce d'identité, recto", o: true },
       { k: "identiteVerso", t: "Pièce d'identité, verso", o: true },
     ]);
-    if (R.profil === "pl") {
+    if (profil() === "pl") {
       L.push({ k: "carteQualif", t: "Carte de qualification de conducteur, recto", s: "Si vous l'avez" });
       L.push({ k: "carteCond", t: "Carte conducteur (chronotachygraphe), recto", s: "Si vous l'avez" });
     }
-    if (R.profil === "leger" && R.aCarte === "oui") L.push({ k: "carteCond", t: "Carte conducteur (chronotachygraphe), recto" });
+    if (profil() === "leger" && R.aCarte === "oui") L.push({ k: "carteCond", t: "Carte conducteur (chronotachygraphe), recto" });
     if (R.ue === "non") {
       L.push({ k: "titreRecto", t: "Titre de séjour, recto", o: true });
       L.push({ k: "titreVerso", t: "Titre de séjour, verso", o: true });
@@ -210,30 +253,45 @@
     var y = parseInt(v.slice(0, 4), 10);
     return y >= 1950 && y <= 2100;
   }
+  /* Un champ se voit-il à l'écran ? Il est caché dès que lui ou un de ses
+     blocs porte « hidden » (27 novembre 2026). */
+  function visible(id) {
+    for (var e = $(id); e && e !== document.body; e = e.parentNode) if (e.hidden) return false;
+    return true;
+  }
   function controle() {
     var M = [];
     if (E === 1) {
       if (!code && !val("code")) M.push("le code donné par T.E.C");
       if (!val("nom")) M.push("votre nom");
       if (!val("prenom")) M.push("votre prénom");
-      if (val("tel") && chiffres(val("tel")).length !== 10) M.push("un numéro de téléphone à 10 chiffres");
+      if (val("tel")) {
+        var t = formeTel(val("tel")), nc = chiffres(t).length;
+        if (t.charAt(0) === "+" ? (nc < 8 || nc > 15) : nc !== 10) M.push("un numéro de téléphone complet (10 chiffres, ou l'indicatif du pays précédé de +)");
+      }
       if (val("nir") && !nirValide(val("nir"))) M.push("un numéro de sécurité sociale exact (15 chiffres, vérifiez la clé, les 2 derniers)");
+      /* La dernière visite chez le médecin du travail est sur ce premier
+         écran : elle se contrôle ici, roulant ou non, comme les autres dates
+         (27 novembre 2026). Une année 0202 passait sans rien dire. */
+      if (!dateOk("visiteTravail", false)) M.push("la date de votre dernière visite chez le médecin du travail (l'année paraît impossible)");
       if (!R.roulant) M.push("si vous êtes personnel roulant ou non roulant");
       if (roulant() && !R.profil) M.push("votre profil (poids lourd ou pas)");
       if (!R.ue) M.push("votre nationalité (oui ou non)");
       if (R.ue === "non") {
         if (!val("titreFin") || !dateOk("titreFin", true)) M.push("la date de fin de votre titre de séjour");
         if (roulant() && !R.permisOrigine) M.push("si votre permis est français ou étranger");
-        if (R.permisOrigine === "etr" && !val("permisPays")) M.push("le pays de votre permis");
-        if (R.permisOrigine === "etr" && (!val("arrivee") || !dateOk("arrivee", true))) M.push("votre date d'arrivée en France");
+        if (permisEtr() && !val("permisPays")) M.push("le pays de votre permis");
+        if (permisEtr() && (!val("arrivee") || !dateOk("arrivee", true))) M.push("votre date d'arrivée en France");
       }
     }
     if (E === 2) {
       if (!categories()) M.push("les catégories de votre permis (cochez-les)");
       if (!val("permisFin") || !dateOk("permisFin", true)) M.push("la date de fin de validité de votre permis");
       if (!R.suspendu) M.push("si votre permis est suspendu (oui ou non)");
-      ["visiteTravail", "visitePermisFin", "fco", "carteQualif", "carteCond", "carteCondLeger"].forEach(function (id) {
-        if (!dateOk(id, false)) M.push("une date à corriger (l'année paraît impossible)");
+      /* Seules les dates qu'on voit se contrôlent : celles du bloc poids lourd
+         ne doivent pas bloquer un « pas poids lourd », ni l'inverse. */
+      ["visitePermisFin", "fco", "carteQualif", "carteCond", "carteCondLeger"].forEach(function (id) {
+        if (visible(id) && !dateOk(id, false)) M.push("une date à corriger (l'année paraît impossible)");
       });
     }
     if (E === 3) {
@@ -248,6 +306,7 @@
   function erreur(M) {
     var e = $("err");
     if (!M || !M.length) { e.hidden = true; return; }
+    quitterFermer();
     e.textContent = typeof M === "string" ? M
       : "Il manque : " + M.filter(function (x, i) { return M.indexOf(x) === i; }).join(", ") + ".";
     e.hidden = false; window.scrollTo(0, 0);
@@ -257,9 +316,8 @@
     Array.prototype.forEach.call(document.querySelectorAll("section[data-e]"), function (s) {
       s.hidden = parseInt(s.getAttribute("data-e"), 10) !== n;
     });
-    var L = etapes(), rang = L.indexOf(n) + 1;
-    $("etape").textContent = "Étape " + rang + " sur " + L.length;
-    $("avance").style.width = (rang / L.length * 100) + "%";
+    compteur();
+    quitterFermer();
     $("suivant").textContent = n === NB ? "Envoyer ma fiche" : "Continuer";
     if (n === 3) dessinerPhotos();
     if (n === 4) setTimeout(function () { if (!signe) prepSig(); }, 30);
@@ -274,13 +332,64 @@
   var poste = false;
   try { poste = !!window.localStorage.getItem("synchro-cle"); } catch (e) {}
   if (poste) $("vers-appli").hidden = false;
+  /* LE GESTE RETOUR DU TÉLÉPHONE (27 novembre 2026). Le bouton de la page
+     prévient avant de tout perdre, mais le geste retour du système, ou la
+     fermeture de l'onglet, quittaient sans rien dire. Tant que la fiche n'est
+     pas envoyée et que quelque chose est saisi, le navigateur demande
+     confirmation. Quand on a déjà dit « Quitter », on ne redemande pas. */
+  var sortieVoulue = false;
+  window.addEventListener("beforeunload", function (ev) {
+    if (sortieVoulue || !$("fini").hidden || !saisi()) return;
+    ev.preventDefault();
+    ev.returnValue = "";
+    return "";
+  });
   function sortir() {
+    sortieVoulue = true;
     if (poste) location.href = "index.html";
     else if (history.length > 1) history.back();
   }
+  /* LE RETOUR DE L'ÉTAPE 1 PRÉVIENT AVANT DE TOUT PERDRE (27 novembre 2026).
+     Il quittait la fiche sans un mot, et tout ce qui était saisi partait
+     avec ; ouverte seule depuis le lien WhatsApp, sans page d'avant, il ne
+     faisait rien du tout. Désormais : si quelque chose est saisi, on demande
+     avant de quitter ; s'il n'y a nulle part où revenir, on le dit, au lieu
+     d'un bouton qui semble mort. */
+  function saisi() {
+    var champs = document.querySelectorAll("main input[type=text], main input[type=tel], main input[type=date]");
+    for (var i = 0; i < champs.length; i++) if ((champs[i].value || "").trim()) return true;
+    if (categories() || $("certifie").checked || signe) return true;
+    for (var k in PH) if (PH[k]) return true;
+    for (var r in R) if (!(r === "roulant" && R[r] === "oui")) return true;
+    return false;
+  }
+  function quitterFermer() { $("quitter").hidden = true; }
+  function quitterMontrer(texte, avecQuitter) {
+    $("quitter-t").textContent = texte;
+    $("quitter-oui").hidden = !avecQuitter;
+    $("quitter-non").textContent = avecQuitter ? "Rester sur la fiche" : "D'accord";
+    $("quitter").hidden = false;
+    erreur(null);
+    window.scrollTo(0, 0);
+  }
+  $("quitter-oui").addEventListener("click", function () { quitterFermer(); sortir(); });
+  $("quitter-non").addEventListener("click", quitterFermer);
   $("retour").addEventListener("click", function () {
-    if (!$("fini").hidden || E === 1) { sortir(); return; }
-    var L = etapes(); aller(L[Math.max(0, L.indexOf(E) - 1)]);
+    var envoyee = !$("fini").hidden;
+    if (!envoyee && E !== 1) { var L = etapes(); aller(L[Math.max(0, L.indexOf(E) - 1)]); return; }
+    var ailleurs = poste || history.length > 1;
+    if (!ailleurs) {
+      quitterMontrer(envoyee
+        ? "Votre fiche est envoyée. Vous pouvez fermer cette page."
+        : "Vous êtes au début de la fiche, il n'y a pas de page avant. Pour arrêter, fermez cette page" +
+          (saisi() ? " : ce que vous avez saisi ne sera pas envoyé." : "."), false);
+      return;
+    }
+    if (!envoyee && saisi()) {
+      quitterMontrer("Quitter la fiche ? Ce que vous avez saisi sera perdu.", true);
+      return;
+    }
+    sortir();
   });
   $("suivant").addEventListener("click", function () {
     var M = controle();
@@ -293,12 +402,13 @@
   function fiche() {
     var f = {
       nom: val("nom").toUpperCase(), prenom: val("prenom"), adresse: val("adresse"), tel: formeTel(val("tel")), nir: formeNir(val("nir")),
-      roulant: R.roulant, profil: roulant() ? R.profil : "", ue: R.ue,
+      roulant: R.roulant, profil: profil(), ue: R.ue,
       titreFin: R.ue === "non" ? val("titreFin") : "",
       permisOrigine: !roulant() ? "" : (R.ue === "non" ? (R.permisOrigine || "") : "fr"),
-      permisPays: R.ue === "non" && R.permisOrigine === "etr" ? val("permisPays") : "",
-      arrivee: R.ue === "non" && R.permisOrigine === "etr" ? val("arrivee") : "",
-      inter: R.ue === "non" ? (R.inter || "") : "",
+      /* Ce qui n'est plus demandé ne part pas (27 novembre 2026). */
+      permisPays: permisEtr() ? val("permisPays") : "",
+      arrivee: permisEtr() ? val("arrivee") : "",
+      inter: roulant() && R.ue === "non" ? (R.inter || "") : "",
       visiteTravail: val("visiteTravail"),
     };
     if (roulant()) {
@@ -307,7 +417,7 @@
     }
     if (!roulant()) {
       /* rien du permis ni des cartes */
-    } else if (R.profil === "pl") {
+    } else if (profil() === "pl") {
       f.visitePermisFin = val("visitePermisFin"); f.fco = val("fco"); f.carteQualif = val("carteQualif");
       f.code95 = R.code95 || ""; f.carteCond = val("carteCond");
     } else {

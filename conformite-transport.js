@@ -131,7 +131,17 @@
     try { window.localStorage.removeItem(AVANT_ESSAI); } catch (err) {}
   }
 
-  function iso(d) { return new Date(d).toISOString().slice(0, 10); }
+  /* LA DATE DU JOUR EN HEURE DE FRANCE (27 novembre 2026). iso() passait par
+     l'heure universelle : à Paris, une date prise à minuit sortait la veille,
+     une séance du 18/12 s'affichait au 17/12 et le délai pour sanctionner
+     perdait un jour. On lit désormais le jour, le mois et l'année locaux ; une
+     date déjà écrite « AAAA-MM-JJ » est rendue telle quelle. */
+  function iso(d) {
+    if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+    var x = new Date(d);
+    if (isNaN(x.getTime())) return "";
+    return x.getFullYear() + "-" + (x.getMonth() < 9 ? "0" : "") + (x.getMonth() + 1) + "-" + (x.getDate() < 10 ? "0" : "") + x.getDate();
+  }
   function ajouterJours(dateStr, n) {
     var d = new Date(dateStr + "T00:00:00");
     d.setDate(d.getDate() + n);
@@ -426,6 +436,38 @@
     });
   }
 
+  /* Une date ISO écrite en toutes lettres : 2026-11-27 devient 27 novembre 2026. */
+  function enLettres(s) {
+    if (!s) return "";
+    try { return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" }).format(new Date(String(s).slice(0, 10) + "T12:00:00")); }
+    catch (e) { return String(s).slice(0, 10); }
+  }
+
+  /* Une date ISO en chiffres à la française : 2026-11-27 devient 27/11/2026
+     (27 novembre 2026, pour les tableaux de la fiche en Word). */
+  function jjmm(s) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || ""));
+    return m ? m[3] + "/" + m[2] + "/" + m[1] : String(s || "");
+  }
+
+  /* L'ENCADREMENT, TEL QUE LA FICHE LE CONNAÎT. Relevé le 27 novembre 2026 : la
+     fiche en Word portait « signée le [DATE] » et « Rappels : [DATES] » même
+     une fois la consigne signée à l'écran. Les dates viennent maintenant de
+     l'étape Instructions : la consigne, et la note de service qui rappelle la
+     réglementation. Ce qui n'est pas encore signé le dit en clair. */
+  function phraseEncadrement(id) {
+    var d = docsRemis(id), pr = profilConducteur(id);
+    var nomConsigne = "Consigne de conduite" + (pr.pl ? " avec carte" : "");
+    function etat(cle, signe, imprime, rien) {
+      var x = d[cle] || {};
+      if (x.etat === "signe" && x.signeLe) return signe + " le " + enLettres(x.signeLe);
+      if (x.etat === "imprime" && x.imprimeLe) return imprime + " le " + enLettres(x.imprimeLe) + ", pas encore signée";
+      return rien;
+    }
+    return etat("consigne", nomConsigne + " remise et signée", nomConsigne + " imprimée", nomConsigne + " : pas encore remise au conducteur") + ". " +
+      "Rappels de la réglementation : " + etat("note", "note de service signée", "note de service imprimée", "aucun rappel signé à ce jour") + ".";
+  }
+
   /* LA FICHE DE SUIVI EN WORD, à l'en-tête de l'entreprise. */
   function ficheSuiviItems(id) {
     var p = profil();
@@ -437,15 +479,15 @@
     items.push({ k: "h1", t: "FICHE DE SUIVI DU CONDUCTEUR" });
     items.push({ k: "p", t: sal.nom + (sal.poste ? "  ·  " + sal.poste : "") +
       (sal.poidsLourd ? "  ·  poids lourd" : "") });
-    items.push({ k: "p", t: "État au " + iso(new Date()) + " : " + et.message });
+    items.push({ k: "p", t: "État au " + enLettres(iso(new Date())) + " : " + et.message });
 
     items.push({ k: "h2", t: "Encadrement" });
-    items.push({ k: "p", t: "Consigne de conduite avec carte remise et signée le [DATE]. Rappels de la réglementation : [DATES]." });
+    items.push({ k: "p", t: phraseEncadrement(id) });
 
     items.push({ k: "h2", t: "Contrôle et anomalies relevées" });
     if (s.anomalies.length) {
       items.push({ k: "table", head: ["Date", "Type", "Détail"],
-        rows: s.anomalies.map(function (a) { return [a.date || "", a.type || "", a.detail || ""]; }) });
+        rows: s.anomalies.map(function (a) { return [jjmm(a.date), a.type || "", a.detail || ""]; }) });
     } else {
       items.push({ k: "p", t: "Aucune anomalie relevée à ce jour." });
     }
@@ -455,7 +497,7 @@
       items.push({ k: "table", head: ["Date", "Catégorie", "Mesure", "Pour le manquement"],
         rows: s.mesures.map(function (m) {
           var cat = (CATEGORIES.filter(function (c) { return c.cle === (m.categorie || "").toLowerCase(); })[0] || {}).nom || m.categorie || "";
-          return [m.date || "", cat, m.objet || "", m.pour || ""]; }) });
+          return [jjmm(m.date), cat, m.objet || "", m.pour || ""]; }) });
     } else {
       items.push({ k: "p", t: "Aucune mesure prise à ce jour." });
     }
@@ -808,6 +850,9 @@
       { quoi: "Déposer les observations écrites", regle: "avant la séance", jours: -2 },
       { quoi: "Séance de la commission", regle: "", jours: 0 },
     ];
+    /* Dans l'ordre du temps (27 novembre 2026) : « dès réception de la
+       convocation », à J-20, venait après l'étape de J-5. */
+    etapes.sort(function (x, y) { return x.jours - y.jours; });
     return etapes.map(function (e) {
       var o = { quoi: e.quoi, regle: e.regle };
       if (dateSeance) o.date = ajouterJours(dateSeance, e.jours);
@@ -879,9 +924,43 @@
       "Mesures prises pour éviter la réitération"];
     var veh = vehiculesFlotte().map(function (v) { return [v.immat || "sans immatriculation"]; });
     var cond = salariesRegistre().map(function (s) { return [s.nom]; });
+    /* LES INFRACTIONS SAISIES. Relevé le 27 novembre 2026 : la feuille ne
+       portait que sa ligne de titres, même après l'ajout d'une infraction à la
+       fiche d'un conducteur. Chaque fait porté à une fiche y fait maintenant
+       sa ligne, du plus ancien au plus récent. Le véhicule se lit dans le
+       détail quand celui-ci le nomme ; la date est écrite jj/mm/aaaa, en texte,
+       pour qu'une infraction passée ne s'affiche pas en rouge comme une
+       échéance dépassée. Les colonnes que la fiche ne connaît pas restent
+       vides, à compléter depuis le procès-verbal. */
+    var e = etat(), noms = {};
+    salariesRegistre().forEach(function (s) { noms[s.id] = s.nom; });
+    var faits = [];
+    Object.keys(e.suivi || {}).forEach(function (id) {
+      var carte = carteDe(id) || {};
+      ((e.suivi[id] || {}).anomalies || []).forEach(function (a) {
+        var m = String(a.detail || "").match(/v[ée]hicule\s+([A-Z0-9][A-Z0-9 -]*[A-Z0-9])/i);
+        faits.push({ date: a.date || "", src: a.src || "", type: a.type || "", nom: noms[id] || id,
+          carte: carte.numero || "", veh: m ? m[1] : "", detail: a.detail || "" });
+      });
+    });
+    /* Les faits du registre des véhicules (conduite sans carte lue dans le
+       fichier du tachygraphe) y figurent aussi, sous leur immatriculation, avec
+       le conducteur à établir (ajouté le 27 novembre 2026). */
+    Object.keys(e.suiviVehicules || {}).forEach(function (immat) {
+      ((e.suiviVehicules[immat] || {}).anomalies || []).forEach(function (a) {
+        faits.push({ date: a.date || "", src: "Fichier du véhicule", type: a.type || "",
+          nom: "à établir", carte: "", veh: immat, detail: a.detail || "" });
+      });
+    });
+    faits.sort(function (x, y) { return x.date < y.date ? -1 : x.date > y.date ? 1 : (x.nom < y.nom ? -1 : x.nom > y.nom ? 1 : 0); });
+    var lignes = faits.map(function (f, i) {
+      var jma = /^\d{4}-\d{2}-\d{2}/.test(f.date) ? f.date.slice(8, 10) + "/" + f.date.slice(5, 7) + "/" + f.date.slice(0, 4) : f.date;
+      var typ = f.type ? f.type.charAt(0).toUpperCase() + f.type.slice(1) : "";
+      return [String(i + 1), "", f.src, jma, "", "", "", "", "", typ, "", f.nom, f.carte, f.veh, f.detail, ""];
+    });
     var feuilles = [
-      { titre: "Infractions", lignes: [cols],
-        largeurs: [5, 22, 20, 12, 10, 10, 15, 11, 12, 28, 14, 20, 20, 40, 34] },
+      { titre: "Infractions", lignes: [cols].concat(lignes),
+        largeurs: [5, 14, 22, 12, 10, 10, 15, 11, 12, 30, 14, 22, 20, 14, 44, 34] },
       { titre: "Véhicules (flotte)", lignes: [["Immatriculation"]].concat(veh.length ? veh : [[""]]) },
       { titre: "Conducteurs (registre)", lignes: [["Conducteur"]].concat(cond.length ? cond : [[""]]) },
       { titre: "Mode d'emploi", lignes: [

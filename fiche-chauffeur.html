@@ -78,6 +78,12 @@
   .coche{display:flex;gap:12px;align-items:flex-start;font:600 15px/1.4 system-ui;margin:0 0 14px;cursor:pointer}
   .coche input{width:24px;height:24px;flex:0 0 auto;margin:0;accent-color:var(--encre)}
   .erreur{background:var(--rouge-clair);color:var(--rouge);border-radius:11px;padding:11px 13px;font:600 14px/1.4 system-ui;margin:0 0 14px}
+  .avis{background:var(--or-clair);border:1px solid #e2d6bd;border-radius:12px;padding:13px;margin:0 0 14px}
+  .avis p{margin:0 0 12px;font:600 15px/1.4 system-ui;color:#16181d}
+  .avis-b{display:flex;gap:10px}
+  .avis-b button{flex:1;min-height:48px;border-radius:11px;font:700 15px/1.2 system-ui;padding:8px 10px;cursor:pointer}
+  .avis-b .garder{background:var(--encre);color:#fff;border:0}
+  .avis-b .partir{background:#fff;color:var(--rouge);border:1px solid var(--rouge)}
   .pied{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--filet);
     padding:12px 16px calc(env(safe-area-inset-bottom) + 12px)}
   .pied .in{max-width:560px;margin:0 auto}
@@ -101,6 +107,14 @@
 
 <main id="corps">
   <div class="erreur" id="err" hidden></div>
+  <!-- Le retour de l'étape 1 prévient avant de quitter (27 novembre 2026). -->
+  <div class="avis" id="quitter" hidden role="alertdialog" aria-labelledby="quitter-t">
+    <p id="quitter-t"></p>
+    <div class="avis-b">
+      <button type="button" id="quitter-non" class="garder">Rester sur la fiche</button>
+      <button type="button" id="quitter-oui" class="partir">Quitter</button>
+    </div>
+  </div>
 
   <!-- ÉCRAN 1 -->
   <section data-e="1">
@@ -128,7 +142,7 @@
       <label class="ch"><span>Adresse</span><small>Numéro, rue, code postal et ville</small>
         <input type="text" id="adresse" autocomplete="street-address"></label>
       <label class="ch"><span>Téléphone</span><small>10 chiffres, par exemple 06 12 34 56 78</small>
-        <input type="tel" id="tel" autocomplete="tel" inputmode="tel" maxlength="14"></label>
+        <input type="tel" id="tel" autocomplete="tel" inputmode="tel" maxlength="24"></label>
       <label class="ch"><span>Numéro de sécurité sociale</span><small>15 chiffres, comme sur la carte Vitale</small>
         <input type="text" id="nir" inputmode="numeric" autocomplete="off" maxlength="21"></label>
       <label class="ch"><span>Dernière visite avec le médecin du travail</span><input type="date" id="visiteTravail"></label>
@@ -250,6 +264,6 @@
 
 <div class="pied" id="pied"><div class="in"><button type="button" id="suivant">Continuer</button></div></div>
 
-<script src="fiche-chauffeur.js?v=a43096b2"></script>
+<script src="fiche-chauffeur.js?v=dba73695"></script>
 </body>
 </html>
