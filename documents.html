@@ -142,7 +142,7 @@
 
 </main>
 
-<script src="profil.js?v=a87b9bf8"></script>
+<script src="profil.js?v=3f489bb2"></script>
 <script src="audit-export.js?v=890d7345"></script>
 <script src="base-documents.js?v=5415ac0e"></script>
 <script>
@@ -2986,7 +2986,7 @@
     var titre = items.length && items[0].k === "t1" ? items.shift().t : actif.nom;
     window.AuditExport.telecharger(
       window.AuditExport.docx(items, titre),
-      slug(actif.nom) + "-" + new Date().toISOString().slice(0, 10) + ".docx",
+      slug(actif.nom) + "-" + (function (d) { return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); })(new Date()) + ".docx",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
   });
   $("imprimer").addEventListener("click", function () { window.print(); });

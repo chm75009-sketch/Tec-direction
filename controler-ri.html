@@ -240,11 +240,11 @@
 <script src="listes-auto.js?v=cc647c6a"></script>
 <script src="lire-pdf.js?v=7667bc22"></script>
 <script src="lire-ocr.js?v=9170cf12"></script>
-<script src="moteur-discipline.js?v=bb7c49ce"></script>
+<script src="moteur-discipline.js?v=cbb331ba"></script>
 <script src="apercu.js?v=0d8afe7c"></script>
 <script src="audit-export.js?v=890d7345"></script>
 <script src="base-documents.js?v=5415ac0e"></script>
-<script src="profil.js?v=a87b9bf8"></script>
+<script src="profil.js?v=3f489bb2"></script>
 <script src="signataire-piece.js?v=1239b010"></script>
 <script>
 (function () {
@@ -867,7 +867,7 @@
   $("#retour-diag").addEventListener("click", function () { onglet("diag"); });
 
   function nomFichier(ext) {
-    return "reglement-interieur-corrige-" + new Date().toISOString().slice(0, 10) + "." + ext;
+    return "reglement-interieur-corrige-" + (function (d) { return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); })(new Date()) + "." + ext;
   }
 
   $("#dl-txt").addEventListener("click", function () {

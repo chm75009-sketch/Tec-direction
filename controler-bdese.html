@@ -201,8 +201,8 @@
   <p class="reserve">Contrôle documentaire automatisé : le résultat est indicatif et ne vaut ni avis juridique ni attestation de conformité.</p>
 </main>
 
-<script src="moteur-bdese.js?v=11dd53ce"></script>
-<script src="profil.js?v=a87b9bf8"></script>
+<script src="moteur-bdese.js?v=221074fc"></script>
+<script src="profil.js?v=3f489bb2"></script>
 <script>
 (function () {
   "use strict";
@@ -847,7 +847,7 @@
       .replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9]+/g, "-")
       .replace(/^-|-$/g, "").toLowerCase().slice(0, 40);
     return "bdese-complement" + (e ? "-" + e : "") + "-" +
-      new Date().toISOString().slice(0, 10) + "." + ext;
+      (function (d) { return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); })(new Date()) + "." + ext;
   }
 
   $("#dl-xlsx").addEventListener("click", function () {

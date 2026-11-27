@@ -279,7 +279,7 @@
   <p class="reserve">Contrôle documentaire automatisé : le résultat est indicatif et ne vaut ni avis juridique ni attestation de conformité.</p>
 </main>
 
-<script src="profil.js?v=a87b9bf8"></script>
+<script src="profil.js?v=3f489bb2"></script>
 <script src="signataire-piece.js?v=1239b010"></script>
 <script src="audit-export.js?v=890d7345"></script>
 <script src="feuille-doc.js?v=a92f127a"></script>
@@ -1302,7 +1302,7 @@
      EMPORTER
      ══════════════════════════════════════════════════════════════════════════ */
   function nomFichier(base, ext) {
-    return base + "-" + new Date().toISOString().slice(0, 10) + "." + ext;
+    return base + "-" + (function (d) { return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); })(new Date()) + "." + ext;
   }
   function copier(t, bouton) {
     if (navigator.clipboard) navigator.clipboard.writeText(t);

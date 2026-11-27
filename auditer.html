@@ -108,9 +108,9 @@
   <p class="reserve">Contrôle documentaire automatisé : le résultat est indicatif et ne vaut ni avis juridique ni attestation de conformité.</p>
 </main>
 
-<script src="profil.js?v=a87b9bf8"></script>
+<script src="profil.js?v=3f489bb2"></script>
 <script src="idcc.js?v=353a06cf"></script>
-<script src="convention.js?v=42897677"></script>
+<script src="convention.js?v=86d40154"></script>
 <script>
 (function () {
   "use strict";
@@ -322,7 +322,7 @@
           o.title = "Aucune page ne contrôle encore cette pièce : votre réponse est notée sur ce poste.";
           o.addEventListener("click", function () {
             var v = lireVus();
-            v[l.cle] = new Date().toISOString().slice(0, 10);
+            v[l.cle] = (function (d) { return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); })(new Date());
             ecrireVus(v);
             rendre();
           });
@@ -338,7 +338,7 @@
           rien.title = "Aucun licenciement envisagé : rien à faire, la réponse est notée.";
           rien.addEventListener("click", function () {
             var v = lireVus();
-            v[l.cle] = new Date().toISOString().slice(0, 10);
+            v[l.cle] = (function (d) { return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); })(new Date());
             ecrireVus(v);
             rendre();
           });

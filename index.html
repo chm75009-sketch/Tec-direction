@@ -326,12 +326,12 @@
 <script src="droits.js?v=9e3215c6"></script>
 <script src="version.js?v=c4e62f6d"></script>
 <script src="idcc.js?v=353a06cf"></script>
-<script src="profil.js?v=a87b9bf8"></script>
+<script src="profil.js?v=3f489bb2"></script>
 <script src="base-documents.js?v=5415ac0e"></script>
-<script src="fiches-recues.js?v=d780fb3e" defer></script>
+<script src="fiches-recues.js?v=25ea65d7" defer></script>
 <!-- Lues, jamais écrites : les échéances de la flotte et des salariés. -->
 <script src="flotte.js?v=ee7efb1a"></script>
-<script src="echeances-salaries.js?v=00ef72d0"></script>
+<script src="echeances-salaries.js?v=b1495182"></script>
 <script>
 (function () {
   "use strict";
@@ -659,7 +659,7 @@
     } catch (e) {}
     var limite = new Date();
     limite.setDate(limite.getDate() + 7);
-    var bout = limite.toISOString().slice(0, 10);
+    var bout = limite.getFullYear() + "-" + ("0" + (limite.getMonth() + 1)).slice(-2) + "-" + ("0" + limite.getDate()).slice(-2);
     L = L.filter(function (e) { return e.date && (e.etat === "passe" || e.date <= bout); });
 
     /* UNE DATE QU'ON N'A PAS N'EST PAS UNE ÉCHÉANCE DE LA SEMAINE.

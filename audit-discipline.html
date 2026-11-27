@@ -150,7 +150,7 @@
 
 <script src="audit-export.js?v=890d7345"></script>
 <script src="base-documents.js?v=5415ac0e"></script>
-<script src="profil.js?v=a87b9bf8"></script>
+<script src="profil.js?v=3f489bb2"></script>
 <script>
 (function () {
   "use strict";
@@ -603,7 +603,7 @@
     var items = f.blocs.map(function (b) { return { k: VERS_EXPORT[b.k] || "p", t: b.t }; });
     window.AuditExport.telecharger(
       window.AuditExport.docx(items, f.titre || "Règlement des sanctions et procédure disciplinaire"),
-      "reglement-des-sanctions-" + new Date().toISOString().slice(0, 10) + ".docx",
+      "reglement-des-sanctions-" + (function (d) { return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); })(new Date()) + ".docx",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
   });
   $("#btn-imprimer").addEventListener("click", function () { window.print(); });
