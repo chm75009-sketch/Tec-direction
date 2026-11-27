@@ -124,6 +124,30 @@
     if ($("sansNir").checked) $("nir").value = "";
   });
 
+  /* UNE DATE DE VALIDITÉ DÉJÀ PASSÉE SE SIGNALE, SANS BLOQUER (27 novembre
+     2026). Le salarié qui saisit une visite médicale ou une carte expirée
+     n'en savait rien : seul T.E.C le voyait, en recevant la fiche. Un mot
+     s'affiche sous la case ; la fiche continue. */
+  var PASSE = {
+    permisFin: "Votre permis n'est plus valable depuis cette date.",
+    visitePermisFin: "Votre visite médicale du permis n'est plus valable depuis cette date.",
+    carteQualif: "Votre carte de qualification n'est plus valable depuis cette date.",
+    carteCond: "Votre carte conducteur n'est plus valable depuis cette date.",
+    carteCondLeger: "Votre carte conducteur n'est plus valable depuis cette date.",
+    titreFin: "Votre titre n'est plus valable depuis cette date."
+  };
+  function signalerPasse(id) {
+    var e = $(id), v = (e.value || "").trim(), lab = e.parentNode;
+    var mot = lab.querySelector(".passe");
+    var passe = /^\d{4}-\d{2}-\d{2}$/.test(v) && parseInt(v.slice(0, 4), 10) >= 1950 && v < iso(new Date());
+    if (!passe) { if (mot) mot.parentNode.removeChild(mot); return; }
+    if (!mot) { mot = document.createElement("p"); mot.className = "passe"; mot.setAttribute("role", "status"); lab.appendChild(mot); }
+    mot.textContent = PASSE[id] + " Vous pouvez continuer la fiche ; prévenez T.E.C au plus vite.";
+  }
+  Object.keys(PASSE).forEach(function (id) {
+    ["input", "change", "blur"].forEach(function (t) { $(id).addEventListener(t, function () { signalerPasse(id); }); });
+  });
+
   /* ─── les choix par boutons ─── */
   Array.prototype.forEach.call(document.querySelectorAll("[data-choix]"), function (g) {
     var nom = g.getAttribute("data-choix");
