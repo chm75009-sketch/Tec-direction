@@ -123,15 +123,6 @@
     $("nir").disabled = $("sansNir").checked;
     if ($("sansNir").checked) $("nir").value = "";
   });
-  /* LE DERNIER TÉLÉCHARGEMENT DE LA CARTE (27 novembre 2026) : il lance le
-     voyant des vingt-huit jours dans le suivi de la carte conducteur. Celui
-     qui ne le connaît pas le dit, et la case ne s'exige plus. */
-  [["sansTelec", "telecCarte"], ["sansTelecLeger", "telecCarteLeger"]].forEach(function (x) {
-    $(x[0]).addEventListener("change", function () {
-      $(x[1]).disabled = $(x[0]).checked;
-      if ($(x[0]).checked) $(x[1]).value = "";
-    });
-  });
 
   /* UNE DATE DE VALIDITÉ DÉJÀ PASSÉE SE SIGNALE, SANS BLOQUER (27 novembre
      2026). Le salarié qui saisit une visite médicale ou une carte expirée
@@ -402,20 +393,16 @@
         if (R.code95 === "non" && !val("carteQualif")) M.push("la date de fin de votre carte de qualification (votre permis ne porte pas le code 95)");
         if (!val("carteNum")) M.push("le numéro de votre carte conducteur");
         if (!val("carteCond")) M.push("la date de fin de votre carte conducteur");
-        if (!$("sansTelec").checked && !val("telecCarte")) M.push("la date du dernier téléchargement de votre carte, ou cochez « Je ne connais pas cette date »");
-        if (val("telecCarte") && val("telecCarte") > iso(new Date())) M.push("une date de téléchargement de la carte qui n'est pas encore arrivée");
       }
       if (profil() === "leger") {
         if (!R.livret) M.push("si vous avez votre livret individuel de contrôle (oui ou non)");
         if (!R.aCarte) M.push("si vous avez une carte conducteur (oui ou non)");
         if (R.aCarte === "oui" && !val("carteNumLeger")) M.push("le numéro de votre carte conducteur");
         if (R.aCarte === "oui" && !val("carteCondLeger")) M.push("la date de fin de votre carte conducteur");
-        if (R.aCarte === "oui" && !$("sansTelecLeger").checked && !val("telecCarteLeger")) M.push("la date du dernier téléchargement de votre carte, ou cochez « Je ne connais pas cette date »");
-        if (R.aCarte === "oui" && val("telecCarteLeger") && val("telecCarteLeger") > iso(new Date())) M.push("une date de téléchargement de la carte qui n'est pas encore arrivée");
       }
       /* Seules les dates qu'on voit se contrôlent : celles du bloc poids lourd
          ne doivent pas bloquer un « pas poids lourd », ni l'inverse. */
-      ["visitePermisFin", "fimo", "fco", "carteQualif", "carteCond", "carteCondLeger", "telecCarte", "telecCarteLeger", "arrivee", "retraitLe", "retraitFin"].forEach(function (id) {
+      ["visitePermisFin", "fimo", "fco", "carteQualif", "carteCond", "carteCondLeger", "arrivee", "retraitLe", "retraitFin"].forEach(function (id) {
         if (visible(id) && !dateOk(id, false)) M.push("une date à corriger (l'année paraît impossible)");
       });
     }
@@ -554,12 +541,10 @@
     } else if (profil() === "pl") {
       f.visitePermisFin = val("visitePermisFin"); f.fimo = val("fimo"); f.fco = val("fco"); f.carteQualif = val("carteQualif");
       f.code95 = R.code95 || ""; f.carteNum = val("carteNum"); f.carteCond = val("carteCond");
-      f.telecCarte = $("sansTelec").checked ? "" : val("telecCarte");
     } else {
       f.livret = R.livret || ""; f.aCarte = R.aCarte || "";
       f.carteNum = R.aCarte === "oui" ? val("carteNumLeger") : "";
       f.carteCond = R.aCarte === "oui" ? val("carteCondLeger") : "";
-      f.telecCarte = R.aCarte === "oui" && !$("sansTelecLeger").checked ? val("telecCarteLeger") : "";
     }
     var P = {};
     photosDemandees().forEach(function (p) { if (PH[p.k]) P[p.k] = { titre: p.t, image: PH[p.k] }; });
